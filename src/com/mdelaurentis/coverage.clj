@@ -1,14 +1,13 @@
 (ns com.mdelaurentis.coverage
   (:import [clojure.lang LineNumberingPushbackReader])
-  (:use [clojure test]
-        [clojure.contrib.duck-streams :only [reader]]))
+  (:use [clojure.contrib.duck-streams :only [reader]]))
 
 (def *lines-covered* (ref (sorted-set)))
 
 (defmacro capture [line form]
   (let [text (with-out-str (prn form))]
     `(do 
-       (dosync (commute *lines-covered* conj ~line))
+       (dosync (commute com.mdelaurentis.coverage/*lines-covered* conj ~line))
        ~form)))
 
 (defn wrap [thing]
@@ -59,5 +58,6 @@
                            (:covered? info) "+"
                            :else            " ")]
           (println prefix (:text info)))))))
+
 
 (analyze "/Users/mdelaurentis/src/clojure-test-coverage/src/com/mdelaurentis/sample.clj")
