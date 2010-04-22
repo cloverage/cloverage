@@ -4,18 +4,14 @@
         [clojure.contrib.duck-streams :only [reader]]))
 
 (def *lines-covered* (ref (sorted-set)))
-(def *forms-covered* (ref #{}))
-(def *forms* (ref {}))
 
 (defmacro capture2 [line form]
   (let [text (with-out-str (prn form))]
-    (println "Form is " (meta form) text)
-    `(do (println "I am running" ~line (str ~text))
-         (dosync (commute *lines-covered* conj ~line))
-         ~form)))
+    `(do 
+       (dosync (commute *lines-covered* conj ~line))
+       ~form)))
 
 (defn wrap [thing]
-  (println "Wrapping" (:line (meta thing)) thing)
   (if (and (list? thing)
            (not (= 'ns (first thing))))
     (let [wrapped (list 'com.mdelaurentis.coverage/capture2 (:line (meta thing)) (map wrap thing))] 
@@ -24,6 +20,19 @@
       wrapped)
     thing))
 
+(deftest test-wrap
+  (is (= '(capture2 (+ 1 2)))
+      (wrap '(+ 1 2)))
+  (is (= '(capture2 (+ (capture (* 2 3)) (capture (/ 12 3)))))
+      (wrap '(+ (* 2 3) (/ 12 3))))
+  (is (= (wrap '(let [a (+ 1 2)
+                      b (+ 3 4)]
+                  (* a b)))
+         '(capture (let [a (capture (+ 1 2))
+                         b (capture (+ 3 4))]
+                     (capture (* a b)))))))
+
+(run-tests)
 (defn instrument [file]
   (reverse
    (with-open [in (LineNumberingPushbackReader. (reader file))]
@@ -37,13 +46,11 @@
   (dosync (commute *lines-covered* conj (:line (meta form)))
           (commute *forms-covered* conj form)
           (commute com.mdelaurentis.coverage/*forms* assoc form true))
-  (prn "I am running"  form)
   (eval form))
 
 (defn analyze [file]
   (binding [*lines-covered* (ref (sorted-set))])
   (doseq [form (instrument file)]
-    (println "Evaling " form)
     (eval form))
   (with-open [in (LineNumberingPushbackReader. (reader file))]
     (loop [line (.readLine in)]
