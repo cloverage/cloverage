@@ -13,18 +13,32 @@
 {:a (+ 1 2) 
  (/ 4 2) "two"}
 
-(+ 7 11)
 
-(defn multiply [a b]
-  (doall (for [i (range a)
-               j (range b)]
-           (+ i j)))
-  (* a b))
+(defn palindrome? 
+  "Tests whether s is a palindrom."
+  [s]
+  (if-not (vector? s)
+    (palindrome? (vec s))
+    (if (<= (count s) 1)
+      true
+      (and (= (s 0) (s (dec (count s))))
+           (palindrome? (subvec 1 (dec (count s))))))))
 
-(deftest test-multiply
-  (is (not (nil? (multiply 3 4)))))
+(defn permutation? 
+  "Tests whether a and b are permutations of each other"
+  [a b]
+  (and (= (count a)
+          (count b))
+       (let [add-occurrence (fn [m c] (assoc m c (inc (m c 0))))
+             a-counts (reduce add-occurrence {} a)
+             b-counts (reduce add-occurrence {} b)]
+         (= a-counts b-counts))))
 
-(test-multiply)
+(deftest test-palindrome 
+  (is (palindrome? "noon"))
+  (is (palindrome? "racecar"))
+  (is (not (palindrome? "hello"))))
 
-
+(deftest test-permutation
+  (is (not (permutation? "foo" "foobar"))))
 
