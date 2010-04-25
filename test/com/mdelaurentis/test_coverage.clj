@@ -18,3 +18,5 @@
   (is (= '{:a (com.mdelaurentis.coverage/capture 20 (+ 1 2)) 
            (com.mdelaurentis.coverage/capture 20 (/ 4 2)) "two"}
          (wrap '{:a (+ 1 2) (/ 4 2) "two"}))))
+
+(run-tests)
