@@ -1,13 +1,11 @@
 (ns com.mdelaurentis.test-blanket
   (:import [java.io File])
   (:use [clojure.test :exclude [report]]
-        [com.mdelaurentis blanket]))
-
-;; Don't move this test, because it checks the line numbers of the forms.
-;; 
+        [com.mdelaurentis blanket]
+        [clojure.contrib.duck-streams :only [reader]]))
 
 (def sample-file 
-     "/Users/mdelaurentis/src/clojure-test-coverage/src/com/mdelaurentis/sample.clj")
+     "com/mdelaurentis/sample.clj")
 
 (deftest test-instrument
   (let [forms (vec (binding [*covered* (ref {})] (instrument sample-file)))
@@ -32,7 +30,7 @@
 
 (deftest test-with-coverage
   (let [cov (with-coverage [sample-file] 
-              (run-tests))
+              (with-out-str (run-tests)))
         file-cov (cov sample-file)]
 
     ;; Make sure palindrome? is fully covered
@@ -52,4 +50,7 @@
     (is (not (file-cov 34)))
     (is (not (file-cov 35)))))
 
-(run-tests)
+(def output-dir  "/Users/mdelaurentis/src/clojure-test-coverage/blanket" )
+
+#_(report output-dir
+          (with-coverage [sample-file] (run-tests)))

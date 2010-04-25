@@ -22,7 +22,7 @@
     (if (<= (count s) 1)
       true
       (and (= (s 0) (s (dec (count s))))
-           (palindrome? (subvec 1 (dec (count s))))))))
+           (palindrome? (subvec s 1 (dec (count s))))))))
 
 (defn permutation? 
   "Tests whether a and b are permutations of each other"
@@ -42,3 +42,5 @@
 (deftest test-permutation
   (is (not (permutation? "foo" "foobar"))))
 
+(binding [clojure.core/*loading-verbosely* true]
+  (load "/com/mdelaurentis/sample"))

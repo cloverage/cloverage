@@ -1,6 +1,6 @@
 (ns com.mdelaurentis.blanket
   (:import [clojure.lang LineNumberingPushbackReader]
-           [java.io File])
+           [java.io File InputStreamReader])
   (:use [clojure.contrib.duck-streams :only [reader with-out-writer]]
         [clojure.contrib.command-line :only [with-command-line]])
   (:gen-class))
@@ -56,7 +56,9 @@
   all the forms, decorated with a function that when called will
   record the line and file of the code that was executed." 
   [file]
-  (with-open [in (LineNumberingPushbackReader. (reader file))]
+  (with-open [in (LineNumberingPushbackReader. 
+                  (InputStreamReader.
+                   (.getResourceAsStream (clojure.lang.RT/baseLoader) file)))]
     (let [wrap (wrapper file)]
       (loop [forms nil]
         (if-let [form (read in false nil true)]
@@ -78,36 +80,25 @@
         (reverse forms)))))
 
 (defn gather-stats [cov]
-  (apply 
-   merge
-   (for [[file fcov] cov]
-     (with-open [in (LineNumberingPushbackReader. (reader file))]
-       (loop [forms nil]
-         (if-let [text (.readLine in)]
-           (let [line (dec (.getLineNumber in))
-                 info   {:line line
-                         :text text
-                         :blank? (.isEmpty (.trim text))
-                         :covered? (fcov line)}]
-             (recur (conj forms info)))
-           {file (reverse forms)}))))))
-
-(defn analyze 
-  "Instrument the code in the given files, evaluate it, and return a
-  map where keys are the files and values are maps from line number to
-  whether that line was called."
-  [files]
-  (with-coverage
-    (doseq [file (map #(File. %) files)
-            form (instrument file)]
-      (eval form))
-    (println "I have " *covered*)))
+  (for [[file fcov] cov]
+    (with-open [in (LineNumberingPushbackReader.
+                    (InputStreamReader.
+                     (.getResourceAsStream (clojure.lang.RT/baseLoader) file)))]
+      (loop [forms nil]
+        (if-let [text (.readLine in)]
+          (let [line (dec (.getLineNumber in))
+                info   {:line line
+                        :text text
+                        :blank? (.isEmpty (.trim text))
+                        :covered? (fcov line)}]
+            (recur (conj forms info)))
+          {:file file
+           :content (reverse forms)})))))
 
 (defn report [out-dir coverage]
-  (println "Coverage is" coverage)
-  (doseq [[file lines-covered] coverage]
-    (with-out-writer (File. out-dir (.getName file))
-      (doseq [info (line-info file)]
+  (doseq [{file :file, content :content} (gather-stats coverage)]
+    (with-out-writer (File. out-dir (.getName (File. file)))
+      (doseq [info content]
         (let [prefix (cond (:blank? info)   " "
                            (:covered? info) "+"
                            :else            "-")]
@@ -119,8 +110,5 @@
 
 (meta (find-ns 'com.mdelaurentis.blanket))
 
-#_(report
- "/Users/mdelaurentis/src/clojure-test-coverage/blanket" 
- (analyze 
-  ["/Users/mdelaurentis/src/clojure-test-coverage/src/com/mdelaurentis/sample.clj"]))
+
 
