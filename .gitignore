@@ -1,0 +1,6 @@
+pom-generated.xml
+Manifest.txt
+clojure-test-coverage.jar
+lib
+classes
+*.jar
