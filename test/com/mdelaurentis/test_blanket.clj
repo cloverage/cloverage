@@ -53,4 +53,12 @@
 (def output-dir  "/Users/mdelaurentis/src/clojure-test-coverage/blanket" )
 
 #_(report output-dir
-          (with-coverage [sample-file] (run-tests)))
+          (with-coverage [sample-file]
+            (run-tests)))
+
+(html-report "/Users/mdelaurentis/src/clojure-test-coverage/blanket"
+ (with-coverage [sample-file] 
+   (println "Coverage is" *covered*)
+   (run-tests)
+  
+   (println "Coverage is" *covered*)))

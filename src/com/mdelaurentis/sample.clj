@@ -42,5 +42,3 @@
 (deftest test-permutation
   (is (not (permutation? "foo" "foobar"))))
 
-(binding [clojure.core/*loading-verbosely* true]
-  (load "/com/mdelaurentis/sample"))
