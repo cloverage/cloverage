@@ -96,13 +96,15 @@
            :content (reverse forms)})))))
 
 (defn report [out-dir coverage]
-  (doseq [{file :file, content :content} (gather-stats coverage)]
-    (with-out-writer (File. out-dir (.getName (File. file)))
-      (doseq [info content]
-        (let [prefix (cond (:blank? info)   " "
-                           (:covered? info) "+"
-                           :else            "-")]
-          (println prefix (:text info)))))))
+  (doseq [{rel-file :file, content :content} (gather-stats coverage)]
+    (let [file (File. out-dir rel-file)]
+      (.mkdirs (.getParentFile file))
+      (with-out-writer file
+        (doseq [info content]
+          (let [prefix (cond (:blank? info)   " "
+                             (:covered? info) "+"
+                             :else            "-")]
+            (println prefix (:text info))))))))
 
 (defn -main [& args]
   (doseq [file (file-seq ".")]
