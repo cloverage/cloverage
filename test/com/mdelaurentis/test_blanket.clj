@@ -31,24 +31,26 @@
 (deftest test-with-coverage
   (let [cov (with-coverage ['com.mdelaurentis.sample] 
               (with-out-str (run-tests)))
-        file-cov (cov sample-file)]
+        file-cov (first cov)
+        covered? (fn [line] (:covered? ((:content file-cov)
+                                        line)))]
 
     ;; Make sure palindrome? is fully covered
-    (is (file-cov 17) "Make sure we capture defn")
-    (is (file-cov 20))
-    (is (file-cov 21))
-    (is (file-cov 22))
-;    (is (file-cov 23) "Make sure we capture primitives")
-    (is (file-cov 24))
-    (is (file-cov 25))
+    (is (covered? 17) "Make sure we capture defn")
+    (is (covered? 20))
+    (is (covered? 21))
+    (is (covered? 22))
+;    (is (covered? 23) "Make sure we capture primitives")
+    (is (covered? 24))
+    (is (covered? 25))
     
     ;; Make sure permutation? is not
-    (is (file-cov 30))
-    (is (file-cov 31))
-    (is (not (file-cov 32)))
-    (is (not (file-cov 33)))
-    (is (not (file-cov 34)))
-    (is (not (file-cov 35)))))
+    (is (covered? 30))
+    (is (covered? 31))
+    (is (not (covered? 32)))
+    (is (not (covered? 33)))
+    (is (not (covered? 34)))
+    (is (not (covered? 35)))))
 
 (def output-dir  "/Users/mdelaurentis/src/clojure-test-coverage/blanket" )
 
@@ -56,6 +58,7 @@
           (with-coverage ['com.mdelaurentis.sample]
             (run-tests)))
 
-#_(html-report "/Users/mdelaurentis/src/clojure-test-coverage/blanket"
+(html-report "/Users/mdelaurentis/src/clojure-test-coverage/blanket"
  (with-coverage ['com.mdelaurentis.sample] 
    (run-tests)))
+

@@ -14,7 +14,7 @@
      (doseq [lib# ~libs]
        (instrument lib#))
      ~@body
-     @*covered*))
+     (gather-stats @*covered*)))
 
 (defn covered? [coverage file line]
   ((coverage file {}) line))
@@ -53,9 +53,10 @@
     wrap))
 
 
-(defn resource-path [lib]
-  (str ;   \/
-       (.. (name lib)
+(defn resource-path 
+  "Given a symbol representing a lib, return a classpath-relative path.  Borrowed from core.clj."
+  [lib]
+  (str (.. (name lib)
            (replace \- \_)
            (replace \. \/))
        ".clj"))
@@ -107,10 +108,10 @@
                         :covered? (fcov line)}]
             (recur (conj forms info)))
           {:file file
-           :content (reverse forms)})))))
+           :content (apply vector nil (reverse forms))})))))
 
-(defn report [out-dir coverage]
-  (doseq [{rel-file :file, content :content} (gather-stats coverage)]
+(defn report [out-dir cov]
+  (doseq [{rel-file :file, content :content} cov]
     (let [file (File. out-dir rel-file)]
       (.mkdirs (.getParentFile file))
       (with-out-writer file
@@ -125,7 +126,7 @@
 
 (defn html-report [out-dir cov]
   (copy (resource-reader "blanket.css") (File. out-dir "blanket.css"))
-  (doseq [{rel-file :file, content :content} (gather-stats cov)]
+  (doseq [{rel-file :file, content :content} cov]
     (let [file (File. out-dir (str rel-file ".html"))]
       (.mkdirs (.getParentFile file))
       (with-out-writer file
@@ -139,17 +140,11 @@
           (let [cls (cond (:covered? info) "covered" 
                           (:blank?   info) "blank"
                           :else            "not-covered")]
-            (printf "<span class=\"%s\">%s</span><br/>%n" cls (replace-spaces (:text info)))))
+            (printf "<span class=\"%s\">%s</span><br/>%n" cls (replace-spaces (:text info "")))))
         (println " </body>")
         (println "</html>")))))
-
-
 
 (defn -main [& args]
   (doseq [file (file-seq ".")]
     (println "File is" file)))
-
-(meta (find-ns 'com.mdelaurentis.blanket))
-
-
 
