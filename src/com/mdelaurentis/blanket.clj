@@ -2,16 +2,17 @@
   (:import [clojure.lang LineNumberingPushbackReader]
            [java.io File InputStreamReader])
   (:use [clojure.contrib.duck-streams :only [reader with-out-writer copy]]
-        [clojure.contrib.command-line :only [with-command-line]])
+        [clojure.contrib.command-line :only [with-command-line]]
+        [clojure.contrib.except])
   (:gen-class))
 
 (def *covered*)
 
-(defmacro with-coverage [files & body]
+(defmacro with-coverage [libs & body]
   `(binding [*covered* (ref {})]
-     (println "Capturing code coverage for" ~files)
-     (doseq [file# ~files]
-       (instrument file#))
+     (println "Capturing code coverage for" ~libs)
+     (doseq [lib# ~libs]
+       (instrument lib#))
      ~@body
      @*covered*))
 
@@ -20,7 +21,6 @@
 
 (defn cover [file line]
   "Mark the given file and line in as having been covered."
-  (println "I am covering" file line)
   (dosync (alter *covered* assoc-in [file line] true)))
 
 (defmacro capture 
@@ -52,6 +52,14 @@
                  :else thing))]
     wrap))
 
+
+(defn resource-path [lib]
+  (str ;   \/
+       (.. (name lib)
+           (replace \- \_)
+           (replace \. \/))
+       ".clj"))
+
 (defn resource-reader [resource]
   (InputStreamReader.
    (.getResourceAsStream (clojure.lang.RT/baseLoader) resource)))
@@ -60,15 +68,20 @@
   "Reads and evals all forms in the given file, and returns a seq of
   all the forms, decorated with a function that when called will
   record the line and file of the code that was executed." 
-  [file]
-  (with-open [in (LineNumberingPushbackReader. (resource-reader file))]
-    (let [wrap (wrapper file)]
-      (loop [forms nil]
-        (if-let [form (read in false nil true)]
-          (let [wrapped (wrap form)]
-            (do (eval wrapped)
-                (recur (conj forms wrapped))))
-          (reverse forms))))))
+  [lib]
+  (println "Instrumenting" lib)
+  (when-not (symbol? lib)
+    (throwf "instrument needs a symbol"))
+  (let [file (resource-path lib)]
+    (println "File is " file)
+    (with-open [in (LineNumberingPushbackReader. (resource-reader file))]
+      (let [wrap (wrapper file)]
+        (loop [forms nil]
+          (if-let [form (read in false nil true)]
+            (let [wrapped (wrap form)]
+              (do (eval wrapped)
+                  (recur (conj forms wrapped))))
+            (reverse forms)))))))
 
 (defn line-info [file]
   (with-open [in (LineNumberingPushbackReader. (reader file))]
