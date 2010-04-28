@@ -9,7 +9,7 @@
 (def *covered*)
 
 (defmacro with-coverage [libs & body]
-  `(binding [*covered* (ref {})]
+  `(binding [*covered* (ref [])]
      (println "Capturing code coverage for" ~libs)
      (doseq [lib# ~libs]
        (instrument lib#))
@@ -19,39 +19,81 @@
 (defn covered? [coverage file line]
   ((coverage file {}) line))
 
-(defn cover [file line]
+(defn cover [idx]
   "Mark the given file and line in as having been covered."
-  (dosync (alter *covered* assoc-in [file line] true)))
+  (dosync (alter *covered* assoc-in [idx :covered] true)))
 
 (defmacro capture 
   "Eval the given form and record that the given line on the given
   files was run."
-  [file line form]
+  [idx form]
   (let [text (with-out-str (prn form))]
     `(do 
-       (cover ~file ~line)
+       (cover ~idx)
        ~form)))
 
-(defn wrapper
-  "Returns a function that when called on some form, recursively wraps
-  the form with code that will record whether the code was run.  file
-  is the file that the form came from."
-  [file]
-  (letfn [(wrap [thing]
-                (cond 
-                 (and (list? thing) (not (= 'ns (first thing))))
-                 `(capture ~file ~(:line (meta thing)) ~(map wrap thing))
-                 
-                 (vector? thing)
-                 (vec (map wrap thing))
+(defn form-type 
+  "Classifies the given form"
+  [form]
+  (cond 
+   (vector? form) :vector
+   (string? form) :primitive
+   (number? form) :primitive
+   (symbol? form) :primitive
+   (keyword? form) :primitive
+   (map?    form) :map
 
-                 (map? thing)
-                 (zipmap (map wrap (keys thing))
-                         (map wrap (vals thing)))
-             
-                 :else thing))]
-    wrap))
+   (or (list? form) (seq? form))
+   (let [x (first form)]
+     (cond
+      (or (= 'fn x) (= 'fn* x))  :fn
+      (= 'def x)  :def
+      :else       :list))))
 
+(defn add-form 
+  "Adds a structure representing the given form to the *covered* vector."
+  [form]
+  (dosync 
+   (alter *covered* conj {:form form
+                          :line (:line (meta form))
+                          :file (:file (meta form))})
+   (dec (count @*covered*))))
+
+(defn expand-and-wrap [form]
+  (wrap (macroexpand form)))
+
+(defmulti wrap form-type)
+
+(defmethod wrap :primitive [form]
+  `(capture ~(add-form form) ~form))
+
+(defmethod wrap :vector [form]
+  `[~@(map wrap form)])
+
+(defmethod wrap :fn [[fn-sym & sigs :as form]]
+  `(capture ~(add-form form) 
+            (~fn-sym
+             ~@(for [[args & body] sigs]
+                 `([~@args] ~@(map expand-and-wrap body))))))
+
+(defmethod wrap :def [form]
+  (let [def-sym (first form)
+        name    (second form)]
+    (if (= 3 (count form))
+      (let [val (nth form 2)]
+        `(capture ~(add-form form) (~def-sym ~name ~(expand-and-wrap val))))
+      `(capture ~(add-form form) (~def-sym ~name)))))
+
+(defmethod wrap :list [form]
+  (let [wrapped (map expand-and-wrap form)]
+    `(capture ~(add-form form) ~wrapped)))
+
+(defmethod wrap :map [form]
+  (zipmap (map expand-and-wrap (keys form))
+          (map expand-and-wrap (vals form))))
+
+(defmethod wrap :default [form]
+  form)
 
 (defn resource-path 
   "Given a symbol representing a lib, return a classpath-relative path.  Borrowed from core.clj."
@@ -76,25 +118,12 @@
   (let [file (resource-path lib)]
     (println "File is " file)
     (with-open [in (LineNumberingPushbackReader. (resource-reader file))]
-      (let [wrap (wrapper file)]
-        (loop [forms nil]
-          (if-let [form (read in false nil true)]
-            (let [wrapped (wrap form)]
-              (do (eval wrapped)
-                  (recur (conj forms wrapped))))
-            (reverse forms)))))))
-
-(defn line-info [file]
-  (with-open [in (LineNumberingPushbackReader. (reader file))]
-    (loop [forms nil]
-      (if-let [text (.readLine in)]
-        (let [line (dec (.getLineNumber in))
-              info   {:line line
-                      :text text
-                      :blank? (.isEmpty (.trim text))
-                      :covered? (covered? file line)}]
-          (recur (conj forms info)))
-        (reverse forms)))))
+      (loop [forms nil]
+        (if-let [form (read in false nil true)]
+          (let [wrapped (wrap form)]
+            (do (eval wrapped)
+                (recur (conj forms wrapped))))
+          (reverse forms))))))
 
 (defn gather-stats [cov]
   (for [[file fcov] cov]
@@ -147,4 +176,3 @@
 (defn -main [& args]
   (doseq [file (file-seq ".")]
     (println "File is" file)))
-
