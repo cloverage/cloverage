@@ -43,7 +43,8 @@
    (keyword? form) :primitive
    (= true form) :primitive
    (= false form) :primitive
-   
+   (var? form) :primitive
+   (nil? form) :primitive
    (map?    form) :map
 
    (or (list? form) (seq? form))
@@ -77,6 +78,8 @@
   `[~@(map wrap form)])
 
 (defmethod wrap :fn [[fn-sym & sigs :as form]]
+  (println "Wrapping function ")
+  (clojure.contrib.pprint/pprint form)
   `(capture ~(add-form form) 
             (~fn-sym
              ~@(for [[args & body] sigs]

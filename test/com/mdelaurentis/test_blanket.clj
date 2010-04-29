@@ -144,6 +144,13 @@
                         (capture 9 ~'a)))
            (expand-and-wrap '(let [a 1 b 2] a))))))
 
+(deftest test-wrap-cond
+  (with-covered
+    (is (= `(capture 0 nil)
+           (expand-and-wrap '(cond))))))
+
 (run-tests)
 
-
+(comment (with-covered 
+           (println (expand-and-wrap
+                     '(for [] 1)))))
