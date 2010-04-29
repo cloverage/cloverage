@@ -1,7 +1,7 @@
-(ns com.mdelaurentis.test-blanket
+(ns com.mdelaurentis.test-coverage
   (:import [java.io File])
   (:use [clojure.test :exclude [report]]
-        [com.mdelaurentis blanket]
+        [com.mdelaurentis coverage]
         [clojure.contrib.duck-streams :only [reader]]))
 
 (def sample-file 
@@ -10,7 +10,7 @@
 #_(deftest test-instrument
   (binding [*covered* (ref [])]
     (let [forms (vec (instrument 'com.mdelaurentis.sample))
-          cap 'com.mdelaurentis.blanket/capture
+          cap 'com.mdelaurentis.coverage/capture
           file sample-file]
       (println "Forms are" )
       (doseq [i (range (count forms))]
@@ -59,13 +59,13 @@
     (is (not (covered? 34)))
     (is (not (covered? 35)))))
 
-(def output-dir  "/Users/mdelaurentis/src/clojure-test-coverage/blanket" )
+(def output-dir  "/Users/mdelaurentis/src/clojure-test-coverage/coverage" )
 
 #_(report output-dir
           (with-coverage ['com.mdelaurentis.sample]
             (run-tests)))
 
-#_(html-report "/Users/mdelaurentis/src/clojure-test-coverage/blanket"
+#_(html-report "/Users/mdelaurentis/src/clojure-test-coverage/coverage"
  (with-coverage ['com.mdelaurentis.sample] 
    (run-tests)))
 

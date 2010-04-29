@@ -1,4 +1,4 @@
-(ns com.mdelaurentis.blanket
+(ns com.mdelaurentis.coverage
   (:import [clojure.lang LineNumberingPushbackReader]
            [java.io File InputStreamReader])
   (:use [clojure.contrib.duck-streams :only [reader with-out-writer copy]]
@@ -174,14 +174,14 @@
   (.replace s " " "&nbsp;"))
 
 (defn html-report [out-dir cov]
-  (copy (resource-reader "blanket.css") (File. out-dir "blanket.css"))
+  (copy (resource-reader "coverage.css") (File. out-dir "coverage.css"))
   (doseq [{rel-file :file, content :content} cov]
     (let [file (File. out-dir (str rel-file ".html"))]
       (.mkdirs (.getParentFile file))
       (with-out-writer file
         (println "<html>")
         (println " <head>")
-        (println "  <link rel=\"stylesheet\" href=\"../../blanket.css\"/>")
+        (println "  <link rel=\"stylesheet\" href=\"../../coverage.css\"/>")
         (println "  <title>" rel-file "</title>")
         (println " </head>")
         (println " <body>")
