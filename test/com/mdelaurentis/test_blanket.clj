@@ -78,10 +78,11 @@
 
 (deftest test-wrap-primitives
   (binding [*covered* (ref [])]
-    (is (= `(capture 0 1) (wrap 1)))
+    (is (= `(capture 0 ~'1) (wrap 1)))
     (is (= `(capture 1 "foo") (wrap "foo")))
     (is (= `(capture 2 ~'bar)  (wrap 'bar)))
-    (is (= '(1 "foo" bar)
+    (is (= `(capture 3 ~'true)  (wrap 'true)))
+    (is (= '(1 "foo" bar true)
            (map :form @*covered*)))))
 
 (deftest test-wrap-vector
@@ -129,7 +130,20 @@
                                     ([~'a] (capture 2 ~'a))))))
            (expand-and-wrap '(defn foobar [a] a))))))
 
-(run-tests)
+(deftest test-wrap-let
+  (with-covered
+    (is (= `(capture 0 (~(symbol "let*") []))
+           (expand-and-wrap '(let []))))
+    (is (= `(capture 1 (~(symbol "let*") [~'a (capture 2 1)]))
+           (expand-and-wrap '(let [a 1]))))
+    (is (= `(capture 3 (~(symbol "let*") [~'a (capture 4 1)
+                                          ~'b (capture 5 2)]))
+           (expand-and-wrap '(let [a 1 b 2]))))
+    (is (= `(capture 6 (~(symbol "let*") [~'a (capture 7 1)
+                                          ~'b (capture 8 2)] 
+                        (capture 9 ~'a)))
+           (expand-and-wrap '(let [a 1 b 2] a))))))
 
+(run-tests)
 
 

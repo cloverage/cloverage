@@ -41,12 +41,17 @@
    (number? form) :primitive
    (symbol? form) :primitive
    (keyword? form) :primitive
+   (= true form) :primitive
+   (= false form) :primitive
+   
    (map?    form) :map
 
    (or (list? form) (seq? form))
    (let [x (first form)]
      (cond
-      (or (= 'fn x) (= 'fn* x))  :fn
+      (= 'fn x) :fn
+      (= 'fn* x) :fn
+      (= 'let* x) :let
       (= 'def x)  :def
       :else       :list))))
 
@@ -59,10 +64,11 @@
                           :file (:file (meta form))})
    (dec (count @*covered*))))
 
-(defn expand-and-wrap [form]
-  (wrap (macroexpand form)))
-
 (defmulti wrap form-type)
+
+(defn expand-and-wrap [form]
+  (vary-meta (wrap (macroexpand form))
+             assoc :original form))
 
 (defmethod wrap :primitive [form]
   `(capture ~(add-form form) ~form))
@@ -75,6 +81,13 @@
             (~fn-sym
              ~@(for [[args & body] sigs]
                  `([~@args] ~@(map expand-and-wrap body))))))
+
+(defmethod wrap :let [[let-sym bindings & body :as form]]
+  `(capture ~(add-form form)
+            (~let-sym
+             [~@(mapcat (fn [[name val]] `(~name ~(expand-and-wrap val)))
+                        (partition 2 bindings))]
+             ~@(map expand-and-wrap body))))
 
 (defmethod wrap :def [form]
   (let [def-sym (first form)
@@ -108,9 +121,9 @@
    (.getResourceAsStream (clojure.lang.RT/baseLoader) resource)))
 
 (defn instrument
-  "Reads and evals all forms in the given file, and returns a seq of
-  all the forms, decorated with a function that when called will
-  record the line and file of the code that was executed." 
+  "Reads all forms from the file referenced by the given lib name, and
+  returns a seq of all the forms, decorated with a function that when
+  called will record the line and file of the code that was executed."
   [lib]
   (println "Instrumenting" lib)
   (when-not (symbol? lib)
@@ -120,10 +133,14 @@
     (with-open [in (LineNumberingPushbackReader. (resource-reader file))]
       (loop [forms nil]
         (if-let [form (read in false nil true)]
-          (let [wrapped (wrap form)]
-            (do (eval wrapped)
+          (do (println "Wrapping" form)
+              (let [wrapped (try (expand-and-wrap form)
+                                 (catch Throwable t
+                                   (throwf t "Couldn't wrap form %s at line %s"
+                                           form (:line form))))]
                 (recur (conj forms wrapped))))
           (reverse forms))))))
+
 
 (defn gather-stats [cov]
   (for [[file fcov] cov]
