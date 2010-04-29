@@ -78,8 +78,6 @@
   `[~@(map wrap form)])
 
 (defmethod wrap :fn [[fn-sym & sigs :as form]]
-  (println "Wrapping function ")
-  (clojure.contrib.pprint/pprint form)
   `(capture ~(add-form form) 
             (~fn-sym
              ~@(for [[args & body] sigs]
