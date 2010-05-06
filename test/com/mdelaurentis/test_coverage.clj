@@ -170,4 +170,4 @@
 
 (deftest test-wrap-for
   (is (= '(foo)
-         (expand-and-wrap '(for [])))))
+         (expand-and-wrap '(for [] 1)))))
