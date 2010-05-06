@@ -69,10 +69,10 @@
 
 (defn expand-and-wrap [form]
   (if (instance? IObj form)
-    
     (vary-meta (wrap (macroexpand form))
                assoc :original form)
-    form))
+    (wrap (macroexpand form))))
+
 
 (defmethod wrap :primitive [form]
   `(capture ~(add-form form) ~form))
@@ -150,12 +150,11 @@
     (with-open [in (LineNumberingPushbackReader. (resource-reader file))]
       (loop [forms nil]
         (if-let [form (read in false nil true)]
-          (do (println "Wrapping" form)
-              (let [wrapped (try (expand-and-wrap form)
-                                 (catch Throwable t
-                                   (throwf t "Couldn't wrap form %s at line %s"
-                                           form (:line form))))]
-                (recur (conj forms wrapped))))
+          (let [wrapped (try (expand-and-wrap form)
+                             (catch Throwable t
+                               (throwf t "Couldn't wrap form %s at line %s"
+                                       form (:line form))))]
+            (recur (conj forms wrapped)))
           (reverse forms))))))
 
 
@@ -208,5 +207,9 @@
         (println "</html>")))))
 
 (defn -main [& args]
-  (doseq [file (file-seq ".")]
-    (println "File is" file)))
+  (with-command-line args
+    "Produce test coverage report for some namespaces"
+    [namespaces]
+    (binding [*covered* (ref [])]
+      (doseq [ns namespaces]
+        (instrument (symbol ns))))))
