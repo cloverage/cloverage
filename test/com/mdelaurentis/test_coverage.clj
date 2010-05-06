@@ -79,7 +79,8 @@
   (is (= :primitive (form-type "foo")))
   (is (= :primitive (form-type 'bar)))
   (is (= :vector (form-type [1 2 3])))
-  (is (= :list (form-type '(+ 1 2)))))
+  (is (= :list (form-type '(+ 1 2))))
+  (is (= :stop (form-type 'do))))
 
 (deftest test-wrap-primitives
   (is (= `(capture 0 ~'1) (wrap 1)))
@@ -176,4 +177,20 @@
    '(defn -main [& args]
       (doseq [file (file-seq ".")]
         (println "File is" file)))))
+
+(deftest test-eval-atomic
+  (is (= 1 (eval (expand-and-wrap 1))))
+  (is (= :foo (eval (expand-and-wrap :foo))))
+  (is (= "foo" (eval (expand-and-wrap "foo"))))
+  (is (= + (eval (expand-and-wrap '+)))))
+
+(deftest test-eval-expr
+  (is (= 5 (eval (expand-and-wrap '(+ 2 3))))))
+
+(deftest test-eval-do
+  (is (= 4 (eval (expand-and-wrap '(do 4))))))
+
+(deftest test-eval-ns
+  (eval (expand-and-wrap '(ns foo.bar))))
+
 

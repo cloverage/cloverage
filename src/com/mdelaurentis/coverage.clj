@@ -36,6 +36,11 @@
   "Classifies the given form"
   [form]
   (cond 
+   (= '. form)   :stop
+   (= 'do form) :stop
+   (= 'quote form) :stop
+   (= 'try form) :stop
+   (= 'finally form) :stop   
    (vector? form) :vector
    (string? form) :primitive
    (number? form) :primitive
@@ -46,10 +51,13 @@
    (var? form) :primitive
    (nil? form) :primitive
    (map?    form) :map
-
+   
    (or (list? form) (seq? form))
    (let [x (first form)]
      (cond
+      (= 'finally x) :stop
+      (= '. x) :stop
+      (= 'quote x) :stop
       (= 'fn x) :fn
       (= 'fn* x) :fn
       (= 'let* x) :let
@@ -73,6 +81,8 @@
                assoc :original form)
     (wrap (macroexpand form))))
 
+(defmethod wrap :stop [form]
+  form)
 
 (defmethod wrap :primitive [form]
   `(capture ~(add-form form) ~form))
@@ -211,5 +221,12 @@
     "Produce test coverage report for some namespaces"
     [namespaces]
     (binding [*covered* (ref [])]
-      (doseq [ns namespaces]
-        (instrument (symbol ns))))))
+      (doseq [ns namespaces
+              form (instrument (symbol ns))]
+        (try
+         (eval form)
+         (catch Exception e
+           (throw (Exception. 
+                   (str "Couldn't eval form " (:original (meta form)))
+                   e))))))))
+
