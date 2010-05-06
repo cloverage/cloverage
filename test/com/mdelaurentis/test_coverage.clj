@@ -168,4 +168,6 @@
   (is (= `([~'a] (capture 3 ~'a))
          (wrap-overloads '([a] a)))))
 
-
+(deftest test-wrap-for
+  (is (= '(foo)
+         (expand-and-wrap '(for [])))))
