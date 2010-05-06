@@ -38,6 +38,8 @@
   (cond 
    (= '. form)   :stop
    (= 'do form) :stop
+   (= 'if form)  :stop
+   (= 'var form) :stop   
    (= 'quote form) :stop
    (= 'try form) :stop
    (= 'finally form) :stop   
@@ -55,6 +57,7 @@
    (or (list? form) (seq? form))
    (let [x (first form)]
      (cond
+      (= 'var x) :stop
       (= 'finally x) :stop
       (= '. x) :stop
       (= 'quote x) :stop
@@ -76,10 +79,17 @@
 (defmulti wrap form-type)
 
 (defn expand-and-wrap [form]
-  (if (instance? IObj form)
-    (vary-meta (wrap (macroexpand form))
-               assoc :original form)
-    (wrap (macroexpand form))))
+  (cond
+   (and (or (seq? form) (list? form))
+        (= 'ns (first form)))
+   form
+   
+   (instance? IObj form)
+   (vary-meta (wrap (macroexpand form))
+              assoc :original form)
+
+   :else
+   (wrap (macroexpand form))))
 
 (defmethod wrap :stop [form]
   form)
