@@ -59,6 +59,11 @@
     (is (not (covered? 34)))
     (is (not (covered? 35)))))
 
+(use-fixtures :each (fn [f]
+                      (binding [*covered* (ref [])]
+                        (f))))
+
+
 (def output-dir  "/Users/mdelaurentis/src/clojure-test-coverage/coverage" )
 
 #_(report output-dir
@@ -106,11 +111,26 @@
 
 
 (deftest test-wrap-fn
-  (binding [*covered* (ref [])]
-    (is (= `(capture 0 (~(symbol "fn") 
-                         ([~'a] (capture 1 ~'a))
-                         ([~'a ~'b] (capture 2 ~'b))))
-           (wrap '(fn ([a] a) ([a b] b)))))))
+  (is (= `(capture 0 (~(symbol "fn*")
+                      ([~'a] (capture 1 ~'a))))
+         (expand-and-wrap
+          '(fn [a] a)))
+      "Unnamed fn with single overload")
+  (is (= `(capture 2 (~(symbol "fn") 
+                      ([~'a] (capture 3 ~'a))
+                      ([~'a ~'b] (capture 4 ~'b))))
+         (wrap '(fn ([a] a) ([a b] b))))
+      "Unnamed fn with multiple overloads")
+  (is (= `(capture 5 (~(symbol "fn*") ~'foo
+                      ([~'a] (capture 6 ~'a))))
+         (expand-and-wrap
+          '(fn foo [a] a)))
+      "Named fn with single overload")
+  (is (= `(capture 7 (~(symbol "fn") ~'foo
+                      ([~'a] (capture 8 ~'a))
+                      ([~'a ~'b] (capture 9 ~'b))))
+         (wrap '(fn foo ([a] a) ([a b] b))))
+      "Named fn with multiple overloads"))
 
 (defmacro with-covered [& body]
   `(binding [*covered* (ref [])]
@@ -123,7 +143,7 @@
     (is (= `(capture 1 (~(symbol "def") ~'foobar (capture 2 1)))
            (wrap '(def foobar 1))))))
 
-(deftest test-wrap-defn
+#_(deftest test-wrap-defn
   (with-covered
     (is (= `(capture 0 (~(symbol "def") ~'foobar
                         (capture 1 (~(symbol "fn*")
@@ -149,8 +169,16 @@
     (is (= `(capture 0 nil)
            (expand-and-wrap '(cond))))))
 
-(run-tests)
+(deftest test-wrap-overload
+  (is (= `([~'a] (capture 0 ~'a))
+         (wrap-overload '([a] a)))))
 
-(comment (with-covered 
-           (println (expand-and-wrap
-                     '(for [] 1)))))
+(deftest test-wrap-overloads
+  (is (= `(([~'a] (capture 0 ~'a))
+           ([~'a ~'b] (capture 1 ~'a) (capture 2 ~'b)))
+         (wrap-overloads '(([a] a)
+                           ([a b] a b)))))
+  (is (= `([~'a] (capture 3 ~'a))
+         (wrap-overloads '([a] a)))))
+
+

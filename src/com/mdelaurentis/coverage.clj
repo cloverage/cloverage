@@ -77,11 +77,24 @@
 (defmethod wrap :vector [form]
   `[~@(map wrap form)])
 
-(defmethod wrap :fn [[fn-sym & sigs :as form]]
-  `(capture ~(add-form form) 
-            (~fn-sym
-             ~@(for [[args & body] sigs]
-                 `([~@args] ~@(map expand-and-wrap body))))))
+(defn wrap-overload [[args & body]]
+    `([~@args]
+        ~@(map expand-and-wrap body)))
+
+(defn wrap-overloads [form]
+  (if (vector? (first form))
+    (wrap-overload form)
+    (map wrap-overload form)))
+
+(defmethod wrap :fn [form]
+  (let [fn-sym (first form)]
+    (if (symbol? (second form))
+      `(capture ~(add-form form)
+                (~fn-sym ~(second form)
+                         ~@(wrap-overloads (rest (rest form)))))
+      `(capture ~(add-form form)
+                (~fn-sym
+                 ~@(wrap-overloads (rest form)))))))
 
 (defmethod wrap :let [[let-sym bindings & body :as form]]
   `(capture ~(add-form form)
