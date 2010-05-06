@@ -34,12 +34,10 @@
              b-counts (reduce add-occurrence {} b)]
          (= a-counts b-counts))))
 
+(deftest test-permutation
+  (is (not (permutation? "foo" "foobar"))))
+
 (deftest test-palindrome 
   (is (palindrome? "noon"))
   (is (palindrome? "racecar"))
   (is (not (palindrome? "hello"))))
-
-(deftest test-permutation
-  (is (not (permutation? "foo" "foobar"))))
-
-
