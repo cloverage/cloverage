@@ -1,5 +1,5 @@
 (ns com.mdelaurentis.coverage
-  (:import [clojure.lang LineNumberingPushbackReader]
+  (:import [clojure.lang LineNumberingPushbackReader IObj]
            [java.io File InputStreamReader])
   (:use [clojure.contrib.duck-streams :only [reader with-out-writer copy]]
         [clojure.contrib.command-line :only [with-command-line]]
@@ -68,8 +68,11 @@
 (defmulti wrap form-type)
 
 (defn expand-and-wrap [form]
-  (vary-meta (wrap (macroexpand form))
-             assoc :original form))
+  (if (instance? IObj form)
+    
+    (vary-meta (wrap (macroexpand form))
+               assoc :original form)
+    form))
 
 (defmethod wrap :primitive [form]
   `(capture ~(add-form form) ~form))

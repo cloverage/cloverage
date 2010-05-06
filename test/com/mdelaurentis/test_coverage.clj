@@ -169,5 +169,11 @@
          (wrap-overloads '([a] a)))))
 
 (deftest test-wrap-for
-  (is (= '(foo)
-         (expand-and-wrap '(for [] 1)))))
+  (is (not (nil? (expand-and-wrap '(for [i (range 5)] i))))))
+
+(deftest test-wrap-str
+  (expand-and-wrap
+   '(defn -main [& args]
+      (doseq [file (file-seq ".")]
+        (println "File is" file)))))
+
