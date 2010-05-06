@@ -73,7 +73,7 @@
   (dosync 
    (alter *covered* conj {:form form
                           :line (:line (meta form))
-                          :file (:file (meta form))})
+                          :file *file*})
    (dec (count @*covered*))))
 
 (defmulti wrap form-type)
@@ -166,16 +166,16 @@
   (when-not (symbol? lib)
     (throwf "instrument needs a symbol"))
   (let [file (resource-path lib)]
-    (println "File is " file)
-    (with-open [in (LineNumberingPushbackReader. (resource-reader file))]
-      (loop [forms nil]
-        (if-let [form (read in false nil true)]
-          (let [wrapped (try (expand-and-wrap form)
-                             (catch Throwable t
-                               (throwf t "Couldn't wrap form %s at line %s"
-                                       form (:line form))))]
-            (recur (conj forms wrapped)))
-          (reverse forms))))))
+    (binding [*file* file]
+      (with-open [in (LineNumberingPushbackReader. (resource-reader file))]
+        (loop [forms nil]
+          (if-let [form (read in false nil true)]
+            (let [wrapped (try (expand-and-wrap form)
+                               (catch Throwable t
+                                 (throwf t "Couldn't wrap form %s at line %s"
+                                         form (:line form))))]
+              (recur (conj forms wrapped)))
+            (reverse forms)))))))
 
 
 (defn gather-stats [cov]
@@ -229,14 +229,23 @@
 (defn -main [& args]
   (with-command-line args
     "Produce test coverage report for some namespaces"
-    [namespaces]
+    [[output o "Output directory"]
+     namespaces]
     (binding [*covered* (ref [])]
-      (doseq [ns namespaces
-              form (instrument (symbol ns))]
-        (try
-         (eval form)
-         (catch Exception e
-           (throw (Exception. 
-                   (str "Couldn't eval form " (:original (meta form)))
-                   e))))))))
+      (doseq [namespace (map symbol namespaces)]
+        (doseq [form (instrument namespace)]
+          (try
+           (eval form)
+           (catch Exception e
+             (throw (Exception. 
+                     (str "Couldn't eval form "  (:original (meta form))
+                                                    form)
+                     e))))))
+      (when output
+        (with-out-writer output
+          (doseq [form @*covered*]
+            (prn form)))))))
+
+(when-not *compile-files*
+  (apply -main *command-line-args*))
 

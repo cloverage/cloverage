@@ -194,3 +194,18 @@
   (eval (expand-and-wrap '(ns foo.bar))))
 
 
+
+(deftest test-deftest
+  (is (= 'foo
+         (let [wrapped 
+               (expand-and-wrap
+                '(deftest test-permutation
+                   (is (not (com.mdelaurentis.sample/permutation? "foo" "foobar")))))]
+           (prn "Evaling " wrapped)
+           (eval wrapped)))))
+
+
+(com.mdelaurentis.coverage/-main "-o" "/Users/mdelaurentis/src/clojure-test-coverage/foo" "com.mdelaurentis.sample")
+
+(run-tests)
+
