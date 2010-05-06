@@ -82,33 +82,28 @@
   (is (= :list (form-type '(+ 1 2)))))
 
 (deftest test-wrap-primitives
-  (binding [*covered* (ref [])]
-    (is (= `(capture 0 ~'1) (wrap 1)))
-    (is (= `(capture 1 "foo") (wrap "foo")))
-    (is (= `(capture 2 ~'bar)  (wrap 'bar)))
-    (is (= `(capture 3 ~'true)  (wrap 'true)))
-    (is (= '(1 "foo" bar true)
-           (map :form @*covered*)))))
+  (is (= `(capture 0 ~'1) (wrap 1)))
+  (is (= `(capture 1 "foo") (wrap "foo")))
+  (is (= `(capture 2 ~'bar)  (wrap 'bar)))
+  (is (= `(capture 3 ~'true)  (wrap 'true)))
+  (is (= '(1 "foo" bar true)
+         (map :form @*covered*))))
 
 (deftest test-wrap-vector
-  (binding [*covered* (ref [])]
-    (is (= `[(capture 0 1)
-             (capture 1 "foo")
-             (capture 2 ~'bar)]
-           (wrap '[1 "foo" bar])))))
+  (is (= `[(capture 0 1)
+           (capture 1 "foo")
+           (capture 2 ~'bar)]
+         (wrap '[1 "foo" bar]))))
 
 (deftest test-wrap-map
-  (binding [*covered* (ref [])]
-    (is (= `{(capture 0 :a) (capture 1 ~'apple)
-             (capture 2 :b)  (capture 3 ~'banana)}
-           (wrap '{:a apple :b banana})))))
+  (is (= `{(capture 0 :a) (capture 1 ~'apple)
+           (capture 2 :b)  (capture 3 ~'banana)}
+         (wrap '{:a apple :b banana}))))
 
 (deftest test-wrap-list 
-  (binding [*covered* (ref [])]
-    (is (= `(capture 0 ((capture 1 +) (capture 2 1)
-                        (capture 3 2)))
-           (wrap `(+ 1 2))))))
-
+  (is (= `(capture 0 ((capture 1 +) (capture 2 1)
+                      (capture 3 2)))
+         (wrap `(+ 1 2)))))
 
 (deftest test-wrap-fn
   (is (= `(capture 0 (~(symbol "fn*")
@@ -132,42 +127,34 @@
          (wrap '(fn foo ([a] a) ([a b] b))))
       "Named fn with multiple overloads"))
 
-(defmacro with-covered [& body]
-  `(binding [*covered* (ref [])]
-     ~@body))
-
 (deftest test-wrap-def
-  (with-covered
-    (is (= `(capture 0 (~(symbol "def") ~'foobar))
-           (wrap '(def foobar))))
-    (is (= `(capture 1 (~(symbol "def") ~'foobar (capture 2 1)))
-           (wrap '(def foobar 1))))))
+  (is (= `(capture 0 (~(symbol "def") ~'foobar))
+         (wrap '(def foobar))))
+  (is (= `(capture 1 (~(symbol "def") ~'foobar (capture 2 1)))
+         (wrap '(def foobar 1)))))
 
 #_(deftest test-wrap-defn
-  (with-covered
     (is (= `(capture 0 (~(symbol "def") ~'foobar
                         (capture 1 (~(symbol "fn*")
                                     ([~'a] (capture 2 ~'a))))))
-           (expand-and-wrap '(defn foobar [a] a))))))
+           (expand-and-wrap '(defn foobar [a] a)))))
 
 (deftest test-wrap-let
-  (with-covered
-    (is (= `(capture 0 (~(symbol "let*") []))
-           (expand-and-wrap '(let []))))
-    (is (= `(capture 1 (~(symbol "let*") [~'a (capture 2 1)]))
-           (expand-and-wrap '(let [a 1]))))
-    (is (= `(capture 3 (~(symbol "let*") [~'a (capture 4 1)
-                                          ~'b (capture 5 2)]))
-           (expand-and-wrap '(let [a 1 b 2]))))
-    (is (= `(capture 6 (~(symbol "let*") [~'a (capture 7 1)
-                                          ~'b (capture 8 2)] 
-                        (capture 9 ~'a)))
-           (expand-and-wrap '(let [a 1 b 2] a))))))
+  (is (= `(capture 0 (~(symbol "let*") []))
+         (expand-and-wrap '(let []))))
+  (is (= `(capture 1 (~(symbol "let*") [~'a (capture 2 1)]))
+         (expand-and-wrap '(let [a 1]))))
+  (is (= `(capture 3 (~(symbol "let*") [~'a (capture 4 1)
+                                        ~'b (capture 5 2)]))
+         (expand-and-wrap '(let [a 1 b 2]))))
+  (is (= `(capture 6 (~(symbol "let*") [~'a (capture 7 1)
+                                        ~'b (capture 8 2)] 
+                      (capture 9 ~'a)))
+         (expand-and-wrap '(let [a 1 b 2] a)))))
 
 (deftest test-wrap-cond
-  (with-covered
-    (is (= `(capture 0 nil)
-           (expand-and-wrap '(cond))))))
+  (is (= `(capture 0 nil)
+         (expand-and-wrap '(cond)))))
 
 (deftest test-wrap-overload
   (is (= `([~'a] (capture 0 ~'a))
