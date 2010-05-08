@@ -2,7 +2,7 @@
   (:import [java.io File])
   (:use [clojure.test :exclude [report]]
         [com.mdelaurentis coverage]
-        [clojure.contrib.duck-streams :only [reader]]))
+        [clojure.contrib.duck-streams :only [reader with-out-writer]]))
 
 (def sample-file 
      "com/mdelaurentis/sample.clj")
@@ -60,7 +60,8 @@
     (is (not (covered? 35)))))
 
 (use-fixtures :each (fn [f]
-                      (binding [*covered* (ref [])]
+                      (binding [*covered* (ref [])
+                                *instrumenting-file* ""]
                         (f))))
 
 
@@ -97,13 +98,13 @@
          (wrap '[1 "foo" bar]))))
 
 (deftest test-wrap-map
-  (is (= `{(capture 0 :a) (capture 1 ~'apple)
-           (capture 2 :b)  (capture 3 ~'banana)}
+  (is (= `{(capture 0 :a) (capture 2 ~'apple)
+           (capture 1 :b)  (capture 3 ~'banana)}
          (wrap '{:a apple :b banana}))))
 
 (deftest test-wrap-list 
-  (is (= `(capture 0 ((capture 1 +) (capture 2 1)
-                      (capture 3 2)))
+  (is (= `(capture 3 ((capture 0 +) (capture 1 1)
+                      (capture 2 2)))
          (wrap `(+ 1 2)))))
 
 (deftest test-wrap-fn
@@ -193,19 +194,34 @@
 (deftest test-eval-ns
   (eval (expand-and-wrap '(ns foo.bar))))
 
-
-
 (deftest test-deftest
-  (is (= 'foo
-         (let [wrapped 
-               (expand-and-wrap
-                '(deftest test-permutation
-                   (is (not (com.mdelaurentis.sample/permutation? "foo" "foobar")))))]
-           (prn "Evaling " wrapped)
-           (eval wrapped)))))
+  #_(is (= 'foo
+           (let [wrapped 
+                 (expand-and-wrap
+                  '(deftest test-permutation
+                     (is (not (com.mdelaurentis.sample/permutation? "foo" "foobar")))))]
+             (prn "Evaling " wrapped)
+             (eval wrapped)))))
 
+(defn find-form [cov form]
+  (some #(and (= form (:form %)) %) cov))
 
-(com.mdelaurentis.coverage/-main "-o" "/Users/mdelaurentis/src/clojure-test-coverage/foo" "com.mdelaurentis.sample")
+(deftest test-instrument-gets-lines
+  (instrument 'com.mdelaurentis.sample)
+  (let [cov @*covered*]
+    #_(doseq [form-info cov]
+      (println form-info))
+    #_(println "Form is" (find-form cov '(+ 1 2)))
+    (is (:line (find-form cov '(+ 1 2))))
+    (is  (find-form cov '(inc (m c 0))))))
 
-(run-tests)
+(comment
+  (binding [*covered* (ref [])
+            *instrumenting-file* ""]
+    (with-out-writer "/Users/mdelaurentis/inline"
+      (println (wrap '(if))))
+    1)
 
+)
+
+#_(com.mdelaurentis.coverage/-main "-o" "/Users/mdelaurentis/src/clojure-test-coverage/out" "com.mdelaurentis.sample")
