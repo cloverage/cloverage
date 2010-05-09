@@ -85,6 +85,12 @@
 
 (defmulti wrap form-type)
 
+(defn remove-nil-line [m]
+  (if (:line m)
+    m
+    (dissoc m :line)))
+
+
 (defn expand-and-wrap [form]
   #_(println "expand-and-wrap" form)
   (cond
@@ -97,10 +103,9 @@
      (let [wrapped (doall (wrap (macroexpand form)))]
        #_(prn "Form is" form ", line is" (:line (meta form)))
        (if (instance? IObj form)
-         
-         (vary-meta wrapped
-                    assoc 
-                    :original (with-meta  form nil) :line (:line (meta form)))
+         (-> wrapped
+             (vary-meta assoc :original (with-meta form {}))
+             (vary-meta remove-nil-line))
          wrapped)))
 
    :else
@@ -262,14 +267,15 @@
       (doseq [namespace (map symbol namespaces)]
         (doseq [form (instrument namespace)]
           (try
-           (binding [*print-meta* true]
-             (prn "Evaling" form))
            (eval form)
            (catch Exception e
              (throw (Exception. 
                      (str "Couldn't eval form " 
-                          form)
+                          (binding [*print-meta* true]
+                            (with-out-str (prn form))))
                      e))))))
+      (in-ns 'com.mdelaurentis.coverage)
+      (apply clojure.test/run-tests (map symbol namespaces))
       (when output
         (let [stats (gather-stats @*covered*)]
           (with-out-writer "/Users/mdelaurentis/src/clojure-test-coverage/foo"

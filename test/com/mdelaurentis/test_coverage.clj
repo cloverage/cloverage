@@ -224,4 +224,5 @@
 
 )
 
-#_(com.mdelaurentis.coverage/-main "-o" "/Users/mdelaurentis/src/clojure-test-coverage/out" "com.mdelaurentis.sample")
+(deftest test-main
+  (com.mdelaurentis.coverage/-main "-o" "/Users/mdelaurentis/src/clojure-test-coverage/out" "com.mdelaurentis.sample"))
