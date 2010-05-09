@@ -225,4 +225,8 @@
 )
 
 (deftest test-main
-  (com.mdelaurentis.coverage/-main "-o" "/Users/mdelaurentis/src/clojure-test-coverage/out" "com.mdelaurentis.sample"))
+  (com.mdelaurentis.coverage/-main
+   "-o" "/Users/mdelaurentis/src/clojure-test-coverage/out" 
+   "clojure.contrib.duck-streams"
+   "clojure.contrib.math"
+   ))

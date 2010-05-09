@@ -42,7 +42,9 @@
          (= 'var form) :stop   
          (= 'quote form) :stop
          (= 'try form) :stop
-         (= 'finally form) :stop   
+         (= 'finally form) :stop
+         (= 'throw form) :stop
+         (= 'recur form) :stop
          (vector? form) :vector
          (string? form) :primitive
          (number? form) :primitive
@@ -64,7 +66,9 @@
             (= 'fn x) :fn
             (= 'fn* x) :fn
             (= 'let* x) :let
+            (= 'loop* x) :let
             (= 'def x)  :def
+            (= 'new x)  :new            
             :else       :list)))]
     #_(println "Type of" form "is" res)
     res))
@@ -155,6 +159,14 @@
                                (partition 2 bindings)))]
              ~@(doall (map expand-and-wrap body)))))
 
+;; TODO: Loop seems the same as let.  Can we combine?
+(defmethod wrap :loop [[let-sym bindings & body :as form]]
+  `(capture ~(add-form form)
+            (~let-sym
+             [~@(doall (mapcat (fn [[name val]] `(~name ~(expand-and-wrap val)))
+                               (partition 2 bindings)))]
+             ~@(doall (map expand-and-wrap body)))))
+
 (defmethod wrap :def [form]
   (let [def-sym (first form)
         name    (second form)]
@@ -162,6 +174,10 @@
       (let [val (nth form 2)]
         `(capture ~(add-form form) (~def-sym ~name ~(expand-and-wrap val))))
       `(capture ~(add-form form) (~def-sym ~name)))))
+
+(defmethod wrap :new [[new-sym class-name & args :as form]]
+  `(capture ~(add-form form) (~new-sym ~class-name ~@(doall (map expand-and-wrap args)))))
+
 
 (defmethod wrap :list [form]
   #_(println "Wrapping " (class form) form)
