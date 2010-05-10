@@ -36,6 +36,9 @@
   [form]
   (let [res
         (cond 
+
+         ;; These forms aren't symbols, but rather important parts of
+         ;; the syntax.  Don't wrap them.
          (= '. form)   :stop
          (= 'do form) :stop
          (= 'if form)  :stop
@@ -45,17 +48,33 @@
          (= 'finally form) :stop
          (= 'throw form) :stop
          (= 'recur form) :stop
-         (vector? form) :vector
+
+         ;; If it's a symbol, we need to see if it is a macro.  Not
+         ;; sure how to find a binding for this symbol in the
+         ;; namespace in which it appears, so for now check all
+         ;; namespaces.
+         (symbol? form) 
+         (if (some #(meta ((ns-map %) form))
+                   (all-ns))
+           :stop
+           :primitive)
+
+         ;; These are eval'able elements that we can wrap, but can't
+         ;; descend down into them.
          (string? form) :primitive
          (number? form) :primitive
-         (symbol? form) :primitive
          (keyword? form) :primitive
          (= true form) :primitive
          (= false form) :primitive
          (var? form) :primitive
          (nil? form) :primitive
+
+         ;; Data structures
          (map?    form) :map
-   
+         (vector? form) :vector
+
+         ;; If it's a list or a seq, check the first element to see if
+         ;; it's a special form.
          (or (list? form) (seq? form))
          (let [x (first form)]
            (cond
@@ -67,6 +86,7 @@
             (= 'fn* x) :fn
             (= 'let* x) :let
             (= 'loop* x) :let
+            (= 'deftest x) :stop ;; TODO: don't stop at deftest
             (= 'def x)  :def
             (= 'new x)  :new            
             :else       :list)))]
@@ -87,16 +107,20 @@
      (alter *covered* conj form-info)
      (dec (count @*covered*)))))
 
-(defmulti wrap form-type)
+(defmulti wrap
+  "Traverse the given form and wrap all its sub-forms in a
+function that evals the form and records that it was called."
+  form-type)
 
-(defn remove-nil-line [m]
+(defn remove-nil-line
+  "Dissoc :line from the given map if it's val is nil."
+  [m]
   (if (:line m)
     m
     (dissoc m :line)))
 
 
 (defn expand-and-wrap [form]
-  #_(println "expand-and-wrap" form)
   (cond
    (and (or (seq? form) (list? form))
         (= 'ns (first form)))
@@ -190,6 +214,10 @@
 
 (defmethod wrap :default [form]
   form)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; Reporting
 
 (defn resource-path 
   "Given a symbol representing a lib, return a classpath-relative path.  Borrowed from core.clj."
@@ -287,8 +315,9 @@
            (catch Exception e
              (throw (Exception. 
                      (str "Couldn't eval form " 
-                          (binding [*print-meta* true]
-                            (with-out-str (prn form))))
+                          (binding [*print-meta* false]
+                            (with-out-str (prn form)))
+                          "Original: " (:original form))
                      e))))))
       (in-ns 'com.mdelaurentis.coverage)
       (apply clojure.test/run-tests (map symbol namespaces))
