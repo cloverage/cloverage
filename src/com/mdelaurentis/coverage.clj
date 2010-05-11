@@ -36,8 +36,6 @@
 them completely alone."}
  stop-symbols '#{. do if var quote try finally throw recur})
 
-(def track-coverage identity)
-
 (defn form-type 
   "Classifies the given form"
   [form]
@@ -111,6 +109,9 @@ them completely alone."}
      (alter *covered* conj form-info)
      (dec (count @*covered*)))))
 
+(defn track-coverage [form]
+  `(capture ~(add-form form) ~form))
+
 (defmulti wrap
   "Traverse the given form and wrap all its sub-forms in a
 function that evals the form and records that it was called."
@@ -138,7 +139,7 @@ function that evals the form and records that it was called."
 
 ;; Don't descend into atomic forms, but do wrap them
 (defmethod wrap :atomic [f form]
-  `(capture ~(add-form form) ~form))
+  (f form))
 
 ;; For a vector, just recur on its elements.
 ;; TODO: May want to wrap the vector itself.
@@ -180,11 +181,11 @@ function that evals the form and records that it was called."
     res))
 
 (defmethod wrap :let [f [let-sym bindings & body :as form]]
-  `(capture ~(add-form form)
-            (~let-sym
-             [~@(doall (mapcat (fn [[name val]] `(~name ~(wrap f val)))
-                               (partition 2 bindings)))]
-             ~@(doall (map (wrapper f) body)))))
+  (f
+   `(~let-sym
+     [~@(doall (mapcat (fn [[name val]] `(~name ~(wrap f val)))
+                       (partition 2 bindings)))]
+     ~@(doall (map (wrapper f) body)))))
 
 ;; TODO: Loop seems the same as let.  Can we combine?
 (defmethod wrap :loop [f [let-sym bindings & body :as form]]

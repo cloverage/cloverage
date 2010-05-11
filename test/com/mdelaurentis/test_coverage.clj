@@ -144,14 +144,14 @@
 (deftest test-wrap-let
   (is (= `(capture 0 (~(symbol "let*") []))
          (wrap track-coverage '(let []))))
-  (is (= `(capture 1 (~(symbol "let*") [~'a (capture 2 1)]))
+  (is (= `(capture 2 (~(symbol "let*") [~'a (capture 1 1)]))
          (wrap track-coverage '(let [a 1]))))
-  (is (= `(capture 3 (~(symbol "let*") [~'a (capture 4 1)
-                                        ~'b (capture 5 2)]))
+  (is (= `(capture 5 (~(symbol "let*") [~'a (capture 3 1)
+                                        ~'b (capture 4 2)]))
          (wrap track-coverage '(let [a 1 b 2]))))
-  (is (= `(capture 6 (~(symbol "let*") [~'a (capture 7 1)
-                                        ~'b (capture 8 2)] 
-                      (capture 9 ~'a)))
+  (is (= `(capture 9 (~(symbol "let*") [~'a (capture 6 1)
+                                        ~'b (capture 7 2)] 
+                      (capture 8 ~'a)))
          (wrap track-coverage '(let [a 1 b 2] a)))))
 
 (deftest test-wrap-cond
