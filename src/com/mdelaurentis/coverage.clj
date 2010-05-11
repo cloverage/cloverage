@@ -36,6 +36,8 @@
 them completely alone."}
  stop-symbols '#{. do if var quote try finally throw recur})
 
+(def track-coverage identity)
+
 (defn form-type 
   "Classifies the given form"
   [form]
@@ -112,7 +114,13 @@ them completely alone."}
 (defmulti wrap
   "Traverse the given form and wrap all its sub-forms in a
 function that evals the form and records that it was called."
-  form-type)
+  (fn [f form]
+    (form-type form)))
+
+(defn wrapper 
+  "Return a function that when called, wraps f through its argument."
+  [f]
+  (partial wrap f))
 
 (defn remove-nil-line
   "Dissoc :line from the given map if it's val is nil."
@@ -122,93 +130,93 @@ function that evals the form and records that it was called."
     (dissoc m :line)))
 
 ;; Don't attempt to do anything with :stop or :default forms
-(defmethod wrap :stop [form]
+(defmethod wrap :stop [f form]
   form)
 
-(defmethod wrap :default [form]
+(defmethod wrap :default [f form]
   form)
 
 ;; Don't descend into atomic forms, but do wrap them
-(defmethod wrap :atomic [form]
+(defmethod wrap :atomic [f form]
   `(capture ~(add-form form) ~form))
 
 ;; For a vector, just recur on its elements.
 ;; TODO: May want to wrap the vector itself.
-(defmethod wrap :vector [form]
-  `[~@(doall (map wrap form))])
+(defmethod wrap :vector [f form]
+  `[~@(doall (map (wrapper f) form))])
 
 ;; Wrap a single function overload, e.g. ([a b] (+ a b))
-(defn wrap-overload [[args & body]]
+(defn wrap-overload [f [args & body]]
   #_(println "Wrapping overload" args body)
-  (let [wrapped (doall (map wrap body))]
+  (let [wrapped (doall (map (wrapper f) body))]
     `([~@args] ~@wrapped)))
 
 ;; Wrap a list of function overloads, e.g. 
 ;;   (([a] (inc a)) 
 ;;    ([a b] (+ a b)))
-(defn wrap-overloads [form]
+(defn wrap-overloads [f form]
   #_(println "Wrapping overloads " form)
   (if (vector? (first form))
-    (wrap-overload form)
+    (wrap-overload f form)
     (try
-     (doall (map wrap-overload form))
+     (doall (map (partial wrap-overload f) form))
      (catch Exception e
        #_(println "ERROR: " form)
        (throw (Exception. (apply str "While wrapping" form) e))))))
 
 ;; Wrap a fn form
-(defmethod wrap :fn [form]
+(defmethod wrap :fn [f form]
   #_(println "Wrapping fn " form)
   (let [fn-sym (first form)
         res    (if (symbol? (second form))
                  ;; If the fn has a name, include it
                  `(capture ~(add-form form)
                            (~fn-sym ~(second form)
-                                    ~@(wrap-overloads (rest (rest form)))))
+                                    ~@(wrap-overloads f (rest (rest form)))))
                  `(capture ~(add-form form)
                            (~fn-sym
-                            ~@(wrap-overloads (rest form)))))]
+                            ~@(wrap-overloads f (rest form)))))]
     #_(println "Wrapped is" res)
     res))
 
-(defmethod wrap :let [[let-sym bindings & body :as form]]
+(defmethod wrap :let [f [let-sym bindings & body :as form]]
   `(capture ~(add-form form)
             (~let-sym
-             [~@(doall (mapcat (fn [[name val]] `(~name ~(wrap val)))
+             [~@(doall (mapcat (fn [[name val]] `(~name ~(wrap f val)))
                                (partition 2 bindings)))]
-             ~@(doall (map wrap body)))))
+             ~@(doall (map (wrapper f) body)))))
 
 ;; TODO: Loop seems the same as let.  Can we combine?
-(defmethod wrap :loop [[let-sym bindings & body :as form]]
+(defmethod wrap :loop [f [let-sym bindings & body :as form]]
   `(capture ~(add-form form)
             (~let-sym
-             [~@(doall (mapcat (fn [[name val]] `(~name ~(wrap val)))
+             [~@(doall (mapcat (fn [[name val]] `(~name ~(wrap f val)))
                                (partition 2 bindings)))]
-             ~@(doall (map wrap body)))))
+             ~@(doall (map (wrapper f) body)))))
 
-(defmethod wrap :def [form]
+(defmethod wrap :def [f form]
   (let [def-sym (first form)
         name    (second form)]
     (if (= 3 (count form))
       (let [val (nth form 2)]
-        `(capture ~(add-form form) (~def-sym ~name ~(wrap val))))
+        `(capture ~(add-form form) (~def-sym ~name ~(wrap f val))))
       `(capture ~(add-form form) (~def-sym ~name)))))
 
-(defmethod wrap :new [[new-sym class-name & args :as form]]
-  `(capture ~(add-form form) (~new-sym ~class-name ~@(doall (map wrap args)))))
+(defmethod wrap :new [f [new-sym class-name & args :as form]]
+  `(capture ~(add-form form) (~new-sym ~class-name ~@(doall (map (wrapper f) args)))))
 
 
-(defmethod wrap :list [form]
+(defmethod wrap :list [f form]
   #_(println "Wrapping " (class form) form)
   (let [expanded (macroexpand form)]
     (if (= :list (form-type expanded))
-      (let [wrapped (doall (map wrap expanded))]
+      (let [wrapped (doall (map (wrapper f) expanded))]
         `(capture ~(add-form form) ~wrapped))
-      (wrap expanded))))
+      (wrap f expanded))))
 
-(defmethod wrap :map [form]
-  (doall (zipmap (doall (map wrap (keys form)))
-                 (doall (map wrap (vals form))))))
+(defmethod wrap :map [f form]
+  (doall (zipmap (doall (map (wrapper f) (keys form)))
+                 (doall (map (wrapper f) (vals form))))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -231,7 +239,7 @@ function that evals the form and records that it was called."
   "Reads all forms from the file referenced by the given lib name, and
   returns a seq of all the forms, decorated with a function that when
   called will record the line and file of the code that was executed."
-  [lib]
+  [f lib]
   (println "Instrumenting" lib)
   (when-not (symbol? lib)
     (throwf "instrument needs a symbol"))
@@ -240,7 +248,7 @@ function that evals the form and records that it was called."
       (with-open [in (LineNumberingPushbackReader. (resource-reader file))]
         (loop [forms nil]
           (if-let [form (read in false nil true)]
-            (let [wrapped (try (wrap form)
+            (let [wrapped (try (wrap f form)
                                (catch Throwable t
                                  (throwf t "Couldn't wrap form %s at line %s"
                                          form (:line form))))]
@@ -305,7 +313,7 @@ function that evals the form and records that it was called."
      namespaces]
     (binding [*covered* (ref [])]
       (doseq [namespace (map symbol namespaces)]
-        (doseq [form (instrument namespace)]
+        (doseq [form (instrument track-coverage namespace)]
           (try
            (eval form)
            (catch Exception e
