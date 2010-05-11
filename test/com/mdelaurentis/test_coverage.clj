@@ -108,24 +108,24 @@
          (wrap track-coverage `(+ 1 2)))))
 
 (deftest test-wrap-fn
-  (is (= `(capture 0 (~(symbol "fn")
-                      [~'a] (capture 1 ~'a)))
+  (is (= `(capture 1 (~(symbol "fn")
+                      [~'a] (capture 0 ~'a)))
          (wrap track-coverage
           '(fn [a] a)))
       "Unnamed fn with single overload")
-  (is (= `(capture 2 (~(symbol "fn") 
-                      ([~'a] (capture 3 ~'a))
-                      ([~'a ~'b] (capture 4 ~'b))))
+  (is (= `(capture 4 (~(symbol "fn") 
+                      ([~'a] (capture 2 ~'a))
+                      ([~'a ~'b] (capture 3 ~'b))))
          (wrap track-coverage '(fn ([a] a) ([a b] b))))
       "Unnamed fn with multiple overloads")
-  (is (= `(capture 5 (~(symbol "fn") ~'foo
-                      [~'a] (capture 6 ~'a)))
+  (is (= `(capture 6 (~(symbol "fn") ~'foo
+                      [~'a] (capture 5 ~'a)))
          (wrap track-coverage
           '(fn foo [a] a)))
       "Named fn with single overload")
-  (is (= `(capture 7 (~(symbol "fn") ~'foo
-                      ([~'a] (capture 8 ~'a))
-                      ([~'a ~'b] (capture 9 ~'b))))
+  (is (= `(capture 9 (~(symbol "fn") ~'foo
+                      ([~'a] (capture 7 ~'a))
+                      ([~'a ~'b] (capture 8 ~'b))))
          (wrap track-coverage '(fn foo ([a] a) ([a b] b))))
       "Named fn with multiple overloads"))
 

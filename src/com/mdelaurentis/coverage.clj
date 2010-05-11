@@ -171,12 +171,10 @@ function that evals the form and records that it was called."
   (let [fn-sym (first form)
         res    (if (symbol? (second form))
                  ;; If the fn has a name, include it
-                 `(capture ~(add-form form)
-                           (~fn-sym ~(second form)
-                                    ~@(wrap-overloads f (rest (rest form)))))
-                 `(capture ~(add-form form)
-                           (~fn-sym
-                            ~@(wrap-overloads f (rest form)))))]
+                 (f `(~fn-sym ~(second form)
+                              ~@(wrap-overloads f (rest (rest form)))))
+                 (f `(~fn-sym
+                      ~@(wrap-overloads f (rest form)))))]
     #_(println "Wrapped is" res)
     res))
 
@@ -189,11 +187,11 @@ function that evals the form and records that it was called."
 
 ;; TODO: Loop seems the same as let.  Can we combine?
 (defmethod wrap :loop [f [let-sym bindings & body :as form]]
-  `(capture ~(add-form form)
-            (~let-sym
-             [~@(doall (mapcat (fn [[name val]] `(~name ~(wrap f val)))
-                               (partition 2 bindings)))]
-             ~@(doall (map (wrapper f) body)))))
+  (f
+   `(~let-sym
+     [~@(doall (mapcat (fn [[name val]] `(~name ~(wrap f val)))
+                       (partition 2 bindings)))]
+     ~@(doall (map (wrapper f) body)))))
 
 (defmethod wrap :def [f form]
   (let [def-sym (first form)
