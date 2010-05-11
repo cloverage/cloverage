@@ -108,8 +108,8 @@
          (wrap `(+ 1 2)))))
 
 (deftest test-wrap-fn
-  (is (= `(capture 0 (~(symbol "fn*")
-                      ([~'a] (capture 1 ~'a))))
+  (is (= `(capture 0 (~(symbol "fn")
+                      [~'a] (capture 1 ~'a)))
          (expand-and-wrap
           '(fn [a] a)))
       "Unnamed fn with single overload")
@@ -118,8 +118,8 @@
                       ([~'a ~'b] (capture 4 ~'b))))
          (wrap '(fn ([a] a) ([a b] b))))
       "Unnamed fn with multiple overloads")
-  (is (= `(capture 5 (~(symbol "fn*") ~'foo
-                      ([~'a] (capture 6 ~'a))))
+  (is (= `(capture 5 (~(symbol "fn") ~'foo
+                      [~'a] (capture 6 ~'a)))
          (expand-and-wrap
           '(fn foo [a] a)))
       "Named fn with single overload")

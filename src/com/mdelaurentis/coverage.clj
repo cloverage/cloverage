@@ -123,24 +123,24 @@ function that evals the form and records that it was called."
 
 
 (defn expand-and-wrap [form]
-  (cond
-   (and (or (seq? form) (list? form))
-        (= 'ns (first form)))
-   form
-   
-   (or (seq? form) (list? form))
-   (do
-     (let [wrapped (doall (wrap (macroexpand form)))]
-       #_(prn "Form is" form ", line is" (:line (meta form)))
-       (if (instance? IObj form)
-         (-> wrapped
-             (vary-meta assoc :original (with-meta form {}))
-             (vary-meta remove-nil-line))
-         wrapped)))
-
-   :else
-   (wrap form)))
-
+  #_(cond
+     (and (or (seq? form) (list? form))
+          (= 'ns (first form)))
+     form
+     
+     (or (seq? form) (list? form))
+     (do
+       (let [wrapped (doall (wrap (macroexpand form)))]
+         #_(prn "Form is" form ", line is" (:line (meta form)))
+         (if (instance? IObj form)
+           (-> wrapped
+               (vary-meta assoc :original (with-meta form {}))
+               (vary-meta remove-nil-line))
+           wrapped)))
+     
+     :else
+     (wrap form))
+  (wrap form))
 
 ;; Don't attempt to do anything with :stop or :default forms
 (defmethod wrap :stop [form]
@@ -221,8 +221,11 @@ function that evals the form and records that it was called."
 
 (defmethod wrap :list [form]
   #_(println "Wrapping " (class form) form)
-  (let [wrapped (doall (map expand-and-wrap form))]
-    `(capture ~(add-form form) ~wrapped)))
+  (let [expanded (macroexpand form)]
+    (if (= :list (form-type expanded))
+      (let [wrapped (doall (map wrap expanded))]
+        `(capture ~(add-form form) ~wrapped))
+      (wrap expanded))))
 
 (defmethod wrap :map [form]
   (doall (zipmap (doall (map expand-and-wrap (keys form)))
@@ -346,4 +349,3 @@ function that evals the form and records that it was called."
 (when-not *compile-files*
   (apply -main *command-line-args*))
 
-(map identity 'foo)
