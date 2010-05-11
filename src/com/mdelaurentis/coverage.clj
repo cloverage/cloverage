@@ -31,24 +31,19 @@
        (cover ~idx)
        ~form)))
 
+(def 
+ #^{:doc "These are special forms that can't be evaled, so leave
+them completely alone."}
+ stop-symbols '#{. do if var quote try finally throw recur})
+
 (defn form-type 
   "Classifies the given form"
   [form]
   (let [res
         (cond 
 
-         ;; These forms aren't symbols, but rather important parts of
-         ;; the syntax.  Don't wrap them.
-         (= '. form)   :stop
-         (= 'do form) :stop
-         (= 'if form)  :stop
-         (= 'var form) :stop   
-         (= 'quote form) :stop
-         (= 'try form) :stop
-         (= 'finally form) :stop
-         (= 'throw form) :stop
-         (= 'recur form) :stop
-
+         (stop-symbols form) :stop
+         
          ;; If it's a symbol, we need to see if it is a macro.  Not
          ;; sure how to find a binding for this symbol in the
          ;; namespace in which it appears, so for now check all
@@ -57,17 +52,17 @@
          (if (some #(meta ((ns-map %) form))
                    (all-ns))
            :stop
-           :primitive)
+           :atomic)
 
          ;; These are eval'able elements that we can wrap, but can't
          ;; descend down into them.
-         (string? form) :primitive
-         (number? form) :primitive
-         (keyword? form) :primitive
-         (= true form) :primitive
-         (= false form) :primitive
-         (var? form) :primitive
-         (nil? form) :primitive
+         (string? form)  :atomic
+         (number? form)  :atomic
+         (keyword? form) :atomic
+         (= true form)   :atomic
+         (= false form)  :atomic
+         (var? form)     :atomic
+         (nil? form)     :atomic
 
          ;; Data structures
          (map?    form) :map
@@ -78,15 +73,22 @@
          (or (list? form) (seq? form))
          (let [x (first form)]
            (cond
+            ;; Don't attempt to descend into these forms yet
+            (= '. x) :stop
             (= 'var x) :stop
             (= 'finally x) :stop
-            (= '. x) :stop
             (= 'quote x) :stop
-            (= 'fn x) :fn
-            (= 'fn* x) :fn
-            (= 'let* x) :let
-            (= 'loop* x) :let
             (= 'deftest x) :stop ;; TODO: don't stop at deftest
+
+            ;; fn and fn* are special forms, we need to treat their
+            ;; arglists and overrides specially
+            (= 'fn x)  :fn
+            (= 'fn* x) :fn
+
+            ;; let* and loop* seem to have identical syntax
+            (= 'let* x)  :let
+            (= 'loop* x) :let
+
             (= 'def x)  :def
             (= 'new x)  :new            
             :else       :list)))]
@@ -139,20 +141,32 @@ function that evals the form and records that it was called."
    :else
    (wrap form)))
 
+
+;; Don't attempt to do anything with :stop or :default forms
 (defmethod wrap :stop [form]
   form)
 
-(defmethod wrap :primitive [form]
+(defmethod wrap :default [form]
+  form)
+
+;; Don't descend into atomic forms, but do wrap them
+(defmethod wrap :atomic [form]
   `(capture ~(add-form form) ~form))
 
+;; For a vector, just recur on its elements.
+;; TODO: May want to wrap the vector itself.
 (defmethod wrap :vector [form]
   `[~@(doall (map expand-and-wrap form))])
 
+;; Wrap a single function overload, e.g. ([a b] (+ a b))
 (defn wrap-overload [[args & body]]
   #_(println "Wrapping overload" args body)
   (let [wrapped (doall (map expand-and-wrap body))]
     `([~@args] ~@wrapped)))
 
+;; Wrap a list of function overloads, e.g. 
+;;   (([a] (inc a)) 
+;;    ([a b] (+ a b)))
 (defn wrap-overloads [form]
   #_(println "Wrapping overloads " form)
   (if (vector? (first form))
@@ -163,10 +177,12 @@ function that evals the form and records that it was called."
        #_(println "ERROR: " form)
        (throw (Exception. (apply str "While wrapping" form) e))))))
 
+;; Wrap a fn form
 (defmethod wrap :fn [form]
   #_(println "Wrapping fn " form)
   (let [fn-sym (first form)
         res    (if (symbol? (second form))
+                 ;; If the fn has a name, include it
                  `(capture ~(add-form form)
                            (~fn-sym ~(second form)
                                     ~@(wrap-overloads (rest (rest form)))))
@@ -212,8 +228,6 @@ function that evals the form and records that it was called."
   (doall (zipmap (doall (map expand-and-wrap (keys form)))
                  (doall (map expand-and-wrap (vals form))))))
 
-(defmethod wrap :default [form]
-  form)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -331,3 +345,5 @@ function that evals the form and records that it was called."
 
 (when-not *compile-files*
   (apply -main *command-line-args*))
+
+(map identity 'foo)

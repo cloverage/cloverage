@@ -76,9 +76,9 @@
    (run-tests)))
 
 (deftest test-form-type
-  (is (= :primitive (form-type 1)))
-  (is (= :primitive (form-type "foo")))
-  (is (= :primitive (form-type 'bar)))
+  (is (= :atomic (form-type 1)))
+  (is (= :atomic (form-type "foo")))
+  (is (= :atomic (form-type 'bar)))
   (is (= :vector (form-type [1 2 3])))
   (is (= :list (form-type '(+ 1 2))))
   (is (= :stop (form-type 'do))))
