@@ -121,27 +121,6 @@ function that evals the form and records that it was called."
     m
     (dissoc m :line)))
 
-
-(defn expand-and-wrap [form]
-  #_(cond
-     (and (or (seq? form) (list? form))
-          (= 'ns (first form)))
-     form
-     
-     (or (seq? form) (list? form))
-     (do
-       (let [wrapped (doall (wrap (macroexpand form)))]
-         #_(prn "Form is" form ", line is" (:line (meta form)))
-         (if (instance? IObj form)
-           (-> wrapped
-               (vary-meta assoc :original (with-meta form {}))
-               (vary-meta remove-nil-line))
-           wrapped)))
-     
-     :else
-     (wrap form))
-  (wrap form))
-
 ;; Don't attempt to do anything with :stop or :default forms
 (defmethod wrap :stop [form]
   form)
@@ -156,12 +135,12 @@ function that evals the form and records that it was called."
 ;; For a vector, just recur on its elements.
 ;; TODO: May want to wrap the vector itself.
 (defmethod wrap :vector [form]
-  `[~@(doall (map expand-and-wrap form))])
+  `[~@(doall (map wrap form))])
 
 ;; Wrap a single function overload, e.g. ([a b] (+ a b))
 (defn wrap-overload [[args & body]]
   #_(println "Wrapping overload" args body)
-  (let [wrapped (doall (map expand-and-wrap body))]
+  (let [wrapped (doall (map wrap body))]
     `([~@args] ~@wrapped)))
 
 ;; Wrap a list of function overloads, e.g. 
@@ -195,28 +174,28 @@ function that evals the form and records that it was called."
 (defmethod wrap :let [[let-sym bindings & body :as form]]
   `(capture ~(add-form form)
             (~let-sym
-             [~@(doall (mapcat (fn [[name val]] `(~name ~(expand-and-wrap val)))
+             [~@(doall (mapcat (fn [[name val]] `(~name ~(wrap val)))
                                (partition 2 bindings)))]
-             ~@(doall (map expand-and-wrap body)))))
+             ~@(doall (map wrap body)))))
 
 ;; TODO: Loop seems the same as let.  Can we combine?
 (defmethod wrap :loop [[let-sym bindings & body :as form]]
   `(capture ~(add-form form)
             (~let-sym
-             [~@(doall (mapcat (fn [[name val]] `(~name ~(expand-and-wrap val)))
+             [~@(doall (mapcat (fn [[name val]] `(~name ~(wrap val)))
                                (partition 2 bindings)))]
-             ~@(doall (map expand-and-wrap body)))))
+             ~@(doall (map wrap body)))))
 
 (defmethod wrap :def [form]
   (let [def-sym (first form)
         name    (second form)]
     (if (= 3 (count form))
       (let [val (nth form 2)]
-        `(capture ~(add-form form) (~def-sym ~name ~(expand-and-wrap val))))
+        `(capture ~(add-form form) (~def-sym ~name ~(wrap val))))
       `(capture ~(add-form form) (~def-sym ~name)))))
 
 (defmethod wrap :new [[new-sym class-name & args :as form]]
-  `(capture ~(add-form form) (~new-sym ~class-name ~@(doall (map expand-and-wrap args)))))
+  `(capture ~(add-form form) (~new-sym ~class-name ~@(doall (map wrap args)))))
 
 
 (defmethod wrap :list [form]
@@ -228,8 +207,8 @@ function that evals the form and records that it was called."
       (wrap expanded))))
 
 (defmethod wrap :map [form]
-  (doall (zipmap (doall (map expand-and-wrap (keys form)))
-                 (doall (map expand-and-wrap (vals form))))))
+  (doall (zipmap (doall (map wrap (keys form)))
+                 (doall (map wrap (vals form))))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -261,7 +240,7 @@ function that evals the form and records that it was called."
       (with-open [in (LineNumberingPushbackReader. (resource-reader file))]
         (loop [forms nil]
           (if-let [form (read in false nil true)]
-            (let [wrapped (try (expand-and-wrap form)
+            (let [wrapped (try (wrap form)
                                (catch Throwable t
                                  (throwf t "Couldn't wrap form %s at line %s"
                                          form (:line form))))]

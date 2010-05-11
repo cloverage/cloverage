@@ -110,7 +110,7 @@
 (deftest test-wrap-fn
   (is (= `(capture 0 (~(symbol "fn")
                       [~'a] (capture 1 ~'a)))
-         (expand-and-wrap
+         (wrap
           '(fn [a] a)))
       "Unnamed fn with single overload")
   (is (= `(capture 2 (~(symbol "fn") 
@@ -120,7 +120,7 @@
       "Unnamed fn with multiple overloads")
   (is (= `(capture 5 (~(symbol "fn") ~'foo
                       [~'a] (capture 6 ~'a)))
-         (expand-and-wrap
+         (wrap
           '(fn foo [a] a)))
       "Named fn with single overload")
   (is (= `(capture 7 (~(symbol "fn") ~'foo
@@ -139,24 +139,24 @@
     (is (= `(capture 0 (~(symbol "def") ~'foobar
                         (capture 1 (~(symbol "fn*")
                                     ([~'a] (capture 2 ~'a))))))
-           (expand-and-wrap '(defn foobar [a] a)))))
+           (wrap '(defn foobar [a] a)))))
 
 (deftest test-wrap-let
   (is (= `(capture 0 (~(symbol "let*") []))
-         (expand-and-wrap '(let []))))
+         (wrap '(let []))))
   (is (= `(capture 1 (~(symbol "let*") [~'a (capture 2 1)]))
-         (expand-and-wrap '(let [a 1]))))
+         (wrap '(let [a 1]))))
   (is (= `(capture 3 (~(symbol "let*") [~'a (capture 4 1)
                                         ~'b (capture 5 2)]))
-         (expand-and-wrap '(let [a 1 b 2]))))
+         (wrap '(let [a 1 b 2]))))
   (is (= `(capture 6 (~(symbol "let*") [~'a (capture 7 1)
                                         ~'b (capture 8 2)] 
                       (capture 9 ~'a)))
-         (expand-and-wrap '(let [a 1 b 2] a)))))
+         (wrap '(let [a 1 b 2] a)))))
 
 (deftest test-wrap-cond
   (is (= `(capture 0 nil)
-         (expand-and-wrap '(cond)))))
+         (wrap '(cond)))))
 
 (deftest test-wrap-overload
   (is (= `([~'a] (capture 0 ~'a))
@@ -171,33 +171,33 @@
          (wrap-overloads '([a] a)))))
 
 (deftest test-wrap-for
-  (is (not (nil? (expand-and-wrap '(for [i (range 5)] i))))))
+  (is (not (nil? (wrap '(for [i (range 5)] i))))))
 
 (deftest test-wrap-str
-  (expand-and-wrap
+  (wrap
    '(defn -main [& args]
       (doseq [file (file-seq ".")]
         (println "File is" file)))))
 
 (deftest test-eval-atomic
-  (is (= 1 (eval (expand-and-wrap 1))))
-  (is (= :foo (eval (expand-and-wrap :foo))))
-  (is (= "foo" (eval (expand-and-wrap "foo"))))
-  (is (= + (eval (expand-and-wrap '+)))))
+  (is (= 1 (eval (wrap 1))))
+  (is (= :foo (eval (wrap :foo))))
+  (is (= "foo" (eval (wrap "foo"))))
+  (is (= + (eval (wrap '+)))))
 
 (deftest test-eval-expr
-  (is (= 5 (eval (expand-and-wrap '(+ 2 3))))))
+  (is (= 5 (eval (wrap '(+ 2 3))))))
 
 (deftest test-eval-do
-  (is (= 4 (eval (expand-and-wrap '(do 4))))))
+  (is (= 4 (eval (wrap '(do 4))))))
 
 (deftest test-eval-ns
-  (eval (expand-and-wrap '(ns foo.bar))))
+  (eval (wrap '(ns foo.bar))))
 
 (deftest test-deftest
   #_(is (= 'foo
            (let [wrapped 
-                 (expand-and-wrap
+                 (wrap
                   '(deftest test-permutation
                      (is (not (com.mdelaurentis.sample/permutation? "foo" "foobar")))))]
              (prn "Evaling " wrapped)
