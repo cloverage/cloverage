@@ -4,7 +4,9 @@
   (:use [clojure.contrib.duck-streams :only [reader with-out-writer copy]]
         [clojure.contrib.command-line :only [with-command-line]]
         [clojure.contrib.except])
-  (:require [clojure.set :as set])
+  (:require [clojure.set :as set]
+            [clojure.test :as test])
+
   (:gen-class))
 
 (def *covered*)
@@ -334,7 +336,7 @@ function that evals the form and records that it was called."
                           "Original: " (:original form))
                      e))))))
       (in-ns 'com.mdelaurentis.coverage)
-      (apply clojure.test/run-tests (map symbol namespaces))
+      (apply test/run-tests (map symbol namespaces))
       (when output
         (let [stats (gather-stats @*covered*)]
           (with-out-writer "/Users/mdelaurentis/src/clojure-test-coverage/foo"
@@ -342,7 +344,3 @@ function that evals the form and records that it was called."
             #_(doseq [form @*covered*]
               (prn form (:original (meta form)))))
           (report output stats))))))
-
-(when-not *compile-files*
-  (apply -main *command-line-args*))
-
