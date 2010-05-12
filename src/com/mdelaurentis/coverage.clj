@@ -311,8 +311,8 @@ function that evals the form and records that it was called."
         (println " </head>")
         (println " <body>")
         (doseq [info content]
-          (let [cls (cond (:covered? info) "covered" 
-                          (:blank?   info) "blank"
+          (let [cls (cond (empty? (:forms info)) "blank"
+                          (some :covered (:forms info)) "covered"
                           :else            "not-covered")]
             (printf "<span class=\"%s\">%s</span><br/>%n" cls (replace-spaces (:text info "")))))
         (println " </body>")
@@ -322,6 +322,9 @@ function that evals the form and records that it was called."
   (with-command-line args
     "Produce test coverage report for some namespaces"
     [[output o "Output directory"]
+     [text?   t "Produce text file reports?"]
+     [html?   h "Produce html reports?"]
+     [raw?    r "Output the raw coverage information?"]
      namespaces]
     
     (binding [*covered* (ref [])
@@ -344,4 +347,9 @@ function that evals the form and records that it was called."
             #_(prn stats)
             #_(doseq [form @*covered*]
               (prn form (:original (meta form)))))
-          (report output stats))))))
+          (when text?
+            (report output stats))
+          (when html?
+            (html-report output stats))
+          (when raw?
+            (prn stats)))))))
