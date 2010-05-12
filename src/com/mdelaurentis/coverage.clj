@@ -323,7 +323,9 @@ function that evals the form and records that it was called."
     "Produce test coverage report for some namespaces"
     [[output o "Output directory"]
      namespaces]
-    (binding [*covered* (ref [])]
+    
+    (binding [*covered* (ref [])
+              *ns* (find-ns 'com.mdelaurentis.coverage)]
       (doseq [namespace (map symbol namespaces)]
         (doseq [form (instrument track-coverage namespace)]
           (try
@@ -335,7 +337,6 @@ function that evals the form and records that it was called."
                             (with-out-str (prn form)))
                           "Original: " (:original form))
                      e))))))
-      (in-ns 'com.mdelaurentis.coverage)
       (apply test/run-tests (map symbol namespaces))
       (when output
         (let [stats (gather-stats @*covered*)]
