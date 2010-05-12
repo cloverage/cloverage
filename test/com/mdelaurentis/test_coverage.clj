@@ -59,11 +59,12 @@
     (is (not (covered? 34)))
     (is (not (covered? 35)))))
 
-(use-fixtures :each (fn [f]
-                      (binding [*covered* (ref [])
-                                *instrumenting-file* ""]
-                        (f))))
+(defn coverage-fixture [f]
+  (binding [*covered* (ref [])
+            *instrumenting-file* ""]
+    (f)))
 
+(use-fixtures :each coverage-fixture)
 
 (def output-dir  "/Users/mdelaurentis/src/clojure-test-coverage/coverage" )
 
@@ -208,12 +209,15 @@
 
 (deftest test-instrument-gets-lines
   (instrument track-coverage 'com.mdelaurentis.sample)
-  (let [cov @*covered*]
-    #_(doseq [form-info cov]
-      (println form-info))
-    #_(println "Form is" (find-form cov '(+ 1 2)))
-    (is (:line (find-form cov '(+ 1 2))))
-    (is  (find-form cov '(inc (m c 0))))))
+  (let [cov @*covered*
+        found (find-form cov '(+ 1 2))]
+    #_(with-out-writer "/Users/mdelaurentis/foo"
+        (doseq [form-info cov]
+          (println form-info)))
+    #_(println "Form is" )
+    (is found)
+    (is (:line found))
+    (is (find-form cov '(inc (m c 0))))))
 
 (comment
   (binding [*covered* (ref [])
@@ -234,4 +238,10 @@
    "clojure.contrib.math"
    "clojure.contrib.math.tests"
    ))
-(run-tests)
+
+
+
+#_(coverage-fixture
+  (fn []
+    (println "Done, meta is " (meta (doall (wrap track-coverage '(+ 1 2)))))
+    (println *covered*)))

@@ -99,7 +99,8 @@ them completely alone."}
   "Adds a structure representing the given form to the *covered* vector."
   [form]
   (let [file *instrumenting-file*
-        form-info {:form form
+        form-info {:form (or (:original (meta form))
+                             form)
                    :line (:line (meta form))
                    :file file}]
   (binding [*print-meta* true]
@@ -110,6 +111,7 @@ them completely alone."}
      (dec (count @*covered*)))))
 
 (defn track-coverage [form]
+  #_(println "Track coverage called with" form)
   `(capture ~(add-form form) ~form))
 
 (defmulti wrap
@@ -204,13 +206,22 @@ function that evals the form and records that it was called."
 (defmethod wrap :new [f [new-sym class-name & args :as form]]
   (f `(~new-sym ~class-name ~@(doall (map (wrapper f) args)))))
 
+(defn add-original [old new]
+  #_(println "Meta for" old "is" (meta old))
+  (let [res (-> new 
+                (vary-meta merge (meta old))
+                (vary-meta remove-nil-line)
+                (vary-meta assoc :original old))]
+    #_(println "Meta for " new "is" (meta res))
+    res))
 
 (defmethod wrap :list [f form]
   #_(println "Wrapping " (class form) form)
   (let [expanded (macroexpand form)]
+    #_(println "Meta on expanded is" (meta expanded))
     (if (= :list (form-type expanded))
       (let [wrapped (doall (map (wrapper f) expanded))]
-        `(capture ~(add-form form) ~wrapped))
+        (f (add-original form wrapped)))
       (wrap f expanded))))
 
 (defmethod wrap :map [f form]
