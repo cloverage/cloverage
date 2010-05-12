@@ -237,6 +237,7 @@
    "-o" "/Users/mdelaurentis/src/clojure-test-coverage/out" 
    "clojure.contrib.math"
    "clojure.contrib.math.tests"
+   "com.mdelaurentis.sample"
    ))
 
 
