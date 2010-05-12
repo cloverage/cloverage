@@ -132,7 +132,7 @@
 (deftest test-wrap-def
   (is (= `(capture 0 (~(symbol "def") ~'foobar))
          (wrap track-coverage '(def foobar))))
-  (is (= `(capture 1 (~(symbol "def") ~'foobar (capture 2 1)))
+  (is (= `(capture 2 (~(symbol "def") ~'foobar (capture 1 1)))
          (wrap track-coverage '(def foobar 1)))))
 
 #_(deftest test-wrap-defn
@@ -224,9 +224,14 @@
 
 )
 
+(deftest test-wrap-new 
+  (is (= `(capture 1 (~'new java.io.File (capture 0 "foo/bar")))
+         (wrap track-coverage '(new java.io.File "foo/bar")))))
+
 (deftest test-main
   (com.mdelaurentis.coverage/-main
    "-o" "/Users/mdelaurentis/src/clojure-test-coverage/out" 
    "clojure.contrib.math"
    "clojure.contrib.math.tests"
    ))
+(run-tests)

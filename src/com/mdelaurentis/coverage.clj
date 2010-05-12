@@ -198,11 +198,11 @@ function that evals the form and records that it was called."
         name    (second form)]
     (if (= 3 (count form))
       (let [val (nth form 2)]
-        `(capture ~(add-form form) (~def-sym ~name ~(wrap f val))))
-      `(capture ~(add-form form) (~def-sym ~name)))))
+        (f `(~def-sym ~name ~(wrap f val))))
+      (f `(~def-sym ~name)))))
 
 (defmethod wrap :new [f [new-sym class-name & args :as form]]
-  `(capture ~(add-form form) (~new-sym ~class-name ~@(doall (map (wrapper f) args)))))
+  (f `(~new-sym ~class-name ~@(doall (map (wrapper f) args)))))
 
 
 (defmethod wrap :list [f form]
