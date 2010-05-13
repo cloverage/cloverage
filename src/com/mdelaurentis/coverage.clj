@@ -291,23 +291,55 @@ function that evals the form and records that it was called."
         (with-open [in (LineNumberingPushbackReader. (resource-reader file))]
           (loop [forms nil]
             (if-let [text (.readLine in)]
+
+              ;; If we're still reading lines, add a line-info
+              ;; structure for this line to our list and recur
               (let [line (dec (.getLineNumber in))
                     info  {:line line
                            :file file
                            :text text
                            :forms (indexed {:file file :line line})}]
                 (recur (conj forms info)))
+
+              ;; Otherwise return a map with this file and the info
+              ;; for all the lines
               {:file file
                :content (apply vector nil (reverse forms))})))))))
 
+(defn covered [line-info]
+  (some :covered (:forms line-info)))
+
+(defn line-has-forms? [line-info]
+  (not-empty (:forms line-info)))
+
+(defn instrumented [line-info]
+  (when (not-empty (:forms line-info))
+    line-info))
+
+(defn blank [line-info]
+  (when (empty? (:text line-info))
+    line-info))
+
+(defn stats-report [file cov]
+  (with-out-writer file
+    (printf "Lines Non-Blank Instrumented Covered%n")
+    (doseq [{rel-file :file, content :content} cov]
+      (printf "%5d %9d %7d %10d %s%n" 
+              (count content)
+              (count (remove blank content))
+              (count (filter instrumented content))
+              (count (filter covered content))
+              rel-file))))
+
 (defn report [out-dir cov]
+  (stats-report (File. out-dir "coverage.txt") cov)
   (doseq [{rel-file :file, content :content} cov]
     (let [file (File. out-dir rel-file)]
       (.mkdirs (.getParentFile file))
       (with-out-writer file
         (doseq [line-info content]
-          (let [prefix (cond (empty? (:forms line-info))   " "
-                             (some :covered (:forms line-info)) "+"
+          (let [prefix (cond (not (line-has-forms? line-info)) " "
+                             (covered line-info) "+"
                              :else            "-")]
             (println prefix (:text line-info))))))))
 
@@ -316,6 +348,7 @@ function that evals the form and records that it was called."
 
 (defn html-report [out-dir cov]
   (copy (resource-reader "coverage.css") (File. out-dir "coverage.css"))
+  (stats-report (File. out-dir "coverage.txt") cov)
   (doseq [{rel-file :file, content :content} cov]
     (let [file (File. out-dir (str rel-file ".html"))]
       (.mkdirs (.getParentFile file))
@@ -333,6 +366,7 @@ function that evals the form and records that it was called."
             (printf "<span class=\"%s\">%s</span><br/>%n" cls (replace-spaces (:text info "")))))
         (println " </body>")
         (println "</html>")))))
+
 
 (defn -main [& args]
   (with-command-line args

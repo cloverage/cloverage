@@ -238,6 +238,8 @@
    "--text" "--html"
    "clojure.contrib.math"
    "clojure.contrib.math.tests"
+   "clojure.contrib.sql"
+   "clojure.contrib.sql.test"
    "com.mdelaurentis.sample"
    "clojure.set"
    "clojure.zip"
