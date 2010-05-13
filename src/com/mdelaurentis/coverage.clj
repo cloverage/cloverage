@@ -5,7 +5,8 @@
         [clojure.contrib.command-line :only [with-command-line]]
         [clojure.contrib.except])
   (:require [clojure.set :as set]
-            [clojure.test :as test])
+            [clojure.test :as test]
+            [clojure.contrib.logging :as log])
 
   (:gen-class))
 
@@ -23,8 +24,9 @@
 (defn cover [idx]
   "Mark the given file and line in as having been covered."
   (dosync 
-   (when (contains? *covered* idx)
-     (alter *covered* assoc-in [idx :covered] true))))
+   (if (contains? @*covered* idx)
+     (alter *covered* assoc-in [idx :covered] true)
+     (log/warn (str "Couldn't track coverage for form with index " idx ".")))))
 
 (defmacro capture 
   "Eval the given form and record that the given line on the given
