@@ -1,7 +1,7 @@
 (ns com.mdelaurentis.test-coverage
   (:import [java.io File])
   (:use [clojure.test :exclude [report]]
-        [com.mdelaurentis coverage]
+        [com.mdelaurentis coverage instrument]
         [clojure.contrib.duck-streams :only [reader with-out-writer]]))
 
 (def sample-file 
