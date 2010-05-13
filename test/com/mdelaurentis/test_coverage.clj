@@ -235,14 +235,10 @@
 (deftest test-main
   (com.mdelaurentis.coverage/-main
    "-o" "/Users/mdelaurentis/src/clojure-test-coverage/out" 
+   "--text" "--html"
    "clojure.contrib.math"
    "clojure.contrib.math.tests"
    "com.mdelaurentis.sample"
-   ))
-
-
-
-#_(coverage-fixture
-  (fn []
-    (println "Done, meta is " (meta (doall (wrap track-coverage '(+ 1 2)))))
-    (println *covered*)))
+   "clojure.set"
+   "clojure.zip"
+   "clojure.xml"))

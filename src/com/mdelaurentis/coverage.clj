@@ -22,7 +22,9 @@
 
 (defn cover [idx]
   "Mark the given file and line in as having been covered."
-  (dosync (alter *covered* assoc-in [idx :covered] true)))
+  (dosync 
+   (when (contains? *covered* idx)
+     (alter *covered* assoc-in [idx :covered] true))))
 
 (defmacro capture 
   "Eval the given form and record that the given line on the given
@@ -78,6 +80,9 @@ them completely alone."}
             ;; Don't attempt to descend into these forms yet
             (= '. x) :stop
             (= 'var x) :stop
+            (= 'clojure.core/import* x) :stop
+            (= 'catch x) :stop ;; TODO: descend into catch
+            (= 'set! x) :stop ;; TODO: descend into set!
             (= 'finally x) :stop
             (= 'quote x) :stop
             (= 'deftest x) :stop ;; TODO: don't stop at deftest
@@ -264,6 +269,15 @@ function that evals the form and records that it was called."
                                (catch Throwable t
                                  (throwf t "Couldn't wrap form %s at line %s"
                                          form (:line form))))]
+              (try
+               (eval wrapped)
+               (catch Exception e
+                 (throw (Exception. 
+                         (str "Couldn't eval form " 
+                              (binding [*print-meta* false]
+                                (with-out-str (prn form)))
+                              "Original: " (:original form))
+                         e))))
               (recur (conj forms wrapped)))
             (reverse forms)))))))
 
@@ -330,16 +344,7 @@ function that evals the form and records that it was called."
     (binding [*covered* (ref [])
               *ns* (find-ns 'com.mdelaurentis.coverage)]
       (doseq [namespace (map symbol namespaces)]
-        (doseq [form (instrument track-coverage namespace)]
-          (try
-           (eval form)
-           (catch Exception e
-             (throw (Exception. 
-                     (str "Couldn't eval form " 
-                          (binding [*print-meta* false]
-                            (with-out-str (prn form)))
-                          "Original: " (:original form))
-                     e))))))
+        (instrument track-coverage namespace))
       (apply test/run-tests (map symbol namespaces))
       (when output
         (let [stats (gather-stats @*covered*)]
