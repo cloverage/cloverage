@@ -98,6 +98,7 @@
     line-info))
 
 (defn stats-report [file cov]
+  (.mkdirs (.getParentFile file))
   (with-out-writer file
     (printf "Lines Non-Blank Instrumented Covered%n")
     (doseq [{rel-file :file, content :content} cov]
@@ -160,11 +161,8 @@
         (instrument track-coverage namespace))
       (apply test/run-tests (map symbol namespaces))
       (when output
+        (.mkdir (File. output))
         (let [stats (gather-stats @*covered*)]
-          (with-out-writer "/Users/mdelaurentis/src/clojure-test-coverage/foo"
-            #_(prn stats)
-            #_(doseq [form @*covered*]
-              (prn form (:original (meta form)))))
           (when text?
             (report output stats))
           (when html?
