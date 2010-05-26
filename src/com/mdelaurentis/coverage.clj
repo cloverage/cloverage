@@ -61,7 +61,7 @@
 ;;
 ;; Reporting
 
-(defn postprocess-file [resource forms]
+(defn- postprocess-file [resource forms]
   (with-open [in (reader (resource-reader resource))]
     (let [forms-by-line (group-by :line forms)
           make-rec (fn [line text]
@@ -71,28 +71,35 @@
           lines (into [] (line-seq in))]
       (mapcat make-rec line-nums lines))))
 
-(defn gather-stats [forms]
+(defn- gather-stats [forms]
   (let [forms-by-file (group-by :file forms)]
     (mapcat (partial apply postprocess-file) forms-by-file)))
 
 (defn line-stats [forms]
   (for [[line line-forms] (group-by :line forms)]
-    {:covered (some :covered line-forms)
+    {:line line
+     :text (:text (first line-forms))
+     :covered (some :covered line-forms)
      :instrumented (some :form line-forms)
      :blank (empty? (:text (first line-forms)))}))
+
+(defn file-stats [forms]
+  (for [[file file-forms] (group-by :file forms)
+        :let [lines (line-stats file-forms)]]
+    {:file file
+     :lines (count lines)
+     :non-blank-lines (count (remove :blank lines))
+     :instrumented-lines (count (filter :instrumented lines))
+     :covered-lines (count (filter :covered lines))}))
 
 (defn stats-report [file cov]
   (.mkdirs (.getParentFile file))
   (with-out-writer file
     (printf "Lines Non-Blank Instrumented Covered%n")
-    (doseq [[file file-forms] (group-by :file cov)]
-      (let [stats (line-stats file-forms)]
-        (printf "%5d %9d %7d %10d %s%n" 
-                (count stats)
-                (count (remove :blank stats))
-                (count (filter :instrumented stats))
-                (count (filter :covered stats))
-                file)))))
+    (doseq [file-info (file-stats cov)]
+      (apply printf "%5d %9d %7d %10d %s%n"
+             (map file-info [:lines :non-blank-lines :instrumented-lines
+                             :covered-lines :file])))))
 
 (defn report [out-dir forms]
   (stats-report (File. out-dir "coverage.txt") forms)
@@ -102,11 +109,12 @@
     (let [file (File. out-dir file)]
       (.mkdirs (.getParentFile file))
       (with-out-writer file
-        (doseq [[line line-forms] (group-by :line file-forms)]
-          (let [prefix (cond (not-any? :form line-forms) " "
-                             (some :covered line-forms)  "+"
-                             :else            "-")]
-            (println prefix (:text (first line-forms)))))))))
+        (doseq [line (line-stats file-forms)]
+          (let [prefix (cond (:blank line)   " "
+                             (:covered line) "+"
+                             (:instrumented line) "-"
+                             :else           "?")]
+            (println prefix (:text line))))))))
 
 (defn replace-spaces [s]
   (.replace s " " "&nbsp;"))
