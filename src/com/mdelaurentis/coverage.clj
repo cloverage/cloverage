@@ -3,6 +3,7 @@
            [java.io File InputStreamReader])
   (:use [clojure.contrib.duck-streams :only [reader with-out-writer copy]]
         [clojure.contrib.command-line :only [with-command-line]]
+        [clojure.contrib.seq-utils :only [group-by]]
         [clojure.contrib.except]
         [com.mdelaurentis instrument])
   (:require [clojure.set :as set]
@@ -60,66 +61,52 @@
 ;;
 ;; Reporting
 
-(defn gather-stats [cov]
-  (let [indexed (set/index cov [:file :line])]
-    (for [file (filter #(not (= "NO_SOURCE_FILE" %))
-                       (distinct (map :file (keys indexed))))]
-      (do
-        (with-open [in (LineNumberingPushbackReader. (resource-reader file))]
-          (loop [forms nil]
-            (if-let [text (.readLine in)]
+(defn postprocess-file [resource forms]
+  (with-open [in (reader (resource-reader resource))]
+    (let [forms-by-line (group-by :line forms)
+          make-rec (fn [line text]
+                     (map (partial merge {:text text :line line :file resource})
+                          (forms-by-line line [{:line line}])))
+          line-nums (next (iterate inc 0))
+          lines (into [] (line-seq in))]
+      (mapcat make-rec line-nums lines))))
 
-              ;; If we're still reading lines, add a line-info
-              ;; structure for this line to our list and recur
-              (let [line (dec (.getLineNumber in))
-                    info  {:line line
-                           :file file
-                           :text text
-                           :forms (indexed {:file file :line line})}]
-                (recur (conj forms info)))
+(defn gather-stats [forms]
+  (let [forms-by-file (group-by :file forms)]
+    (mapcat (partial apply postprocess-file) forms-by-file)))
 
-              ;; Otherwise return a map with this file and the info
-              ;; for all the lines
-              {:file file
-               :content (apply vector nil (reverse forms))})))))))
-
-(defn covered [line-info]
-  (some :covered (:forms line-info)))
-
-(defn line-has-forms? [line-info]
-  (not-empty (:forms line-info)))
-
-(defn instrumented [line-info]
-  (when (not-empty (:forms line-info))
-    line-info))
-
-(defn blank [line-info]
-  (when (empty? (:text line-info))
-    line-info))
+(defn line-stats [forms]
+  (for [[line line-forms] (group-by :line forms)]
+    {:covered (some :covered line-forms)
+     :instrumented (some :form line-forms)
+     :blank (empty? (:text (first line-forms)))}))
 
 (defn stats-report [file cov]
   (.mkdirs (.getParentFile file))
   (with-out-writer file
     (printf "Lines Non-Blank Instrumented Covered%n")
-    (doseq [{rel-file :file, content :content} cov]
-      (printf "%5d %9d %7d %10d %s%n" 
-              (count content)
-              (count (remove blank content))
-              (count (filter instrumented content))
-              (count (filter covered content))
-              rel-file))))
+    (doseq [[file file-forms] (group-by :file cov)]
+      (let [stats (line-stats file-forms)]
+        (printf "%5d %9d %7d %10d %s%n" 
+                (count stats)
+                (count (remove :blank stats))
+                (count (filter :instrumented stats))
+                (count (filter :covered stats))
+                file)))))
 
-(defn report [out-dir cov]
-  (stats-report (File. out-dir "coverage.txt") cov)
-  (doseq [{rel-file :file, content :content} cov]
-    (let [file (File. out-dir rel-file)]
+(defn report [out-dir forms]
+  (stats-report (File. out-dir "coverage.txt") forms)
+  (doseq [[file file-forms] (group-by :file forms)
+          :when file]
+    (println "Reporting on" file)
+    (let [file (File. out-dir file)]
       (.mkdirs (.getParentFile file))
       (with-out-writer file
-        (doseq [line-info content]
-          (let [prefix (cond (not (line-has-forms? line-info)) " "
-                             (covered line-info) "+"
+        (doseq [[line line-forms] (group-by :line file-forms)]
+          (let [prefix (cond (not-any? :form line-forms) " "
+                             (some :covered line-forms)  "+"
                              :else            "-")]
-            (println prefix (:text line-info))))))))
+            (println prefix (:text (first line-forms)))))))))
 
 (defn replace-spaces [s]
   (.replace s " " "&nbsp;"))
@@ -168,4 +155,5 @@
           (when html?
             (html-report output stats))
           (when raw?
-            (prn stats)))))))
+            (with-out-writer (File. (File. output) "coverage.clj")
+              (prn stats))))))))
