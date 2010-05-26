@@ -2,7 +2,8 @@
   (:import [java.io File])
   (:use [clojure.test :exclude [report]]
         [com.mdelaurentis coverage instrument]
-        [clojure.contrib.duck-streams :only [reader with-out-writer]]))
+        [clojure.contrib.duck-streams :only [reader with-out-writer]]
+        clojure.contrib.test-contrib.test-graph))
 
 (def sample-file 
      "com/mdelaurentis/sample.clj")
@@ -235,12 +236,16 @@
 (deftest test-main
   (com.mdelaurentis.coverage/-main
    "-o" "/Users/mdelaurentis/src/clojure-test-coverage/out" 
-   "--text" "--html"
-   "clojure.contrib.math"
-   "clojure.contrib.math.tests"
-   "clojure.contrib.sql"
-   "clojure.contrib.sql.test"
-   "com.mdelaurentis.sample"
-   "clojure.set"
-   "clojure.zip"
-   "clojure.xml"))
+   "--text" "--html" "--raw"
+   "clojure.contrib.graph"
+   "clojure.contrib.test-contrib.test-graph"
+   "clojure.contrib.seq-utils"
+   "clojure.contrib.test-contrib.seq-utils-test"
+;   "com.mdelaurentis.sample"
+;   "clojure.set"
+;   "clojure.zip"
+   ;"clojure.xml"
+   ))
+
+;(map #(:test (meta %)) (vals (ns-interns (find-ns 'clojure.contrib.test-contrib.test-graph))))
+
