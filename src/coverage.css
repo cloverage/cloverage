@@ -7,6 +7,12 @@
     background-color: red;
 }
 
+.not-tracked {
+    font-family:  'Bitstream Vera Sans Mono', 'Courier', monospace;
+    background-color: orange;
+}
+
+
 .blank {
     font-family:  'Bitstream Vera Sans Mono', 'Courier', monospace;
 }

@@ -1,16 +1,14 @@
 (ns com.mdelaurentis.instrument
-  (:import [clojure.lang LineNumberingPushbackReader IObj]
-           [java.io File InputStreamReader])
-  (:use [clojure.contrib.duck-streams :only [reader with-out-writer copy]]
-        [clojure.contrib.command-line :only [with-command-line]]
-        [clojure.contrib.except])
+  (:import  [java.io InputStreamReader]
+            [clojure.lang LineNumberingPushbackReader]
+   )
+  (:use [slingshot.slingshot :only [throw+]])
   (:require [clojure.set :as set]
-            [clojure.test :as test]
-            [clojure.contrib.logging :as log])
+            [clojure.test :as test])
 
   (:gen-class))
 
-(def *instrumenting-file*)
+(def ^:dynamic *instrumenting-file*)
 
 (def 
  #^{:doc "These are special forms that can't be evaled, so leave
@@ -74,7 +72,7 @@ them completely alone."}
             (= 'loop* x) :let
 
             (= 'def x)  :def
-            (= 'new x)  :new            
+            (= 'new x)  :new
             :else       :list)))]
     #_(println "Type of" form "is" res)
     res))
@@ -95,6 +93,7 @@ function that evals the form and records that it was called."
   form)
 
 (defmethod wrap :default [f form]
+  (println "Don't know how to wrap " form)
   form)
 
 ;; Don't descend into atomic forms, but do wrap them
@@ -215,7 +214,7 @@ function that evals the form and records that it was called."
   [f lib]
   (println "Instrumenting" lib)
   (when-not (symbol? lib)
-    (throwf "instrument needs a symbol"))
+    (throw+ "instrument needs a symbol"))
   (let [file (resource-path lib)]
     (binding [*instrumenting-file* file]
       (with-open [in (LineNumberingPushbackReader. (resource-reader file))]
@@ -223,7 +222,7 @@ function that evals the form and records that it was called."
           (if-let [form (read in false nil true)]
             (let [wrapped (try (wrap f form)
                                (catch Throwable t
-                                 (throwf t "Couldn't wrap form %s at line %s"
+                                 (throw+ t "Couldn't wrap form %s at line %s"
                                          form (:line form))))]
               (try
                (eval wrapped)
@@ -236,6 +235,3 @@ function that evals the form and records that it was called."
                          e))))
               (recur (conj forms wrapped)))
             (reverse forms)))))))
-
-
-

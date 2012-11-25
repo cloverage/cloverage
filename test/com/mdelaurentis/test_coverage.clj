@@ -2,16 +2,15 @@
   (:import [java.io File])
   (:use [clojure.test :exclude [report]]
         [com.mdelaurentis coverage instrument]
-        [clojure.contrib.duck-streams :only [reader with-out-writer]]
-        clojure.contrib.test-contrib.test-graph))
+        ))
 
 (def sample-file 
      "com/mdelaurentis/sample.clj")
 
 #_(deftest test-instrument
   (binding [*covered* (ref [])]
-    (let [forms (vec (instrument 'com.mdelaurentis.sample))
-          cap 'com.mdelaurentis.coverage/capture
+    (let [cap 'com.mdelaurentis.coverage/capture
+          forms (vec (instrument cap 'com.mdelaurentis.sample))
           file sample-file]
       (println "Forms are" )
       (doseq [i (range (count forms))]
@@ -67,13 +66,13 @@
 
 (use-fixtures :each coverage-fixture)
 
-(def output-dir  "/Users/mdelaurentis/src/clojure-test-coverage/coverage" )
+(def output-dir  "out")
 
 #_(report output-dir
           (with-coverage ['com.mdelaurentis.sample]
             (run-tests)))
 
-#_(html-report "/Users/mdelaurentis/src/clojure-test-coverage/coverage"
+#_(html-report "out"
  (with-coverage ['com.mdelaurentis.sample] 
    (run-tests)))
 
@@ -212,7 +211,7 @@
   (instrument track-coverage 'com.mdelaurentis.sample)
   (let [cov @*covered*
         found (find-form cov '(+ 1 2))]
-    #_(with-out-writer "/Users/mdelaurentis/foo"
+    #_(with-out-writer "out/foo"
         (doseq [form-info cov]
           (println form-info)))
     #_(println "Form is" )
@@ -223,7 +222,7 @@
 (comment
   (binding [*covered* (ref [])
             *instrumenting-file* ""]
-    (with-out-writer "/Users/mdelaurentis/inline"
+    (with-out-writer "out/inline"
       (println (wrap track-coverage '(if))))
     1)
 
@@ -235,13 +234,9 @@
 
 (deftest test-main
   (com.mdelaurentis.coverage/-main
-   "-o" "/Users/mdelaurentis/src/clojure-test-coverage/out" 
+   "-o" "out" 
    "--text" "--html" "--raw"
-   "clojure.contrib.graph"
-   "clojure.contrib.test-contrib.test-graph"
-   "clojure.contrib.seq-utils"
-   "clojure.contrib.test-contrib.seq-utils-test"
-;   "com.mdelaurentis.sample"
+   "com.mdelaurentis.sample"
 ;   "clojure.set"
 ;   "clojure.zip"
    ;"clojure.xml"

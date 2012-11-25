@@ -1,18 +1,25 @@
 (ns com.mdelaurentis.coverage
   (:import [clojure.lang LineNumberingPushbackReader IObj]
            [java.io File InputStreamReader])
-  (:use [clojure.contrib.duck-streams :only [reader with-out-writer copy]]
-        [clojure.contrib.command-line :only [with-command-line]]
-        [clojure.contrib.seq-utils :only [group-by]]
-        [clojure.contrib.except]
+  (:use [clojure.java.io :only [reader writer copy]]
+        [clojure.tools.cli :only [cli]]
         [com.mdelaurentis instrument])
   (:require [clojure.set :as set]
             [clojure.test :as test]
-            [clojure.contrib.logging :as log])
+            [clojure.tools.logging :as log])
 
   (:gen-class))
 
-(def *covered*)
+(def ^:dynamic *covered*)
+
+;; borrowed from duck-streams
+(defmacro with-out-writer
+  "Opens a writer on f, binds it to *out*, and evalutes body.
+  Anything printed within body will be written to f."
+  [f & body]
+  `(with-open [stream# (writer ~f)]
+     (binding [*out* stream#]
+       ~@body)))
 
 (defmacro with-coverage [libs & body]
   `(binding [*covered* (ref [])]
@@ -61,9 +68,12 @@
 ;;
 ;; Reporting
 
+(defn- group-by-line [forms]
+  (into (sorted-map) (group-by :line forms)))
+
 (defn- postprocess-file [resource forms]
   (with-open [in (reader (resource-reader resource))]
-    (let [forms-by-line (group-by :line forms)
+    (let [forms-by-line (group-by-line forms)
           make-rec (fn [line text]
                      (map (partial merge {:text text :line line :file resource})
                           (forms-by-line line [{:line line}])))
@@ -71,12 +81,12 @@
           lines (into [] (line-seq in))]
       (mapcat make-rec line-nums lines))))
 
-(defn- gather-stats [forms]
+(defn gather-stats [forms]
   (let [forms-by-file (group-by :file forms)]
     (mapcat (partial apply postprocess-file) forms-by-file)))
 
 (defn line-stats [forms]
-  (for [[line line-forms] (group-by :line forms)]
+  (for [[line line-forms] (group-by-line forms)]
     {:line line
      :text (:text (first line-forms))
      :covered (some :covered line-forms)
@@ -94,12 +104,13 @@
 
 (defn stats-report [file cov]
   (.mkdirs (.getParentFile file))
-  (with-out-writer file
-    (printf "Lines Non-Blank Instrumented Covered%n")
-    (doseq [file-info (file-stats cov)]
-      (apply printf "%5d %9d %7d %10d %s%n"
-             (map file-info [:lines :non-blank-lines :instrumented-lines
-                             :covered-lines :file])))))
+  (with-open [outf (writer file)] 
+    (binding [*out* outf]
+      (printf "Lines Non-Blank Instrumented Covered%n") 
+      (doseq [file-info (file-stats cov)]
+        (apply printf "%5d %9d %7d %10d %s%n"
+               (map file-info [:lines :non-blank-lines :instrumented-lines
+                               :covered-lines :file]))))))
 
 (defn report [out-dir forms]
   (stats-report (File. out-dir "coverage.txt") forms)
@@ -119,10 +130,10 @@
 (defn replace-spaces [s]
   (.replace s " " "&nbsp;"))
 
-(defn html-report [out-dir cov]
+(defn html-report [out-dir forms]
   (copy (resource-reader "coverage.css") (File. out-dir "coverage.css"))
-  (stats-report (File. out-dir "coverage.txt") cov)
-  (doseq [{rel-file :file, content :content} cov]
+  (stats-report (File. out-dir "coverage.txt") forms)
+  (doseq [[rel-file file-forms] (group-by :file forms)]
     (let [file (File. out-dir (str rel-file ".html"))]
       (.mkdirs (.getParentFile file))
       (with-out-writer file
@@ -132,24 +143,30 @@
         (println "  <title>" rel-file "</title>")
         (println " </head>")
         (println " <body>")
-        (doseq [info content]
-          (let [cls (cond (empty? (:forms info)) "blank"
-                          (some :covered (:forms info)) "covered"
-                          :else            "not-covered")]
-            (printf "<span class=\"%s\">%s</span><br/>%n" cls (replace-spaces (:text info "")))))
+        (doseq [line (line-stats file-forms)]
+          (let [cls (cond (:blank line) "blank"
+                          (:covered line) "covered"
+                          (:instrumented line) "not-covered"
+                          :else            "not-tracked")]
+            (printf "<span class=\"%s\">%03d%s</span><br/>%n" cls (:line line) (replace-spaces (:text line "&nbsp;")))))
         (println " </body>")
         (println "</html>")))))
 
+(defn parse-args [args]
+  (cli args ["-o" "--output"]
+            ["-t" "--[no-]text"]
+            ["-h" "--[no-]html"]
+            ["-r" "--[no-]raw"]))
 
-(defn -main [& args]
-  (with-command-line args
-    "Produce test coverage report for some namespaces"
-    [[output o "Output directory"]
-     [text?   t "Produce text file reports?"]
-     [html?   h "Produce html reports?"]
-     [raw?    r "Output the raw coverage information?"]
-     namespaces]
-    
+(defn -main
+  "Produce test coverage report for some namespaces"
+  [& args]
+  (let [[opts, namespaces] (parse-args args)
+        output       (:output opts)
+        text?        (:text opts)
+        html?        (:html opts)
+        raw?         (:raw opts)
+        ]
     (binding [*covered* (ref [])
               *ns* (find-ns 'com.mdelaurentis.coverage)]
       (doseq [namespace (map symbol namespaces)]
