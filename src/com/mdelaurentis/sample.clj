@@ -13,6 +13,19 @@
 {:a (+ 1 2) 
  (/ 4 2) "two"}
 
+(defn not-covered-at-all
+  "This function is not covered at all"
+  [arg1 arg2]
+  (+ 2 3)
+  (- 2 3)
+  )
+
+(defn partially-covered
+  [cnd]
+  (if cnd (+ 1 2 3) (- 2 3 4)))
+
+(deftest test-partially-covered
+  (is (= 6 (partially-covered true))))
 
 (defn palindrome? 
   "Tests whether s is a palindrom."

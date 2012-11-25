@@ -89,8 +89,10 @@
   (for [[line line-forms] (group-by-line forms)]
     {:line line
      :text (:text (first line-forms))
-     :covered (some :covered line-forms)
-     :instrumented (some :form line-forms)
+     :tooltip (apply str (interpose \: line-forms))
+     :covered (every? :covered line-forms)
+     :partial (some :covered line-forms)
+     :instrumented  (some :form line-forms)
      :blank (empty? (:text (first line-forms)))}))
 
 (defn file-stats [forms]
@@ -146,9 +148,10 @@
         (doseq [line (line-stats file-forms)]
           (let [cls (cond (:blank line) "blank"
                           (:covered line) "covered"
+                          (:partial line) "partial"
                           (:instrumented line) "not-covered"
                           :else            "not-tracked")]
-            (printf "<span class=\"%s\">%03d%s</span><br/>%n" cls (:line line) (replace-spaces (:text line "&nbsp;")))))
+            (printf "<span class=\"%s\" tooltip=\"%s\">%03d%s</span><br/>%n" cls (:tooltip line) (:line line) (replace-spaces (:text line "&nbsp;")))))
         (println " </body>")
         (println "</html>")))))
 
