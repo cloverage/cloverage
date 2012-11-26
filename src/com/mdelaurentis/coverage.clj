@@ -47,22 +47,25 @@
 
 (defn add-form 
   "Adds a structure representing the given form to the *covered* vector."
-  [form]
+  [form line-hint]
+  (println "Adding form" form "at line" (:line (meta form)) "hint" line-hint)
   (let [file *instrumenting-file*
+        line (if (:line (meta form)) (:line (meta form)) line-hint)
         form-info {:form (or (:original (meta form))
                              form)
-                   :line (:line (meta form))
+                   :line line
                    :file file}]
   (binding [*print-meta* true]
-    #_(prn "Adding" form-info)
-    #_(newline))
+    (prn "Parsed form" form)
+    (prn "Adding" form-info)
+    (newline))
     (dosync 
      (alter *covered* conj form-info)
      (dec (count @*covered*)))))
 
-(defn track-coverage [form]
+(defn track-coverage [line-hint form]
   #_(println "Track coverage called with" form)
-  `(capture ~(add-form form) ~form))
+  `(capture ~(add-form form line-hint) ~form))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -136,12 +139,14 @@
   (copy (resource-reader "coverage.css") (File. out-dir "coverage.css"))
   (stats-report (File. out-dir "coverage.txt") forms)
   (doseq [[rel-file file-forms] (group-by :file forms)]
-    (let [file (File. out-dir (str rel-file ".html"))]
+    (let [file     (File. out-dir (str rel-file ".html"))
+          rootpath (.relativize (.. file getParentFile toPath) (.toPath (File. out-dir)))
+          ]
       (.mkdirs (.getParentFile file))
       (with-out-writer file
         (println "<html>")
         (println " <head>")
-        (println "  <link rel=\"stylesheet\" href=\"../../coverage.css\"/>")
+        (printf "  <link rel=\"stylesheet\" href=\"%s/coverage.css\"/>" rootpath)
         (println "  <title>" rel-file "</title>")
         (println " </head>")
         (println " <body>")
@@ -151,7 +156,7 @@
                           (:partial line) "partial"
                           (:instrumented line) "not-covered"
                           :else            "not-tracked")]
-            (printf "<span class=\"%s\" tooltip=\"%s\">%03d%s</span><br/>%n" cls (:tooltip line) (:line line) (replace-spaces (:text line "&nbsp;")))))
+            (printf "<span class=\"%s\">%03d%s</span><br/>%n" cls (:line line) (replace-spaces (:text line "&nbsp;")))))
         (println " </body>")
         (println "</html>")))))
 
@@ -172,6 +177,9 @@
         ]
     (binding [*covered* (ref [])
               *ns* (find-ns 'com.mdelaurentis.coverage)]
+      ;; Load all the namespaces, so that any requires within them
+      ;; will not re-load the ns.
+      (apply require (map symbol namespaces))
       (doseq [namespace (map symbol namespaces)]
         (instrument track-coverage namespace))
       (apply test/run-tests (map symbol namespaces))
@@ -183,5 +191,7 @@
           (when html?
             (html-report output stats))
           (when raw?
+            (with-out-writer (File. (File. output) "covered.clj")
+              (clojure.pprint/pprint @*covered*))
             (with-out-writer (File. (File. output) "coverage.clj")
-              (prn stats))))))))
+              (clojure.pprint/pprint stats))))))))
