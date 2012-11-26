@@ -1,7 +1,7 @@
 (ns cloverage.debug
   (:use [clojure.java.io :only [writer]]))
 
-(def ^:dynamic *debug*)
+(def ^:dynamic *debug* false)
 ;; debug output
 (defn tprn [& args]
   (when *debug*
