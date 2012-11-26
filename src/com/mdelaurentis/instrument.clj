@@ -195,16 +195,18 @@ function that evals the form and records that it was called."
     m
     (dissoc m :line)))
 
-(defn add-line-numbers [old new]
+(defn add-line-number [hint old new]
   (if (instance? clojure.lang.IObj new)
-    (let [recs (if (or (seq? new) (list? new))
-                 (map (partial add-line-numbers old) new)
+    (let [nline (:line (meta new))
+          line  (if nline nline hint)
+          recs (if (or (seq? new) (list? new))
+                 (doall (map (partial add-line-number line old) new))
                  new)
           res (-> recs
-                  (vary-meta update-in [:line]
-                             #(if (nil? %1) (:line (meta old)) %1)))]
+                  (vary-meta assoc :line line))]
       (binding [*print-meta* true]
-        (println "Updated line on" new "to" res "based on" old)) 
+        (prn "Updated line on" new "to" res "based on" old)
+        (newline)) 
       res)
     new))
 
@@ -212,7 +214,7 @@ function that evals the form and records that it was called."
 (defn add-original [old new]
   (println "Meta for" old "is" (meta old))
   (if (instance? clojure.lang.IObj new)
-    (let [res (-> (add-line-numbers old new)
+    (let [res (-> (add-line-number (:line (meta old)) old new)
                   (vary-meta merge (meta old))
                   (vary-meta remove-nil-line)
                   (vary-meta assoc :original old))]
