@@ -1,4 +1,5 @@
-(ns cloverage.debug)
+(ns cloverage.debug
+  (:use [clojure.java.io :only [writer]]))
 
 (def ^:dynamic *debug*)
 ;; debug output
