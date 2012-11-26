@@ -1,10 +1,9 @@
-(ns com.mdelaurentis.instrument
+(ns cloverage.instrument
   (:import  [java.io InputStreamReader]
-            [clojure.lang LineNumberingPushbackReader]
-   )
+            [clojure.lang LineNumberingPushbackReader])
   (:use [slingshot.slingshot :only [throw+]]
         [clojure.java.io :only [writer]]
-   )
+        [cloverage.debug])
   (:require [clojure.set :as set]
             [clojure.test :as test])
 
@@ -12,28 +11,21 @@
 
 (def ^:dynamic *instrumenting-file*)
 
-(def 
- #^{:doc "These are special forms that can't be evaled, so leave
-them completely alone."}
- stop-symbols '#{. do if var quote try finally throw recur})
+(def stop-symbols
+  "These are special forms that can't be evaled, so leave them completely alone."
+  '#{. do if var quote try finally throw recur monitor-enter monitor-exit})
 
-(defn form-type 
+(defn form-type
   "Classifies the given form"
   [form]
   (let [res
-        (cond 
+        (cond
 
          (stop-symbols form) :stop
-         
-         ;; If it's a symbol, we need to see if it is a macro.  Not
-         ;; sure how to find a binding for this symbol in the
-         ;; namespace in which it appears, so for now check all
-         ;; namespaces.
+
+         ;; No macro symbols should be present by this point
+         ;; so we can take the value of any symbold that's not in stop-symbols
          (symbol? form)  :atomic
-;         (if (some #(meta ((ns-map %) form))
-;                   (all-ns))
-;           :stop
-;           :atomic)
 
          ;; These are eval'able elements that we can wrap, but can't
          ;; descend down into them.
@@ -56,7 +48,6 @@ them completely alone."}
          (let [x (first form)]
            (cond
             ;; Don't attempt to descend into these forms yet
-            (= '. x) :dotjava
             (= 'var x) :stop
             (= 'clojure.core/import* x) :stop
             (= 'catch x) :stop ;; TODO: descend into catch
@@ -65,8 +56,8 @@ them completely alone."}
             (= 'quote x) :stop
             (= 'deftest x) :stop ;; TODO: don't stop at deftest
 
-            ;; fn and fn* are special forms, we need to treat their
-            ;; arglists and overrides specially
+            (= '. x) :dotjava
+
             (= 'fn x)  :fn
             (= 'fn* x) :fn
 
@@ -77,8 +68,8 @@ them completely alone."}
             (= 'def x)  :def
             (= 'new x)  :new
             :else       :list)))]
-    (println "Type of" form "is" res)
-    (println "Meta of" form "is" (meta form))
+    (tprnl "Type of" form "is" res)
+    (tprnl "Meta of" form "is" (meta form))
     res))
 
 (defmulti do-wrap
@@ -86,13 +77,13 @@ them completely alone."}
 function that evals the form and records that it was called."
   (fn [f line form]
     (form-type form)))
- 
+
 (defn wrap [f line-hint form]
   (let [form-line (:line (meta form))
         line      (if form-line form-line line-hint)]
     (do-wrap f line form)))
 
-(defn wrapper 
+(defn wrapper
   "Return a function that when called, wraps f through its argument."
   [f line]
   (partial wrap f line))
@@ -102,7 +93,7 @@ function that evals the form and records that it was called."
   form)
 
 (defmethod do-wrap :default [f line form]
-  (println "Don't know how to wrap " form)
+  (tprnl "Don't know how to wrap " form)
   form)
 
 ;; Don't descend into atomic forms, but do wrap them
@@ -116,27 +107,27 @@ function that evals the form and records that it was called."
 
 ;; Wrap a single function overload, e.g. ([a b] (+ a b))
 (defn wrap-overload [f line [args & body]]
-  (println "Wrapping overload" args body)
+  (tprnl "Wrapping overload" args body)
   (let [wrapped (doall (map (wrapper f line) body))]
     `([~@args] ~@wrapped)))
 
-;; Wrap a list of function overloads, e.g. 
-;;   (([a] (inc a)) 
+;; Wrap a list of function overloads, e.g.
+;;   (([a] (inc a))
 ;;    ([a b] (+ a b)))
 (defn wrap-overloads [f line form]
-  (println "Wrapping overloads " form)
+  (tprnl "Wrapping overloads " form)
   (if (vector? (first form))
     (wrap-overload f line form)
     (try
      (doall (map (partial wrap-overload f line) form))
      (catch Exception e
-       (println "ERROR: " form)
-       (println e)
+       (tprnl "ERROR: " form)
+       (tprnl e)
        (throw (Exception. (apply str "While wrapping" form) e))))))
 
 ;; Wrap a fn form
 (defmethod do-wrap :fn [f line form]
-  (println "Wrapping fn " form)
+  (tprnl "Wrapping fn " form)
   (let [fn-sym (first form)
         res    (if (symbol? (second form))
                  ;; If the fn has a name, include it
@@ -144,7 +135,7 @@ function that evals the form and records that it was called."
                               ~@(wrap-overloads f line (rest (rest form)))))
                  (f line `(~fn-sym
                       ~@(wrap-overloads f line (rest form)))))]
-    (println "Wrapped is" res)
+    (tprnl "Wrapped is" res)
     res))
 
 (defmethod do-wrap :let [f line [let-sym bindings & body :as form]]
@@ -177,12 +168,12 @@ function that evals the form and records that it was called."
   ;; either (. obj meth args*) or (. obj (meth args*))
   (if (= :list (form-type attr-name))
     (do
-      (println "List dotform, recursing on" (rest attr-name))
+      (tprnl "List dotform, recursing on" (rest attr-name))
       (f line `(~dot-sym ~obj-name (~(first attr-name)
                                     ~@(doall (map (wrapper f line) (rest attr-name))))))
     )
     (do
-      (println "Simple dotform, recursing on" args)
+      (tprnl "Simple dotform, recursing on" args)
       (f line `(~dot-sym ~obj-name ~attr-name ~@(doall (map (wrapper f line) args))))
     )
     ))
@@ -197,35 +188,31 @@ function that evals the form and records that it was called."
 
 (defn add-line-number [hint old new]
   (if (instance? clojure.lang.IObj new)
-    (let [nline (:line (meta new))
-          line  (if nline nline hint)
-          recs (if (or (seq? new) (list? new))
-                 (doall (map (partial add-line-number line old) new))
-                 new)
-          res (-> recs
-                  (vary-meta assoc :line line))]
-      (binding [*print-meta* true]
-        (prn "Updated line on" new "to" res "based on" old)
-        (newline)) 
-      res)
+    (let [line  (or (:line (meta new)) hint)
+          recs  (if (or (seq? new) (list? new))
+                  (doall (map (partial add-line-number line old) new))
+                  new)
+          ret   (vary-meta recs assoc :line line)]
+      ret)
     new))
 
 
 (defn add-original [old new]
-  (println "Meta for" old "is" (meta old))
+  (tprnl "Meta for" old "is" (meta old))
   (if (instance? clojure.lang.IObj new)
     (let [res (-> (add-line-number (:line (meta old)) old new)
                   (vary-meta merge (meta old))
                   (vary-meta remove-nil-line)
                   (vary-meta assoc :original old))]
-      (println "Meta for new" new "is" (meta res))
+      (binding [*print-meta* true]
+        (tprn "Updated meta on" new "to" res "based on" old))
       res)
     new))
 
 (defmethod do-wrap :list [f line form]
-  (println "Wrapping " (class form) form)
+  (tprnl "Wrapping " (class form) form)
   (let [expanded (macroexpand form)]
-    (println "Meta on expanded is" (meta expanded))
+    (tprnl "Meta on expanded is" (meta expanded))
     (if (= :list (form-type expanded))
       (let [wrapped (doall (map (wrapper f line) expanded))]
         (f line (add-original form wrapped)))
@@ -235,33 +222,34 @@ function that evals the form and records that it was called."
   (doall (zipmap (doall (map (wrapper f line) (keys form)))
                  (doall (map (wrapper f line) (vals form))))))
 
-(defn resource-path 
+(defn resource-path
   "Given a symbol representing a lib, return a classpath-relative path.  Borrowed from core.clj."
   [lib]
-  (println "Getting resource for " lib)
+  (tprnl "Getting resource for " lib)
   (str (.. (name lib)
            (replace \- \_)
            (replace \. \/))
        ".clj"))
 
 (defn resource-reader [resource]
-  (println "Getting reader for " resource)
-  (println "Classpath is")
-  (println (seq (.getURLs (java.lang.ClassLoader/getSystemClassLoader))))
+  (tprnl "Getting reader for " resource)
+  (tprnl "Classpath is")
+  (tprnl (seq (.getURLs (java.lang.ClassLoader/getSystemClassLoader))))
   (InputStreamReader.
    (.getResourceAsStream (clojure.lang.RT/baseLoader) resource)))
 
-(defn dump-source [forms name]
+(defn dump-instrumented [forms name]
   (with-open [ou (writer (str "debug-" name))]
-    (binding [*out* ou]
-      (clojure.pprint/pprint forms))))
+    (binding [*out* ou
+              *print-meta* true]
+      (doall (map prn forms)))))
 
 (defn instrument
   "Reads all forms from the file referenced by the given lib name, and
   returns a seq of all the forms, decorated with a function that when
   called will record the line and file of the code that was executed."
   [f lib]
-  (println "Instrumenting" lib)
+  (tprnl "Instrumenting" lib)
   (when-not (symbol? lib)
     (throw+ "instrument needs a symbol"))
   (let [file (resource-path lib)]
@@ -275,10 +263,10 @@ function that evals the form and records that it was called."
                                          form (:line form))))]
               (try
                (eval wrapped)
-               (println "Evalled" wrapped)
+               (tprnl "Evalled" wrapped)
                (catch Exception e
-                 (throw (Exception. 
-                         (str "Couldn't eval form " 
+                 (throw (Exception.
+                         (str "Couldn't eval form "
                               (binding [*print-meta* false]
                                 (with-out-str (prn form)))
                               "Original: " (:original form))
@@ -286,5 +274,5 @@ function that evals the form and records that it was called."
               (recur (conj forms wrapped)))
             (do
               (let [rforms (reverse forms)]
-                (dump-source rforms lib) 
+                #_(dump-instrumented rforms lib)
                 rforms))))))))

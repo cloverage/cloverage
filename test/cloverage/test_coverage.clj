@@ -1,16 +1,16 @@
-(ns com.mdelaurentis.test-coverage
+(ns cloverage.test-coverage
   (:import [java.io File])
   (:use [clojure.test :exclude [report]]
-        [com.mdelaurentis coverage instrument]
+        [cloverage coverage instrument]
         ))
 
-(def sample-file 
-     "com/mdelaurentis/sample.clj")
+(def sample-file
+     "cloverage/sample.clj")
 
 #_(deftest test-instrument
   (binding [*covered* (ref [])]
-    (let [cap 'com.mdelaurentis.coverage/capture
-          forms (vec (instrument cap 'com.mdelaurentis.sample))
+    (let [cap 'cloverage.coverage/capture
+          forms (vec (instrument cap 'cloverage.sample))
           file sample-file]
       (println "Forms are" )
       (doseq [i (range (count forms))]
@@ -21,7 +21,7 @@
       (is (= (list cap 1 '(+ 1 2)) (forms 1))
           "Simple function call")
       (is (= (list cap 3 (list '+ (list cap 4 '(* 2 3))
-                               (list cap 5 '(/ 12 3)))) 
+                               (list cap 5 '(/ 12 3))))
              (forms 2))
           "Nested function calls")
       (is (= (list cap 7 (list 'let ['a (list cap 8 '(+ 1 2))
@@ -36,7 +36,7 @@
               "Make sure we wrap map keys")))))
 
 #_(deftest test-with-coverage
-  (let [cov (with-coverage ['com.mdelaurentis.sample] 
+  (let [cov (with-coverage ['cloverage.sample]
               (with-out-str (run-tests)))
         file-cov (first cov)
         covered? (fn [line] (:covered? ((:content file-cov)
@@ -50,7 +50,7 @@
 ;    (is (covered? 23) "Make sure we capture primitives")
     (is (covered? 24))
     (is (covered? 25))
-    
+
     ;; Make sure permutation? is not
     (is (covered? 30))
     (is (covered? 31))
@@ -69,11 +69,11 @@
 (def output-dir  "out")
 
 #_(report output-dir
-          (with-coverage ['com.mdelaurentis.sample]
+          (with-coverage ['cloverage.sample]
             (run-tests)))
 
 #_(html-report "out"
- (with-coverage ['com.mdelaurentis.sample] 
+ (with-coverage ['cloverage.sample]
    (run-tests)))
 
 (deftest test-form-type
@@ -103,7 +103,7 @@
            (capture 1 :b)  (capture 3 ~'banana)}
          (wrap track-coverage 0 '{:a apple :b banana}))))
 
-(deftest test-wrap-list 
+(deftest test-wrap-list
   (is (= `(capture 3 ((capture 0 +) (capture 1 1)
                       (capture 2 2)))
          (wrap track-coverage 0 `(+ 1 2)))))
@@ -114,7 +114,7 @@
          (wrap track-coverage 0
           '(fn [a] a)))
       "Unnamed fn with single overload")
-  (is (= `(capture 4 (~(symbol "fn") 
+  (is (= `(capture 4 (~(symbol "fn")
                       ([~'a] (capture 2 ~'a))
                       ([~'a ~'b] (capture 3 ~'b))))
          (wrap track-coverage 0 '(fn ([a] a) ([a b] b))))
@@ -151,7 +151,7 @@
                                         ~'b (capture 4 2)]))
          (wrap track-coverage 0 '(let [a 1 b 2]))))
   (is (= `(capture 9 (~(symbol "let*") [~'a (capture 6 1)
-                                        ~'b (capture 7 2)] 
+                                        ~'b (capture 7 2)]
                       (capture 8 ~'a)))
          (wrap track-coverage 0 '(let [a 1 b 2] a)))))
 
@@ -163,7 +163,7 @@
   (is (= `([~'a] (capture 0 ~'a))
          (wrap-overload track-coverage 0 '([a] a)))))
 
-(deftest test-wrap-overloads 
+(deftest test-wrap-overloads
   (is (= `(([~'a] (capture 0 ~'a))
            ([~'a ~'b] (capture 1 ~'a) (capture 2 ~'b)))
          (wrap-overloads track-coverage 0 '(([a] a)
@@ -197,10 +197,10 @@
 
 (deftest test-deftest
   #_(is (= 'foo
-           (let [wrapped 
+           (let [wrapped
                  (wrap track-coverage 0
                   '(deftest test-permutation
-                     (is (not (com.mdelaurentis.sample/permutation? "foo" "foobar")))))]
+                     (is (not (cloverage.sample/permutation? "foo" "foobar")))))]
              (prn "Evaling " wrapped)
              (eval wrapped)))))
 
@@ -208,7 +208,7 @@
   (some #(and (= form (:form %)) %) cov))
 
 (deftest test-instrument-gets-lines
-  (instrument track-coverage 'com.mdelaurentis.sample)
+  (instrument track-coverage 'cloverage.sample)
   (let [cov @*covered*
         found (find-form cov '(+ 1 2))]
     #_(with-out-writer "out/foo"
@@ -228,15 +228,15 @@
 
 )
 
-(deftest test-wrap-new 
+(deftest test-wrap-new
   (is (= `(capture 1 (~'new java.io.File (capture 0 "foo/bar")))
          (wrap track-coverage 0 '(new java.io.File "foo/bar")))))
 
 (deftest test-main
-  (com.mdelaurentis.coverage/-main
-   "-o" "out" 
+  (cloverage.coverage/-main
+   "-o" "out"
    "--text" "--html" "--raw"
-   "com.mdelaurentis.sample"
+   "cloverage.sample"
 ;   "clojure.set"
 ;   "clojure.zip"
    ;"clojure.xml"

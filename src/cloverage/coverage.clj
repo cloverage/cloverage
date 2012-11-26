@@ -1,9 +1,9 @@
-(ns com.mdelaurentis.coverage
+(ns cloverage.coverage
   (:import [clojure.lang LineNumberingPushbackReader IObj]
            [java.io File InputStreamReader])
   (:use [clojure.java.io :only [reader writer copy]]
         [clojure.tools.cli :only [cli]]
-        [com.mdelaurentis instrument])
+        [cloverage instrument debug])
   (:require [clojure.set :as set]
             [clojure.test :as test]
             [clojure.tools.logging :as log])
@@ -31,41 +31,44 @@
 
 (defn cover [idx]
   "Mark the given file and line in as having been covered."
-  (dosync 
+  (dosync
    (if (contains? @*covered* idx)
      (alter *covered* assoc-in [idx :covered] true)
      (log/warn (str "Couldn't track coverage for form with index " idx ".")))))
 
-(defmacro capture 
+(defmacro capture
   "Eval the given form and record that the given line on the given
   files was run."
   [idx form]
-  (let [text (with-out-str (prn form))]
-    `(do 
-       (cover ~idx)
-       ~form)))
+  `(do
+     (cover ~idx)
+     ~form))
 
-(defn add-form 
+(defn add-form
   "Adds a structure representing the given form to the *covered* vector."
   [form line-hint]
-  (println "Adding form" form "at line" (:line (meta form)) "hint" line-hint)
+  (tprnl "Adding form" form "at line" (:line (meta form)) "hint" line-hint)
   (let [file *instrumenting-file*
         line (if (:line (meta form)) (:line (meta form)) line-hint)
         form-info {:form (or (:original (meta form))
                              form)
+                   :full-form form
                    :line line
                    :file file}]
-  (binding [*print-meta* true]
-    (prn "Parsed form" form)
-    (prn "Adding" form-info)
-    (newline))
-    (dosync 
-     (alter *covered* conj form-info)
-     (dec (count @*covered*)))))
+    (binding [*print-meta* true]
+      (tprn "Parsed form" form)
+      (tprn "Adding" form-info))
+      (dosync
+       (alter *covered* conj form-info)
+       (dec (count @*covered*)))))
 
 (defn track-coverage [line-hint form]
-  #_(println "Track coverage called with" form)
-  `(capture ~(add-form form line-hint) ~form))
+  (tprnl "Track coverage called with" form)
+  (let [idx   (count @*covered*)
+        form# (if (instance? clojure.lang.IObj form)
+                (vary-meta form assoc :idx idx)
+                form)]
+    `(capture ~(add-form form# line-hint) ~form#)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -90,13 +93,16 @@
 
 (defn line-stats [forms]
   (for [[line line-forms] (group-by-line forms)]
+    (let [total (count (filter :form line-forms))
+          hit   (count (filter :covered line-forms))]
     {:line line
      :text (:text (first line-forms))
-     :tooltip (apply str (interpose \: line-forms))
-     :covered (every? :covered line-forms)
-     :partial (some :covered line-forms)
-     :instrumented  (some :form line-forms)
-     :blank (empty? (:text (first line-forms)))}))
+     :total total
+     :hit   hit
+     :covered (and (> total 0) (= total hit))
+     :partial (> hit 0)
+     :instrumented  (> total 0)
+     :blank (empty? (:text (first line-forms)))})))
 
 (defn file-stats [forms]
   (for [[file file-forms] (group-by :file forms)
@@ -109,9 +115,9 @@
 
 (defn stats-report [file cov]
   (.mkdirs (.getParentFile file))
-  (with-open [outf (writer file)] 
+  (with-open [outf (writer file)]
     (binding [*out* outf]
-      (printf "Lines Non-Blank Instrumented Covered%n") 
+      (printf "Lines Non-Blank Instrumented Covered%n")
       (doseq [file-info (file-stats cov)]
         (apply printf "%5d %9d %7d %10d %s%n"
                (map file-info [:lines :non-blank-lines :instrumented-lines
@@ -127,8 +133,9 @@
       (with-out-writer file
         (doseq [line (line-stats file-forms)]
           (let [prefix (cond (:blank line)   " "
-                             (:covered line) "+"
-                             (:instrumented line) "-"
+                             (:covered line) "✔"
+                             (:partial line) "~"
+                             (:instrumented line) "✘"
                              :else           "?")]
             (println prefix (:text line))))))))
 
@@ -156,7 +163,11 @@
                           (:partial line) "partial"
                           (:instrumented line) "not-covered"
                           :else            "not-tracked")]
-            (printf "<span class=\"%s\">%03d%s</span><br/>%n" cls (:line line) (replace-spaces (:text line "&nbsp;")))))
+            (printf
+               "<span class=\"%s\" title=\"%d out of %d forms covered\">
+                 %03d&nbsp;&nbsp;%s
+                </span><br/>%n" cls (:hit line) (:total line) (:line line)
+                (replace-spaces (:text line "&nbsp;")))))
         (println " </body>")
         (println "</html>")))))
 
@@ -176,7 +187,7 @@
         raw?         (:raw opts)
         ]
     (binding [*covered* (ref [])
-              *ns* (find-ns 'com.mdelaurentis.coverage)]
+              *ns* (find-ns 'cloverage.coverage)]
       ;; Load all the namespaces, so that any requires within them
       ;; will not re-load the ns.
       (apply require (map symbol namespaces))
@@ -192,6 +203,9 @@
             (html-report output stats))
           (when raw?
             (with-out-writer (File. (File. output) "covered.clj")
-              (clojure.pprint/pprint @*covered*))
+              (binding [*print-meta* true]
+                (doall
+                  (map prn @*covered*))))
             (with-out-writer (File. (File. output) "coverage.clj")
-              (clojure.pprint/pprint stats))))))))
+              (binding [*print-meta* true]
+                (doall (map prn stats))))))))))
