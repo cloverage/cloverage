@@ -6,8 +6,7 @@ Exploring some ideas for instrumenting Clojure code and reporting on test covera
 
 A hacky way of getting coverage:
 Import this library in the project being tested. For maven projects, run:
-`mvn exec:java -Dexec.classpathScope=test -Dexec.mainClass='clojure.main' \
-               -Dexec.args='--main cloverage.coverage *args-to-coverage*'`
+`mvn exec:java -Dexec.classpathScope=test -Dexec.mainClass='clojure.main' -Dexec.args='--main cloverage.coverage *args-to-coverage*'`
 
 Where *args-to-coverage* will usually be something like '-o out -h -x my.ns.test-script my.ns.script'
 
