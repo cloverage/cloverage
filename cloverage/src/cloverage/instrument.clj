@@ -238,12 +238,6 @@ function that evals the form and records that it was called."
   (InputStreamReader.
    (.getResourceAsStream (clojure.lang.RT/baseLoader) resource)))
 
-(defn dump-instrumented [forms name]
-  (with-open [ou (writer (str "debug-" name))]
-    (binding [*out* ou
-              *print-meta* true]
-      (doall (map prn forms)))))
-
 (defn instrument
   "Reads all forms from the file referenced by the given lib name, and
   returns a seq of all the forms, decorated with a function that when
@@ -274,5 +268,5 @@ function that evals the form and records that it was called."
               (recur (conj forms wrapped)))
             (do
               (let [rforms (reverse forms)]
-                #_(dump-instrumented rforms lib)
+                (dump-instrumented rforms lib)
                 rforms))))))))

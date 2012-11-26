@@ -171,11 +171,22 @@
         (println " </body>")
         (println "</html>")))))
 
+(defn collecting-args-parser []
+  (let [col (ref [])]
+    (fn [val]
+      (dosync (alter col conj val)
+              @col))))
+
 (defn parse-args [args]
   (cli args ["-o" "--output"]
             ["-t" "--[no-]text"]
             ["-h" "--[no-]html"]
-            ["-r" "--[no-]raw"]))
+            ["-r" "--[no-]raw"]
+            ["-d" "--[no-]debug"]
+            ["-x" "--test-ns"
+               "Additional test namespace. (can specify multiple times)"
+               :default  []
+               :parse-fn (collecting-args-parser)]))
 
 (defn -main
   "Produce test coverage report for some namespaces"
@@ -185,15 +196,21 @@
         text?        (:text opts)
         html?        (:html opts)
         raw?         (:raw opts)
+        debug?       (:debug opts)
+        test-nses    (:test-ns opts)
         ]
     (binding [*covered* (ref [])
-              *ns* (find-ns 'cloverage.coverage)]
+              *ns*      (find-ns 'cloverage.coverage)
+              *debug*   debug?]
       ;; Load all the namespaces, so that any requires within them
       ;; will not re-load the ns.
+      (println test-nses namespaces)
+      (when-not (empty? test-nses)
+        (apply require (map symbol test-nses))) 
       (apply require (map symbol namespaces))
       (doseq [namespace (map symbol namespaces)]
         (instrument track-coverage namespace))
-      (apply test/run-tests (map symbol namespaces))
+      (apply test/run-tests (map symbol (concat namespaces test-nses)))
       (when output
         (.mkdir (File. output))
         (let [stats (gather-stats @*covered*)]
@@ -208,4 +225,5 @@
                   (map prn @*covered*))))
             (with-out-writer (File. (File. output) "coverage.clj")
               (binding [*print-meta* true]
-                (doall (map prn stats))))))))))
+                (doall (map prn stats)))))))))
+  nil)
