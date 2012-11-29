@@ -183,6 +183,7 @@
             ["-h" "--[no-]html"]
             ["-r" "--[no-]raw"]
             ["-d" "--[no-]debug"]
+            ["-n" "--[no-]nop" "Instrument with noops." :default false]
             ["-x" "--test-ns"
                "Additional test namespace. (can specify multiple times)"
                :default  []
@@ -197,6 +198,7 @@
         html?        (:html opts)
         raw?         (:raw opts)
         debug?       (:debug opts)
+        nops?        (:nop opts)
         test-nses    (:test-ns opts)
         ]
     (binding [*covered* (ref [])
@@ -209,7 +211,9 @@
         (apply require (map symbol test-nses))) 
       (apply require (map symbol namespaces))
       (doseq [namespace (map symbol namespaces)]
-        (instrument track-coverage namespace))
+        (if nops?
+          (instrument-nop namespace)
+          (instrument track-coverage namespace)))
       (apply test/run-tests (map symbol (concat namespaces test-nses)))
       (when output
         (.mkdir (File. output))

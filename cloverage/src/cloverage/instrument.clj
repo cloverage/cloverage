@@ -13,7 +13,7 @@
 
 (def stop-symbols
   "These are special forms that can't be evaled, so leave them completely alone."
-  '#{. do if var quote try finally throw recur monitor-enter monitor-exit})
+  '#{. do if var quote try finally throw recur monitor-enter monitor-exit deftype* case*})
 
 (defn form-type
   "Classifies the given form"
@@ -55,6 +55,9 @@
             (= 'finally x) :stop
             (= 'quote x) :stop
             (= 'deftest x) :stop ;; TODO: don't stop at deftest
+            (= 'defrecord x) :stop ;; TODO: handle defrecord
+            (= 'deftype x) :stop ;; TODO: handle deftype
+            (= 'case x) :stop ;; TODO: handle case
 
             (= '. x) :dotjava
 
@@ -66,7 +69,7 @@
             (= 'loop* x) :let
 
             (= 'def x)  :def
-            (= 'new x)  :new
+            (= 'new x)  :stop ;;FIXME
             :else       :list)))]
     (tprnl "Type of" form "is" res)
     (tprnl "Meta of" form "is" (meta form))
@@ -270,3 +273,7 @@ function that evals the form and records that it was called."
               (let [rforms (reverse forms)]
                 (dump-instrumented rforms lib)
                 rforms))))))))
+
+(defn instrument-nop
+  [lib]
+  (instrument (fn [line-hint form] `(do ~form)) lib))
