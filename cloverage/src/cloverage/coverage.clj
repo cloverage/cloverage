@@ -1,6 +1,7 @@
 (ns cloverage.coverage
   (:import [clojure.lang LineNumberingPushbackReader IObj]
-           [java.io File InputStreamReader])
+           [java.io File InputStreamReader]
+           [java.lang Runtime])
   (:use [clojure.java.io :only [reader writer copy]]
         [clojure.tools.cli :only [cli]]
         [cloverage instrument debug])
@@ -10,7 +11,7 @@
 
   (:gen-class))
 
-(def ^:dynamic *covered*)
+(def ^:dynamic *covered* (ref []))
 
 ;; borrowed from duck-streams
 (defmacro with-out-writer
@@ -200,6 +201,7 @@
         debug?       (:debug opts)
         nops?        (:nop opts)
         test-nses    (:test-ns opts)
+        start        (System/currentTimeMillis)
         ]
     (binding [*covered* (ref [])
               *ns*      (find-ns 'cloverage.coverage)
@@ -207,14 +209,18 @@
       ;; Load all the namespaces, so that any requires within them
       ;; will not re-load the ns.
       (println test-nses namespaces)
-      (when-not (empty? test-nses)
-        (apply require (map symbol test-nses))) 
-      (apply require (map symbol namespaces))
       (doseq [namespace (map symbol namespaces)]
+        (require namespace)
         (if nops?
           (instrument-nop namespace)
           (instrument track-coverage namespace)))
-      (apply test/run-tests (map symbol (concat namespaces test-nses)))
+      (println "Done instrumenting namespaces.")
+      ; this MUST happen after instrumentation
+      (when-not (empty? test-nses)
+        (apply require (map symbol test-nses)))
+      (apply (fn [& tns] (println "Testing" tns) (apply test/run-tests tns))
+             (map symbol (concat namespaces test-nses)))
+      (println "Done running tests.")
       (when output
         (.mkdir (File. output))
         (let [stats (gather-stats @*covered*)]
@@ -229,5 +235,7 @@
                   (map prn @*covered*))))
             (with-out-writer (File. (File. output) "coverage.clj")
               (binding [*print-meta* true]
-                (doall (map prn stats)))))))))
+                (doall (map prn stats))))))))
+    (println "Done writing" (/ (- (System/currentTimeMillis) start) 1000.0)))
+  (shutdown-agents)
   nil)
