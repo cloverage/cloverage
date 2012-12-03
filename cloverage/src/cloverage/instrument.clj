@@ -250,7 +250,7 @@ function that evals the form and records that it was called."
   (when-not (symbol? lib)
     (throw+ "instrument needs a symbol"))
   (let [file (resource-path lib)]
-    (binding [*instrumenting-file* file]
+    (binding [*instrumenting-file* lib]
       (with-open [in (LineNumberingPushbackReader. (resource-reader file))]
         (loop [forms nil]
           (if-let [form (read in false nil true)]

@@ -20,3 +20,13 @@
 .blank {
     font-family:  'Bitstream Vera Sans Mono', 'Courier', monospace;
 }
+
+td.with-bar {
+    width: 250px;
+    text-align: center;
+}
+
+td.with-number {
+    text-align: right;
+    min-width: 100px;
+}
