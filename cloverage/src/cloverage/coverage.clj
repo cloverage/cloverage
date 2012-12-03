@@ -49,7 +49,7 @@
   [form line-hint]
   (tprnl "Adding form" form "at line" (:line (meta form)) "hint" line-hint)
   (let [file *instrumenting-file*
-        line (if (:line (meta form)) (:line (meta form)) line-hint)
+        line (or (:line (meta form)) line-hint)
         form-info {:form (or (:original (meta form))
                              form)
                    :full-form form
@@ -65,10 +65,10 @@
 (defn track-coverage [line-hint form]
   (tprnl "Track coverage called with" form)
   (let [idx   (count @*covered*)
-        form# (if (instance? clojure.lang.IObj form)
+        form' (if (instance? clojure.lang.IObj form)
                 (vary-meta form assoc :idx idx)
                 form)]
-    `(capture ~(add-form form# line-hint) ~form#)))
+    `(capture ~(add-form form' line-hint) ~form')))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -208,7 +208,7 @@
       ;; will not re-load the ns.
       (println test-nses namespaces)
       (when-not (empty? test-nses)
-        (apply require (map symbol test-nses))) 
+        (apply require (map symbol test-nses)))
       (apply require (map symbol namespaces))
       (doseq [namespace (map symbol namespaces)]
         (if nops?
