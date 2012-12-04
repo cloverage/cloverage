@@ -42,7 +42,7 @@
   (tprnl "Adding form" form "at line" (:line (meta form)) "hint" line-hint)
   (let [lib  *instrumenting-file*
         file (resource-path lib)
-        line (if (:line (meta form)) (:line (meta form)) line-hint)
+        line (or (:line (meta form)) line-hint)
         form-info {:form (or (:original (meta form))
                              form)
                    :full-form form
@@ -59,10 +59,10 @@
 (defn track-coverage [line-hint form]
   (tprnl "Track coverage called with" form)
   (let [idx   (count @*covered*)
-        form# (if (instance? clojure.lang.IObj form)
+        form' (if (instance? clojure.lang.IObj form)
                 (vary-meta form assoc :idx idx)
                 form)]
-    `(capture ~(add-form form# line-hint) ~form#)))
+    `(capture ~(add-form form' line-hint) ~form')))
 
 (defn collecting-args-parser []
   (let [col (ref [])]

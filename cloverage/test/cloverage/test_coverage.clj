@@ -80,9 +80,11 @@
   (is (= :atomic (form-type 1)))
   (is (= :atomic (form-type "foo")))
   (is (= :atomic (form-type 'bar)))
-  (is (= :vector (form-type [1 2 3])))
+  (is (= :coll (form-type [1 2 3 4])))
+  (is (= :coll (form-type {1 2 3 4})))
+  (is (= :coll (form-type #{1 2 3 4})))
   (is (= :list (form-type '(+ 1 2))))
-  (is (= :stop (form-type 'do))))
+  (is (= :do (form-type '(do 1 2 3)))))
 
 (deftest test-wrap-primitives
   (is (= `(capture 0 ~'1)     (wrap track-coverage 0 1)))
@@ -93,14 +95,15 @@
          (map :form @*covered*))))
 
 (deftest test-wrap-vector
-  (is (= `[(capture 0 1)
-           (capture 1 "foo")
-           (capture 2 ~'bar)]
+  (is (= `(capture 3
+                   [(capture 0 1)
+                    (capture 1 "foo")
+                    (capture 2 ~'bar)])
          (wrap track-coverage 0 '[1 "foo" bar]))))
 
 (deftest test-wrap-map
-  (is (= `{(capture 0 :a) (capture 2 ~'apple)
-           (capture 1 :b)  (capture 3 ~'banana)}
+  (is (= `(capture 4 {(capture 0 :a) (capture 2 ~'apple)
+                      (capture 1 :b)  (capture 3 ~'banana)})
          (wrap track-coverage 0 '{:a apple :b banana}))))
 
 (deftest test-wrap-list
@@ -143,14 +146,14 @@
            (wrap track-coverage 0 '(defn foobar [a] a)))))
 
 (deftest test-wrap-let
-  (is (= `(capture 0 (~(symbol "let*") []))
+  (is (= `(capture 0 (~(symbol "let") []))
          (wrap track-coverage 0 '(let []))))
-  (is (= `(capture 2 (~(symbol "let*") [~'a (capture 1 1)]))
+  (is (= `(capture 2 (~(symbol "let") [~'a (capture 1 1)]))
          (wrap track-coverage 0 '(let [a 1]))))
-  (is (= `(capture 5 (~(symbol "let*") [~'a (capture 3 1)
+  (is (= `(capture 5 (~(symbol "let") [~'a (capture 3 1)
                                         ~'b (capture 4 2)]))
          (wrap track-coverage 0 '(let [a 1 b 2]))))
-  (is (= `(capture 9 (~(symbol "let*") [~'a (capture 6 1)
+  (is (= `(capture 9 (~(symbol "let") [~'a (capture 6 1)
                                         ~'b (capture 7 2)]
                       (capture 8 ~'a)))
          (wrap track-coverage 0 '(let [a 1 b 2] a)))))
@@ -159,9 +162,9 @@
   (is (= `(capture 0 nil)
          (wrap track-coverage 0 '(cond)))))
 
-(deftest test-wrap-overload
-  (is (= `([~'a] (capture 0 ~'a))
-         (wrap-overload track-coverage 0 '([a] a)))))
+(comment (deftest test-wrap-overload
+   (is (= `([~'a] (capture 0 ~'a))
+          (wrap-overload track-coverage 0 '([a] a))))))
 
 (deftest test-wrap-overloads
   (is (= `(([~'a] (capture 0 ~'a))
@@ -237,10 +240,9 @@
    "-o" "out"
    "--text" "--html" "--raw"
    "cloverage.sample"
-;   "clojure.set"
-;   "clojure.zip"
-   ;"clojure.xml"
+                                        ;   "clojure.set"
+                                        ;   "clojure.zip"
+                                        ;"clojure.xml"
    ))
 
 ;(map #(:test (meta %)) (vals (ns-interns (find-ns 'clojure.contrib.test-contrib.test-graph))))
-
