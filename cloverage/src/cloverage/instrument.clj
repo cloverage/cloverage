@@ -5,24 +5,34 @@
         [clojure.java.io :only [writer]]
         [cloverage.debug])
   (:require [clojure.set :as set]
-            [clojure.test :as test])
+            [clojure.test :as test]
+            [clojure.tools.logging :as log])
 
   (:gen-class))
 
 (def ^:dynamic *instrumenting-file*)
 
+(defn atomic-special? [sym]
+  (contains? '#{quote var clojure.core/import* recur} sym))
+
 (defn list-type [[head & _]]
   (case head
-    (do try catch finally set!) :do
-    (loop let let* loop*)       :let
-    (fn fn*)                    :fn
-    def                         :def
-    .                           :dotjava
-    new                         :new
-    (defrecord deftype)         :atomic ;; FIXME
-    (if (special-symbol? head)
-      :atomic
-      :list)))
+    catch                  :catch   ;; catch special cases classnames, and
+    finally                :finally ;; catch and finally can't be wrapped
+    set!                   :set     ;; set must not evaluate the target expr
+    (if do try throw)      :do      ;; these special forms can recurse on all args
+    (loop let let* loop*)  :let
+    (fn fn*)               :fn
+    def                    :def     ;; def can recurse on initialization expr
+    .                      :dotjava
+    new                    :new
+    deftype*               :atomic  ;; FIXME: recurse into deftype
+    clojure.core/defn      :atomic  ;; this makes defrecords work. WHY?
+                                    ;; some metadata magic perhaps?
+    (cond
+      (atomic-special? head) :atomic
+      (special-symbol? head) :unknown
+      :else                  :list)))
 
 (defn form-type
   "Classifies the given form"
@@ -49,13 +59,10 @@
 
 
 (defn add-original [old new]
-  (tprnl "Meta for" old "is" (meta old))
   (if (instance? clojure.lang.IObj new)
     (let [res (-> (add-line-number (:line (meta old)) old new)
                   (vary-meta merge (meta old))
                   (vary-meta assoc :original old))]
-      (binding [*print-meta* true]
-        (tprn "Updated meta on" new "to" res "based on" old))
       res)
     new))
 
@@ -96,6 +103,11 @@
        (tprnl "ERROR: " form)
        (tprnl e)
        (throw (Exception. (apply str "While wrapping" form) e))))))
+
+;; Don't wrap or descend into unknown forms
+(defmethod do-wrap :unknown [f line form]
+  (log/warn (str "Uknown special form " (seq form)))
+  form)
 
 ;; Don't descend into atomic forms, but do wrap them
 (defmethod do-wrap :atomic [f line form]
@@ -161,14 +173,28 @@
       (tprnl "Simple dotform, recursing on" args)
       (f line `(~dot-sym ~obj-name ~attr-name ~@(doall (map (wrapper f line) args)))))))
 
+(defmethod do-wrap :set [f line [set-symbol target expr]]
+  ;; target cannot be wrapped or evaluated
+  (f line `(~set-symbol ~ target ~(wrap f line expr))))
 
 (defmethod do-wrap :do [f line [do-symbol & body]]
   (f line `(~do-symbol ~@(map (wrapper f line) body))))
 
+(defmethod do-wrap :catch [f line [catch-symbol classname localname & body]]
+  ;; can't transform into (try (...) (<capture> (finally ...)))
+  ;; catch/finally must be direct children of try
+  `(~catch-symbol ~classname ~localname ~@(map (wrapper f line) body)))
+
+
+(defmethod do-wrap :finally [f line [finally-symbol & body]]
+  ;; can't transform into (try (...) (<capture> (finally ...)))
+  ;; catch/finally must be direct children of try
+  `(~finally-symbol ~@(map (wrapper f line) body)))
 
 (defmethod do-wrap :list [f line form]
   (tprnl "Wrapping " (class form) form)
   (let [expanded (macroexpand form)]
+    (tprnl "Expanded" form "into" expanded)
     (tprnl "Meta on expanded is" (meta expanded))
     (if (= :list (form-type expanded))
       (let [wrapped (doall (map (wrapper f line) expanded))]
@@ -215,9 +241,8 @@
                (catch Exception e
                  (throw (Exception.
                          (str "Couldn't eval form "
-                              (binding [*print-meta* false]
-                                (with-out-str (prn form)))
-                              "Original: " (:original form))
+                              (with-out-str (prn wrapped))
+                              (with-out-str (prn form)))
                          e))))
               (recur (conj forms wrapped)))
             (do
