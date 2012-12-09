@@ -82,6 +82,12 @@
                :default  []
                :parse-fn (collecting-args-parser)]))
 
+(defn mark-loaded [namespace]
+  (in-ns 'clojure.core)
+  (eval `(dosync (alter clojure.core/*loaded-libs* conj '~namespace))) 
+  (in-ns 'cloverage.coverage)
+  )
+
 (defn -main
   "Produce test coverage report for some namespaces"
   [& args]
@@ -100,11 +106,11 @@
               *debug*   debug?]
       (println test-nses namespaces)
       (doseq [namespace (map symbol namespaces)]
-        ;; load the ns to prevent it from being reloaded when it's required
-        (require namespace)
         (if nops?
           (instrument-nop namespace)
-          (instrument track-coverage namespace)))
+          (instrument track-coverage namespace))
+        (mark-loaded namespace)) 
+        ;; mark the ns as loaded
       (println "Done instrumenting namespaces.")
       (when-not (empty? test-nses)
         (apply require (map symbol test-nses)))
