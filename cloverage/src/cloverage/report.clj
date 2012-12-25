@@ -54,7 +54,7 @@
     {:file file
      :lib  (:lib  (first file-forms))
 
-     :forms         (count (filter :form file-forms))
+     :forms         (count (filter :tracked file-forms))
      :covered-forms (count (filter :covered file-forms))
 
      :lines         (count lines)

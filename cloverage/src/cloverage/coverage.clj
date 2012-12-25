@@ -7,8 +7,8 @@
         [cloverage instrument debug report dependency])
   (:require [clojure.set :as set]
             [clojure.test :as test]
-            [clojure.tools.logging :as log])
-
+            [clojure.tools.logging :as log]
+            [bultitude.core :as blt])
   (:gen-class))
 
 (def ^:dynamic *covered* (ref []))
@@ -26,7 +26,8 @@
   (dosync
    (if (contains? @*covered* idx)
      (alter *covered* assoc-in [idx :covered] true)
-     (log/warn (str "Couldn't track coverage for form with index " idx ".")))))
+     (log/warn (str "Couldn't track coverage for form with index " idx
+                    " covered has " (count @*covered*) ".")))))
 
 (defmacro capture
   "Eval the given form and record that the given line on the given
@@ -82,6 +83,14 @@
             ["-d" "--[no-]debug"
                "Output debugging information to stdout." :default false]
             ["-n" "--[no-]nop" "Instrument with noops." :default false]
+            ["-p" "--pattern"
+               "Regex for instrumented namespaces, can specify multiple."
+               :default  []
+               :parse-fn (collecting-args-parser)]
+            ["--test-pattern"
+               "Regex for test namespaces, can specify multiple."
+               :default []
+               :parse-fn (collecting-args-parser)]
             ["-x" "--test-ns"
                "Additional test namespace. (can specify multiple times)"
                :default  []
@@ -93,23 +102,33 @@
   (in-ns 'cloverage.coverage)
   )
 
+(defn find-nses [regexs]
+  (if-not (empty? regexs)
+    (filter (apply some-fn (map #(fn [sym] (re-matches % (name sym))) regexs))
+            (blt/namespaces-on-classpath))
+    []))
+
 (defn -main
   "Produce test coverage report for some namespaces"
   [& args]
-  (let [[opts, namespaces] (parse-args args)
-        output       (:output opts)
-        text?        (:text opts)
-        html?        (:html opts)
-        raw?         (:raw opts)
-        debug?       (:debug opts)
-        nops?        (:nop opts)
-        test-nses    (:test-ns opts)
-        start        (System/currentTimeMillis)
+  (let [[opts, add-nses] (parse-args args)
+        output        (:output opts)
+        text?         (:text opts)
+        html?         (:html opts)
+        raw?          (:raw opts)
+        debug?        (:debug opts)
+        nops?         (:nop opts)
+        add-test-nses (:test-ns opts)
+        ns-regexs     (map re-pattern (:pattern opts)) 
+        test-regexs   (map re-pattern (:test-pattern opts)) 
+        start         (System/currentTimeMillis)
+        test-nses     (concat add-test-nses (find-nses test-regexs))
+        namespaces    (concat add-nses      (find-nses ns-regexs))
         ]
-    (binding [*covered* (ref [])
-              *ns*      (find-ns 'cloverage.coverage)
+    (binding [*ns*      (find-ns 'cloverage.coverage)
               *debug*   debug?]
-      (println test-nses namespaces)
+      (println "Loading namespaces: " namespaces)
+      (println "Test namespaces: " test-nses)
       (doseq [namespace (in-dependency-order (map symbol namespaces))]
         (if nops?
           (instrument-nop namespace)
@@ -120,7 +139,7 @@
       (println "Instrumented namespaces.")
       (when-not (empty? test-nses)
         (apply require (map symbol test-nses)))
-      (apply test/run-tests (map symbol (concat namespaces test-nses)))
+      (apply test/run-tests (map symbol test-nses))
       (println "Ran tests.")
       (when output
         (.mkdir (File. output))

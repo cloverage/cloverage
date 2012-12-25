@@ -248,8 +248,16 @@
   (let [specs (map #(if (seq? %) (wrap-record-spec f line %) %) opts+specs)]
     (f line `(~defr-symbol ~name ~fields ~@specs))))
 
-(defmethod do-wrap :defmulti [f line [defm-symbol name dispatch-form & other]]
-  (f line `(~defm-symbol ~name ~(wrap f line dispatch-form) ~@other)))
+(defmethod do-wrap :defmulti [f line [defm-symbol name & other]]
+  (let [docstring     (if (string? (first other)) (first other) nil)
+        other         (if docstring (next other) other)
+        attr-map      (if (map? (first other)) (first other) nil)
+        other         (if (map? (first other)) (next other) other)
+        dispatch-form (first other)
+        other         (rest other)]
+  (f line `(~defm-symbol ~name ~@(if docstring (list docstring) (list))
+                               ~@(if attr-map  (list attr-map)  (list))
+                               ~(wrap f line dispatch-form) ~@other))))
 
 (defn resource-path
   "Given a symbol representing a lib, return a classpath-relative path.  Borrowed from core.clj."

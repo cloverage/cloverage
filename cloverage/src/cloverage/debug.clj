@@ -19,6 +19,7 @@
     (apply printf args)))
 
 (defn dump-instrumented [forms name]
-  (with-open [ou (writer (str "debug-" name))]
-      (binding [*out* ou]
-        (doall (map clojure.pprint/pprint forms)))))
+  (when *debug*
+    (with-open [ou (writer (str "debug-" name))]
+        (binding [*out* ou]
+          (doall (map clojure.pprint/pprint forms))))))
