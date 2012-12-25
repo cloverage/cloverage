@@ -195,6 +195,6 @@
 
 (defn raw-report [out-dir stats covered]
   (with-out-writer (File. (File. out-dir) "raw-data.clj")
-    (clojure.pprint/pprint covered))
+    (clojure.pprint/pprint (zipmap (range) covered)))
   (with-out-writer (File. (File. out-dir) "raw-stats.clj")
                    (clojure.pprint/pprint stats)))

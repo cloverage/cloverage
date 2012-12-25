@@ -4,7 +4,7 @@
            [java.lang Runtime])
   (:use [clojure.java.io :only [reader writer copy]]
         [clojure.tools.cli :only [cli]]
-        [cloverage instrument debug report])
+        [cloverage instrument debug report dependency])
   (:require [clojure.set :as set]
             [clojure.test :as test]
             [clojure.tools.logging :as log])
@@ -105,16 +105,18 @@
               *ns*      (find-ns 'cloverage.coverage)
               *debug*   debug?]
       (println test-nses namespaces)
-      (doseq [namespace (map symbol namespaces)]
+      (doseq [namespace (in-dependency-order (map symbol namespaces))]
         (if nops?
           (instrument-nop namespace)
           (instrument track-coverage namespace))
+        (println "Loaded " namespace " .")
         (mark-loaded namespace)) 
         ;; mark the ns as loaded
-      (println "Done instrumenting namespaces.")
+      (println "Instrumented namespaces.")
       (when-not (empty? test-nses)
         (apply require (map symbol test-nses)))
       (apply test/run-tests (map symbol (concat namespaces test-nses)))
+      (println "Ran tests.")
       (when output
         (.mkdir (File. output))
         (let [stats (gather-stats @*covered*)]
@@ -124,6 +126,7 @@
             (html-summary output stats)
             (html-report output stats))
           (when raw?
-            (raw-report output stats @*covered*))))))
+            (raw-report output stats @*covered*))))
+      (println "Produced output.")))
   (shutdown-agents)
   nil)
