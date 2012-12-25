@@ -3,6 +3,7 @@
             [clojure.lang LineNumberingPushbackReader])
   (:use [slingshot.slingshot :only [throw+]]
         [clojure.java.io :only [writer]]
+        [clojure.string  :only [split]]
         [cloverage.debug])
   (:require [clojure.set :as set]
             [clojure.test :as test]
@@ -11,6 +12,35 @@
   (:gen-class))
 
 (def ^:dynamic *instrumenting-file*)
+
+;; macroexpand without resolving class names
+(defn safe-macroexpand-1 [form]
+  (if-not (seq? form)
+    form
+    (let [[op & body] form]
+      (cond
+        ((some-fn special-symbol? 
+                  #(clojure.lang.Compiler/isMacro %)
+                  (comp not symbol?)) op)
+          (macroexpand-1 form) ;; these are safe, now java interop
+        ;; (.substring s 2 5) => (. s substring 2 5)
+        (.startsWith (name op) ".")
+          `(. (identity ~(first body))
+              ~(symbol (subs (name op) 1)) 
+              ~@(rest body))
+        ;; (class.Name/member ...) => (. class.Name member ...)
+        (clojure.lang.Compiler/namesStaticMember op)
+          (let [cls  (symbol (namespace op)) 
+                memb (symbol (name op))]
+            `(. ~cls ~memb ~@body))
+        ;; (ClassName. ...) is handled correctly by macroexpand
+        :else (macroexpand-1 form)))))
+
+(defn safe-macroexpand [form]
+  (let [ex (safe-macroexpand-1 form)]
+    (if (identical? ex form)
+      form
+      (safe-macroexpand ex))))
 
 (defn atomic-special? [sym]
   (contains? '#{quote var clojure.core/import* recur} sym))
@@ -26,9 +56,9 @@
     def                    :def     ;; def can recurse on initialization expr
     .                      :dotjava
     new                    :new
-    deftype*               :atomic  ;; FIXME: recurse into deftype
-    clojure.core/defn      :atomic  ;; this makes defrecords work. WHY?
-                                    ;; some metadata magic perhaps?
+    defmulti               :defmulti ;; special case defmulti to avoid boilerplate
+    defprotocol            :atomic  ;; no code in protocols
+    defrecord              :record
     (cond
       (atomic-special? head) :atomic
       (special-symbol? head) :unknown
@@ -81,28 +111,32 @@
   [f line]
   (partial wrap f line))
 
-(defn wrap-binding [f line [args & body]]
+(defn wrap-binding [f line-hint [args & body :as form]]
   "Wrap a single function overload or let/loop binding
 
    e.g. - `([a b] (+ a b))` (defn) or
         - `a (+ a b)`       (let or loop)"
   (tprnl "Wrapping overload" args body)
-  (let [wrapped (doall (map (wrapper f line) body))]
-    `(~args ~@wrapped)))
+  (let [line (or (:line (meta form)) line-hint)]
+    (let [wrapped (doall (map (wrapper f line) body))]
+      `(~args ~@wrapped))))
 
 ;; Wrap a list of function overloads, e.g.
 ;;   (([a] (inc a))
 ;;    ([a b] (+ a b)))
-(defn wrap-overloads [f line form]
+(defn wrap-overloads [f line-hint form]
   (tprnl "Wrapping overloads " form)
-  (if (vector? (first form))
-    (wrap-binding f line form)
-    (try
-     (doall (map (partial wrap-binding f line) form))
-     (catch Exception e
-       (tprnl "ERROR: " form)
-       (tprnl e)
-       (throw (Exception. (apply str "While wrapping" form) e))))))
+  (let [line (or (:line (meta form)) line-hint)]
+    (if (vector? (first form))
+      (wrap-binding f line form)
+      (try
+       (doall (map (partial wrap-binding f line) form))
+       (catch Exception e
+         (tprnl "ERROR: " form)
+         (tprnl e)
+         (throw
+           (Exception. (pr-str "While wrapping" (:original (meta form)))
+                       e)))))))
 
 ;; Don't wrap or descend into unknown forms
 (defmethod do-wrap :unknown [f line form]
@@ -148,6 +182,7 @@
   (f line
    `(~let-sym
      [~@(mapcat (partial wrap-binding f line)
+                
                 (partition 2 bindings))]
       ~@(doall (map (wrapper f line) body)))))
 
@@ -193,7 +228,7 @@
 
 (defmethod do-wrap :list [f line form]
   (tprnl "Wrapping " (class form) form)
-  (let [expanded (macroexpand form)]
+  (let [expanded (safe-macroexpand form)]
     (tprnl "Expanded" form "into" expanded)
     (tprnl "Meta on expanded is" (meta expanded))
     (if (= :list (form-type expanded))
@@ -201,6 +236,20 @@
         (f line (add-original form wrapped)))
       (wrap f line (add-original form expanded)))))
 
+(defn wrap-record-spec [f line-hint [meth-name args & body :as form]]
+  (let [line (or (:line (meta form)) line-hint)]
+    `(~meth-name ~args ~@(map (wrapper f line) body))))
+
+(defmethod do-wrap :record [f line [defr-symbol name fields & opts+specs]]
+  ;; (defrecord name [fields+] options* specs*)
+  ;; currently no options
+  ;; spec == thing-being-implemented (methodName [args*] body)*
+  ;; we only want to recurse on the methods
+  (let [specs (map #(if (seq? %) (wrap-record-spec f line %) %) opts+specs)]
+    (f line `(~defr-symbol ~name ~fields ~@specs))))
+
+(defmethod do-wrap :defmulti [f line [defm-symbol name dispatch-form & other]]
+  (f line `(~defm-symbol ~name ~(wrap f line dispatch-form) ~@other)))
 
 (defn resource-path
   "Given a symbol representing a lib, return a classpath-relative path.  Borrowed from core.clj."
@@ -244,7 +293,7 @@
                               (with-out-str (prn wrapped))
                               (with-out-str (prn form)))
                          e))))
-              (recur (conj forms wrapped)))
+              (recur (conj forms wrapped))) 
             (do
               (let [rforms (reverse forms)]
                 (dump-instrumented rforms lib)

@@ -46,6 +46,7 @@
         form-info {:form (or (:original (meta form))
                              form)
                    :full-form form
+                   :tracked true
                    :line line
                    :lib  lib
                    :file file}]
@@ -72,10 +73,14 @@
 
 (defn parse-args [args]
   (cli args ["-o" "--output"]
-            ["-t" "--[no-]text"]
-            ["-h" "--[no-]html"]
-            ["-r" "--[no-]raw"]
-            ["-d" "--[no-]debug"]
+            ["-t" "--[no-]text"
+               "Produce a text report." :default false]
+            ["-h" "--[no-]html"
+               "Produce an HTML report." :default true]
+            ["-r" "--[no-]raw"
+               "Output raw coverage data." :default false]
+            ["-d" "--[no-]debug"
+               "Output debugging information to stdout." :default false]
             ["-n" "--[no-]nop" "Instrument with noops." :default false]
             ["-x" "--test-ns"
                "Additional test namespace. (can specify multiple times)"

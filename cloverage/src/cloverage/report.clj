@@ -37,7 +37,7 @@
 
 (defn line-stats [forms]
   (for [[line line-forms] (group-by-line forms)]
-    (let [total (count (filter :form line-forms))
+    (let [total (count (filter :tracked line-forms))
           hit   (count (filter :covered line-forms))]
       {:line     line
        :text     (:text (first line-forms))
