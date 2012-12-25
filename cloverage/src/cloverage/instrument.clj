@@ -267,6 +267,7 @@
   (InputStreamReader.
    (.getResourceAsStream (clojure.lang.RT/baseLoader) resource)))
 
+;; TODO: use cloverage.source
 (defn instrument
   "Reads all forms from the file referenced by the given lib name, and
   returns a seq of all the forms, decorated with a function that when
