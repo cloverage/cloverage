@@ -4,3 +4,4 @@ clojure-test-coverage.jar
 lib
 classes
 *.jar
+.*.swp
