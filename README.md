@@ -1,7 +1,7 @@
 cloverage
 ==============
 
-Simple clojure coverage tool.
+Simple clojure coverage tool. Currently requires clojure 1.4.
 
 * Installation
 
