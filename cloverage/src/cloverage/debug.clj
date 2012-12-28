@@ -21,5 +21,6 @@
 (defn dump-instrumented [forms name]
   (when *debug*
     (with-open [ou (writer (str "debug-" name))]
-        (binding [*out* ou]
-          (doall (map clojure.pprint/pprint forms))))))
+        (binding [*out* ou
+                  *print-meta* true]
+          (doall (map prn forms))))))

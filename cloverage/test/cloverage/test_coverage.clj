@@ -239,6 +239,7 @@
   (cloverage.coverage/-main
    "-o" "out"
    "--text" "--html" "--raw"
+   "-x" "cloverage.sample"
    "cloverage.sample"))
 
 ;(map #(:test (meta %)) (vals (ns-interns (find-ns 'clojure.contrib.test-contrib.test-graph))))

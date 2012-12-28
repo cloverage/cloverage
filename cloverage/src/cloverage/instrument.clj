@@ -24,6 +24,7 @@
                   (comp not symbol?)) op)
           (macroexpand-1 form) ;; these are safe, now java interop
         ;; (.substring s 2 5) => (. s substring 2 5)
+        ;; this has to be done 
         (.startsWith (name op) ".")
           `(. (identity ~(first body))
               ~(symbol (subs (name op) 1)) 
@@ -41,6 +42,17 @@
     (if (identical? ex form)
       form
       (safe-macroexpand ex))))
+
+;; macroexpand, tagging with classes if possible
+;; I had macroexpand expode on me once, but can't reproduce - for now
+;; use macroexpand, fallback to safe-macroexpand if needed...
+(defn try-macroexpand [form]
+  (try
+    (macroexpand form)
+    (catch Throwable ex
+      (binding [*out* *err*]
+        (println "Caught " ex " while macroexpanding, doing it safely."))
+      (safe-macroexpand form))))
 
 (defn atomic-special? [sym]
   (contains? '#{quote var clojure.core/import* recur} sym))
@@ -74,6 +86,15 @@
     (tprnl "Meta of" form "is" (meta form))
     res))
 
+(defn propagate-line-numbers [start form]
+  (if (instance? clojure.lang.IObj form)
+    (let [line (or (:line (meta form)) start)
+          recs (if (seq? form)
+                 (doall (map (partial propagate-line-numbers line) form))
+                 form)
+          ret  (vary-meta recs assoc :line line)]
+      ret)
+    form))
 
 (defn add-line-number [hint old new]
   (if (instance? clojure.lang.IObj new)
@@ -84,9 +105,10 @@
           ret   (if line
                   (vary-meta recs assoc :line line)
                   recs)]
+      (if (nil? line)
+        (tprn "LINE IS NIL for " hint old new))
       ret)
     new))
-
 
 (defn add-original [old new]
   (if (instance? clojure.lang.IObj new)
@@ -186,24 +208,30 @@
                 (partition 2 bindings))]
       ~@(doall (map (wrapper f line) body)))))
 
-(defmethod do-wrap :def [f line form]
-  (let [def-sym (first form)
-        name    (second form)]
-    (if (= 3 (count form))
-      (let [val (nth form 2)]
-        (f line `(~def-sym ~name ~(wrap f line val))))
-      (f line `(~def-sym ~name)))))
+(defmethod do-wrap :def [f line [def-sym name & body :as form]]
+  (cond
+    (empty? body)      (f line `(~def-sym ~name))
+    (= 1 (count body)) (let [init (first body)]
+                         (f line
+                            `(~def-sym ~name ~(wrap f line init))))
+    (= 2 (count body)) (let [docstring (first body)
+                             init      (second body)]
+                         (f line
+                            `(~def-sym ~name ~docstring ~(wrap f line init))))))
 
 (defmethod do-wrap :new [f line [new-sym class-name & args :as form]]
   (f line `(~new-sym ~class-name ~@(doall (map (wrapper f line) args)))))
 
 (defmethod do-wrap :dotjava [f line [dot-sym obj-name attr-name & args :as form]]
   ;; either (. obj meth args*) or (. obj (meth args*))
+  ;; I think we might have to not-wrap symbols here, or we might lose metadata
+  ;; (like :tag type hints for reflection when resolving methods)
   (if (= :list (form-type attr-name))
     (do
       (tprnl "List dotform, recursing on" (rest attr-name))
       (f line `(~dot-sym ~obj-name (~(first attr-name)
-                                    ~@(doall (map (wrapper f line) (rest attr-name)))))))
+                                    ~@(doall (map (wrapper f line)
+                                                  (rest attr-name)))))))
     (do
       (tprnl "Simple dotform, recursing on" args)
       (f line `(~dot-sym ~obj-name ~attr-name ~@(doall (map (wrapper f line) args)))))))
@@ -228,7 +256,7 @@
 
 (defmethod do-wrap :list [f line form]
   (tprnl "Wrapping " (class form) form)
-  (let [expanded (safe-macroexpand form)]
+  (let [expanded (try-macroexpand form)]
     (tprnl "Expanded" form "into" expanded)
     (tprnl "Meta on expanded is" (meta expanded))
     (if (= :list (form-type expanded))
@@ -289,13 +317,20 @@
       (with-open [in (LineNumberingPushbackReader. (resource-reader file))]
         (loop [forms nil]
           (if-let [form (read in false nil true)]
-            (let [wrapped (try (wrap f (:line (meta form)) form)
+            (let [wrapped (try (wrap f (:line (meta form)) (vary-meta form assoc :file file))
                                (catch Throwable t
                                  (throw+ t "Couldn't wrap form %s at line %s"
-                                         form (:line form))))]
+                                         form (:line form))))
+                  wrapped (if (:line (meta form))
+                            (propagate-line-numbers (:line (meta form)) wrapped)
+                            wrapped)
+                  ]
               (try
-               (eval wrapped)
-               (tprnl "Evalled" wrapped)
+               (binding [*file* file
+                         *source-path* file]
+                 (eval wrapped))
+               (binding [*print-meta* true]
+                 (tprn "Evalling" wrapped " with meta " (meta wrapped)))
                (catch Exception e
                  (throw (Exception.
                          (str "Couldn't eval form "

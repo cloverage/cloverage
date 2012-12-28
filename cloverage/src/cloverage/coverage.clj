@@ -138,8 +138,9 @@
         ;; mark the ns as loaded
       (println "Instrumented namespaces.")
       (when-not (empty? test-nses)
-        (apply require (map symbol test-nses)))
-      (apply test/run-tests (map symbol test-nses))
+        (let [test-syms (map symbol test-nses)]
+          (apply require (map symbol test-nses)) 
+          (apply test/run-tests (map symbol test-nses))))
       (println "Ran tests.")
       (when output
         (.mkdir (File. output))
