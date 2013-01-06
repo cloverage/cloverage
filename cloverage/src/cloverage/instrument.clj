@@ -19,19 +19,19 @@
     form
     (let [[op & body] form]
       (cond
-        ((some-fn special-symbol? 
+        ((some-fn special-symbol?
                   #(clojure.lang.Compiler/isMacro %)
                   (comp not symbol?)) op)
           (macroexpand-1 form) ;; these are safe, now java interop
         ;; (.substring s 2 5) => (. s substring 2 5)
-        ;; this has to be done 
+        ;; this has to be done
         (.startsWith (name op) ".")
           `(. (identity ~(first body))
-              ~(symbol (subs (name op) 1)) 
+              ~(symbol (subs (name op) 1))
               ~@(rest body))
         ;; (class.Name/member ...) => (. class.Name member ...)
         (clojure.lang.Compiler/namesStaticMember op)
-          (let [cls  (symbol (namespace op)) 
+          (let [cls  (symbol (namespace op))
                 memb (symbol (name op))]
             `(. ~cls ~memb ~@body))
         ;; (ClassName. ...) is handled correctly by macroexpand
@@ -64,6 +64,7 @@
     set!                   :set     ;; set must not evaluate the target expr
     (if do try throw)      :do      ;; these special forms can recurse on all args
     (loop let let* loop*)  :let
+    case*                  :case*
     (fn fn*)               :fn
     def                    :def     ;; def can recurse on initialization expr
     .                      :dotjava
@@ -204,7 +205,7 @@
   (f line
    `(~let-sym
      [~@(mapcat (partial wrap-binding f line)
-                
+
                 (partition 2 bindings))]
       ~@(doall (map (wrapper f line) body)))))
 
@@ -242,6 +243,26 @@
 
 (defmethod do-wrap :do [f line [do-symbol & body]]
   (f line `(~do-symbol ~@(map (wrapper f line) body))))
+
+(use 'clojure.pprint)
+(defmacro debug-print [msg & stuff]
+  `(do (print ~msg)
+       (pprint ~(vec (map (fn [x] `['~x ~x]) stuff)))))
+
+(defmethod do-wrap :case* [f line [case-symbol test-var a b else-clause case-map & stuff]]
+  (debug-print "Wrapping :case*"
+               f line case-symbol test-var a b else-clause case-map stuff)
+  (assert (= case-symbol 'case*))
+  (let [wrap (wrapper f line)
+        wrapped-else (wrap else-clause)
+        wrapped-map (zipmap (keys case-map)
+                            (for [[k exp] (vals case-map)]
+                              (do (debug-print "cases:" k exp)
+                                  [k (wrap exp)])))]
+    (println "GOT HERE")
+    (f line `(~case-symbol ~test-var ~a ~b ~wrapped-else
+                           ~wrapped-map ~@stuff))))
+
 
 (defmethod do-wrap :catch [f line [catch-symbol classname localname & body]]
   ;; can't transform into (try (...) (<capture> (finally ...)))
@@ -303,6 +324,15 @@
   (InputStreamReader.
    (.getResourceAsStream (clojure.lang.RT/baseLoader) resource)))
 
+(defn tree-find [pred tree]
+  (cond (try (pred tree) (catch Exception e nil)) tree
+        (seq? tree) (first (filter identity (map (partial tree-find pred) tree)))))
+
+(defn tree-replace [pred tree tree']
+  (cond (try (pred tree) (catch Exception e nil)) tree'
+        (seq? tree) (map #(tree-replace pred % tree') tree)
+        :else tree))
+
 ;; TODO: use cloverage.source
 (defn instrument
   "Reads all forms from the file referenced by the given lib name, and
@@ -332,12 +362,19 @@
                (binding [*print-meta* true]
                  (tprn "Evalling" wrapped " with meta " (meta wrapped)))
                (catch Exception e
-                 (throw (Exception.
-                         (str "Couldn't eval form "
-                              (with-out-str (prn wrapped))
-                              (with-out-str (prn form)))
-                         e))))
-              (recur (conj forms wrapped))) 
+                 (let [fooform (tree-replace #(= (first %) 'case*) wrapped (tree-find map? wrapped))]
+                  (eval fooform)
+                  (apply println (map str (.getStackTrace e)))
+                  #_(doseq [x (.getStackTrace e)]
+                      (println (str x)))
+                  (throw (Exception.
+                          (str "Couldn't eval form "
+                               (with-out-str (pprint fooform))
+                               (with-out-str (pprint wrapped))
+                               (with-out-str (pprint form))
+                               (with-out-str (pprint (macroexpand (tree-find #(= 'case (first %)) form)))))
+                          e)))))
+              (recur (conj forms wrapped)))
             (do
               (let [rforms (reverse forms)]
                 (dump-instrumented rforms lib)
