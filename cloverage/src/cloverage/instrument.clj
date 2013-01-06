@@ -244,21 +244,17 @@
 (defmethod do-wrap :do [f line [do-symbol & body]]
   (f line `(~do-symbol ~@(map (wrapper f line) body))))
 
-(use 'clojure.pprint)
-(defmacro debug-print [msg & stuff]
-  `(do (print ~msg)
-       (pprint ~(vec (map (fn [x] `['~x ~x]) stuff)))))
-
 (defmethod do-wrap :case* [f line [case-symbol test-var a b else-clause case-map & stuff]]
   (debug-print "Wrapping :case*"
                f line case-symbol test-var a b else-clause case-map stuff)
   (assert (= case-symbol 'case*))
-  (let [wrap (wrapper f line)
-        wrapped-else (wrap else-clause)
-        wrapped-map (zipmap (keys case-map)
-                            (for [[k exp] (vals case-map)]
-                              (do (debug-print "cases:" k exp)
-                                  [k (wrap exp)])))]
+  (let [wrap-it (wrapper f line)
+        wrapped-else (wrap-it else-clause)
+        wrapped-map (into (empty case-map)
+                          (zipmap (keys case-map)
+                                  (for [[k exp] (vals case-map)]
+                                    (do (debug-print "cases:" k exp)
+                                        [k (wrap-it exp)]))))]
     (println "GOT HERE")
     (f line `(~case-symbol ~test-var ~a ~b ~wrapped-else
                            ~wrapped-map ~@stuff))))
@@ -324,15 +320,6 @@
   (InputStreamReader.
    (.getResourceAsStream (clojure.lang.RT/baseLoader) resource)))
 
-(defn tree-find [pred tree]
-  (cond (try (pred tree) (catch Exception e nil)) tree
-        (seq? tree) (first (filter identity (map (partial tree-find pred) tree)))))
-
-(defn tree-replace [pred tree tree']
-  (cond (try (pred tree) (catch Exception e nil)) tree'
-        (seq? tree) (map #(tree-replace pred % tree') tree)
-        :else tree))
-
 ;; TODO: use cloverage.source
 (defn instrument
   "Reads all forms from the file referenced by the given lib name, and
@@ -362,18 +349,11 @@
                (binding [*print-meta* true]
                  (tprn "Evalling" wrapped " with meta " (meta wrapped)))
                (catch Exception e
-                 (let [fooform (tree-replace #(= (first %) 'case*) wrapped (tree-find map? wrapped))]
-                  (eval fooform)
-                  (apply println (map str (.getStackTrace e)))
-                  #_(doseq [x (.getStackTrace e)]
-                      (println (str x)))
-                  (throw (Exception.
-                          (str "Couldn't eval form "
-                               (with-out-str (pprint fooform))
-                               (with-out-str (pprint wrapped))
-                               (with-out-str (pprint form))
-                               (with-out-str (pprint (macroexpand (tree-find #(= 'case (first %)) form)))))
-                          e)))))
+                 (throw (Exception.
+                         (str "Couldn't eval form "
+                              (with-out-str (prn wrapped))
+                              (with-out-str (prn form)))
+                         e))))
               (recur (conj forms wrapped)))
             (do
               (let [rforms (reverse forms)]
