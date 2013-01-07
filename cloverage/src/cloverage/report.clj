@@ -1,7 +1,7 @@
 (ns cloverage.report
   (:import [java.io File])
   (:use [clojure.java.io :only [writer reader copy]]
-        [cloverage.instrument :only [resource-reader]])
+        [cloverage.source :only [resource-reader]])
   (:require clojure.pprint))
 
 ;; borrowed from duck-streams

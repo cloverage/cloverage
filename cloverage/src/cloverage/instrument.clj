@@ -11,7 +11,6 @@
 
   (:gen-class))
 
-(def ^:dynamic *instrumenting-file*)
 
 (defn atomic-special? [sym]
   (contains? '#{quote var clojure.core/import* recur} sym))
@@ -52,7 +51,7 @@
           recs (if (seq? form)
                  (doall (map (partial propagate-line-numbers line) form))
                  form)
-          ret  (vary-meta recs assoc :line line)]
+          ret  (when line (vary-meta recs assoc :line line))]
       ret)
     form))
 
@@ -259,65 +258,36 @@
                                ~@(if attr-map  (list attr-map)  (list))
                                ~(wrap f line dispatch-form) ~@other))))
 
-(defn resource-path
-  "Given a symbol representing a lib, return a classpath-relative path.  Borrowed from core.clj."
-  [lib]
-  (tprnl "Getting resource for " lib)
-  (str (.. (name lib)
-           (replace \- \_)
-           (replace \. \/))
-       ".clj"))
-
-(defn resource-reader [resource]
-  (tprnl "Getting reader for " resource)
-  (tprnl "Classpath is")
-  (tprnl (seq (.getURLs (java.lang.ClassLoader/getSystemClassLoader))))
-  (InputStreamReader.
-   (.getResourceAsStream (clojure.lang.RT/baseLoader) resource)))
-
-;; TODO: use cloverage.source
 (defn instrument
-  "Reads all forms from the file referenced by the given lib name, and
-  returns a seq of all the forms, decorated with a function that when
-  called will record the line and file of the code that was executed."
-  [f lib]
-  (tprnl "Instrumenting" lib)
-  (when-not (symbol? lib)
-    (throw+ "instrument needs a symbol"))
-  (let [file (resource-path lib)]
-    (binding [*instrumenting-file* lib]
-      (with-open [in (LineNumberingPushbackReader. (resource-reader file))]
-        (loop [forms nil]
-          (if-let [form (read in false nil true)]
-            (let [wrapped (try (wrap f (:line (meta form)) (vary-meta form assoc :file file))
-                               (catch Throwable t
-                                 (throw+ t "Couldn't wrap form %s at line %s"
-                                         form (:line form))))
-                  wrapped (if (:line (meta form))
-                            (propagate-line-numbers (:line (meta form)) wrapped)
-                            wrapped)
-                  ]
-              (try
-               (binding [*file* file
-                         *source-path* file]
-                 (eval wrapped))
-               (binding [*print-meta* true]
-                 (tprn "Evalling" wrapped " with meta " (meta wrapped)))
-               (catch Exception e
-                 (throw (Exception.
-                         (str "Couldn't eval form "
-                              (with-out-str (prn wrapped))
-                              (with-out-str (prn form)))
-                         e))))
-              (recur (conj forms wrapped)))
-            (do
-              (let [rforms (reverse forms)]
-                (dump-instrumented rforms lib)
-                rforms))))))))
+  "Instruments and evaluates a list of forms."
+  [f forms filename]
+  (loop [instrd-forms nil
+         forms        forms]
+    (if-let [form (first forms)]
+      (let [line-hint (:line (meta form))
+            wrapped   (try
+                        (wrap f line-hint
+                                (vary-meta form assoc :file filename))
+                        (catch Throwable t
+                          (throw+ t "Couldn't wrap form %s at line %s"
+                                    form line-hint)))
+            wrapped   (propagate-line-numbers line-hint wrapped)]
+        (try
+          (binding [*file*        filename
+                    *source-path* filename]
+            (eval wrapped))
+          (binding [*print-meta* true]
+            (tprn "Evalling" wrapped " with meta " (meta wrapped)))
+          (catch Exception e
+            (throw (Exception.
+                     (str "Couldn't eval form "
+                          (with-out-str (prn wrapped))
+                          (with-out-str (prn form)))
+                     e))))
+        (recur (conj instrd-forms wrapped) (next forms)))
+      (do
+        (let [rforms (reverse instrd-forms)]
+          (dump-instrumented rforms filename))))))
 
 (defn nop [line-hint form]
   `(do ~form))
-
-(defn instrument-nop
-  [lib]
-  (instrument nop lib))
