@@ -46,6 +46,7 @@
     case*                  :case*
     (fn fn*)               :fn
     def                    :def     ;; def can recurse on initialization expr
+    defn                   :defn    ;; don't expand defn to preserve stack traces
     .                      :dotjava
     new                    :new
     defmulti               :defmulti ;; special case defmulti to avoid boilerplate
@@ -163,6 +164,26 @@
                              init      (second body)]
                          (f line
                             `(~def-sym ~name ~docstring ~(wrap f line init))))))
+
+(defmethod do-wrap :defn [f line [defn-sym name & body]]
+  (let [doc-string   (if (string? (first body)) (list (first body)) nil)
+        body         (if (string? (first body)) (next body) body)
+        pre-attr-map (if (map?    (first body)) (list (first body)) nil)
+        body         (if (map?    (first body)) (next body) body)
+        ;; when the function has many overloads, it can have attrs after bodies
+        has-post-attr (and (not (vector? (first body)))
+                           (map? (last body)))
+        post-attr-map (if has-post-attr
+                        (list (last body))
+                        nil)
+        body          (if has-post-attr
+                        (butlast body)
+                        body)
+        fdecls        (wrap-overloads f line body)]
+    (f line
+       `(~defn-sym ~name ~@doc-string ~@pre-attr-map
+                   ~@fdecls
+                   ~@post-attr-map))))
 
 (defmethod do-wrap :new [f line [new-sym class-name & args :as form]]
   (f line `(~new-sym ~class-name ~@(doall (map (wrapper f line) args)))))
