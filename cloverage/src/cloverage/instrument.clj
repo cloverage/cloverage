@@ -165,6 +165,7 @@
                             `(~def-sym ~name ~docstring ~(wrap f line init))))))
 
 (defmethod do-wrap :defn [f line [defn-sym name & body]]
+  ;; do not macroexpand defn to preserve function names in exception backtraces
   (let [doc-string   (if (string? (first body)) (list (first body)) nil)
         body         (if (string? (first body)) (next body) body)
         pre-attr-map (if (map?    (first body)) (list (first body)) nil)
