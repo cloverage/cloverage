@@ -7,10 +7,31 @@
         [cloverage.debug])
   (:require [clojure.set :as set]
             [clojure.test :as test]
-            [clojure.tools.logging :as log])
+            [clojure.tools.logging :as log]))
 
-  (:gen-class))
+(defn propagate-line-numbers
+  "Assign :line metadata to all possible elements in a form,
+   using start as default."
+  [start form]
+  (if (instance? clojure.lang.IObj form)
+    (let [line (or (:line (meta form)) start)
+          recs (if (seq? form)
+                 (doall (map (partial propagate-line-numbers line) form))
+                 form)
+          ret  (if line
+                 (vary-meta recs assoc :line line)
+                 recs)]
+      ret)
+    form))
 
+(defn add-original [old new]
+  (if (instance? clojure.lang.IObj new)
+    (let [original (or (:original (meta old)) old)
+          res      (-> (propagate-line-numbers (:line (meta old)) new)
+                       (vary-meta merge (meta old))
+                       (vary-meta assoc :original original))]
+      res)
+    new))
 
 (defn atomic-special? [sym]
   (contains? '#{quote var clojure.core/import* recur} sym))
@@ -44,38 +65,6 @@
     (tprnl "Type of" (class form) form "is" res)
     (tprnl "Meta of" form "is" (meta form))
     res))
-
-(defn propagate-line-numbers [start form]
-  (if (instance? clojure.lang.IObj form)
-    (let [line (or (:line (meta form)) start)
-          recs (if (seq? form)
-                 (doall (map (partial propagate-line-numbers line) form))
-                 form)
-          ret  (when line (vary-meta recs assoc :line line))]
-      ret)
-    form))
-
-(defn add-line-number [hint old new]
-  (if (instance? clojure.lang.IObj new)
-    (let [line  (or (:line (meta new)) hint)
-          recs  (if (seq? new)
-                  (doall (map (partial add-line-number line old) new))
-                  new)
-          ret   (if line
-                  (vary-meta recs assoc :line line)
-                  recs)]
-      (if (nil? line)
-        (tprn "LINE IS NIL for " hint old new))
-      ret)
-    new))
-
-(defn add-original [old new]
-  (if (instance? clojure.lang.IObj new)
-    (let [res (-> (add-line-number (:line (meta old)) old new)
-                  (vary-meta merge (meta old))
-                  (vary-meta assoc :original old))]
-      res)
-    new))
 
 (defmulti do-wrap
   "Traverse the given form and wrap all its sub-forms in a function that evals
@@ -144,8 +133,6 @@
     (tprn ":wrapped" (class form) (class wrapped) wrapped)
     (f line wrapped))) ;; FIXME(alexander): this should be (f line wrapped)
 
-(defmethod do-wrap :map [f line ])
-
 ;; Wrap a fn form
 (defmethod do-wrap :fn [f line form]
   (tprnl "Wrapping fn " form)
@@ -163,7 +150,6 @@
   (f line
    `(~let-sym
      [~@(mapcat (partial wrap-binding f line)
-
                 (partition 2 bindings))]
       ~@(doall (map (wrapper f line) body)))))
 
@@ -213,12 +199,10 @@
     (f line `(~case-symbol ~test-var ~a ~b ~wrapped-else
                            ~wrapped-map ~@stuff))))
 
-
 (defmethod do-wrap :catch [f line [catch-symbol classname localname & body]]
   ;; can't transform into (try (...) (<capture> (finally ...)))
   ;; catch/finally must be direct children of try
   `(~catch-symbol ~classname ~localname ~@(map (wrapper f line) body)))
-
 
 (defmethod do-wrap :finally [f line [finally-symbol & body]]
   ;; can't transform into (try (...) (<capture> (finally ...)))
@@ -248,6 +232,8 @@
     (f line `(~defr-symbol ~name ~fields ~@specs))))
 
 (defmethod do-wrap :defmulti [f line [defm-symbol name & other]]
+  ;; wrap defmulti to avoid partial coverage warnings due to internal
+  ;; clojure code (stupid checks for wrong syntax)
   (let [docstring     (if (string? (first other)) (first other) nil)
         other         (if docstring (next other) other)
         attr-map      (if (map? (first other)) (first other) nil)
