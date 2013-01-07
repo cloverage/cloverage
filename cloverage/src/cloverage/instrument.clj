@@ -13,47 +13,6 @@
 
 (def ^:dynamic *instrumenting-file*)
 
-;; macroexpand without resolving class names
-(defn safe-macroexpand-1 [form]
-  (if-not (seq? form)
-    form
-    (let [[op & body] form]
-      (cond
-        ((some-fn special-symbol?
-                  #(clojure.lang.Compiler/isMacro %)
-                  (comp not symbol?)) op)
-          (macroexpand-1 form) ;; these are safe, now java interop
-        ;; (.substring s 2 5) => (. s substring 2 5)
-        ;; this has to be done
-        (.startsWith (name op) ".")
-          `(. (identity ~(first body))
-              ~(symbol (subs (name op) 1))
-              ~@(rest body))
-        ;; (class.Name/member ...) => (. class.Name member ...)
-        (clojure.lang.Compiler/namesStaticMember op)
-          (let [cls  (symbol (namespace op))
-                memb (symbol (name op))]
-            `(. ~cls ~memb ~@body))
-        ;; (ClassName. ...) is handled correctly by macroexpand
-        :else (macroexpand-1 form)))))
-
-(defn safe-macroexpand [form]
-  (let [ex (safe-macroexpand-1 form)]
-    (if (identical? ex form)
-      form
-      (safe-macroexpand ex))))
-
-;; macroexpand, tagging with classes if possible
-;; I had macroexpand expode on me once, but can't reproduce - for now
-;; use macroexpand, fallback to safe-macroexpand if needed...
-(defn try-macroexpand [form]
-  (try
-    (macroexpand form)
-    (catch Throwable ex
-      (binding [*out* *err*]
-        (println "Caught " ex " while macroexpanding, doing it safely."))
-      (safe-macroexpand form))))
-
 (defn atomic-special? [sym]
   (contains? '#{quote var clojure.core/import* recur} sym))
 
@@ -163,7 +122,7 @@
 
 ;; Don't wrap or descend into unknown forms
 (defmethod do-wrap :unknown [f line form]
-  (log/warn (str "Uknown special form " (seq form)))
+  (log/warn (str "Unknown special form " (seq form)))
   form)
 
 ;; Don't descend into atomic forms, but do wrap them
@@ -269,7 +228,7 @@
 
 (defmethod do-wrap :list [f line form]
   (tprnl "Wrapping " (class form) form)
-  (let [expanded (try-macroexpand form)]
+  (let [expanded (macroexpand form)]
     (tprnl "Expanded" form "into" expanded)
     (tprnl "Meta on expanded is" (meta expanded))
     (if (= :list (form-type expanded))
