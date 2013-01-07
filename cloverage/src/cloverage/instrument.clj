@@ -251,9 +251,7 @@
         wrapped-map (into (empty case-map)
                           (zipmap (keys case-map)
                                   (for [[k exp] (vals case-map)]
-                                    (do (debug-print "cases:" k exp)
-                                        [k (wrap-it exp)]))))]
-    (println "GOT HERE")
+                                    [k (wrap-it exp)])))]
     (f line `(~case-symbol ~test-var ~a ~b ~wrapped-else
                            ~wrapped-map ~@stuff))))
 
