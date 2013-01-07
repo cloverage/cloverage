@@ -245,8 +245,6 @@
   (f line `(~do-symbol ~@(map (wrapper f line) body))))
 
 (defmethod do-wrap :case* [f line [case-symbol test-var a b else-clause case-map & stuff]]
-  (debug-print "Wrapping :case*"
-               f line case-symbol test-var a b else-clause case-map stuff)
   (assert (= case-symbol 'case*))
   (let [wrap-it (wrapper f line)
         wrapped-else (wrap-it else-clause)
