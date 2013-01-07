@@ -4,6 +4,12 @@
         [cloverage coverage instrument]
         ))
 
+(defn- denamespace [tree]
+  "Helper function to allow backticking w/o namespace interpolation."
+  (cond (seq? tree) (map de-namespace tree)
+        (symbol? tree) (symbol (name tree))
+        :else tree))
+
 (def sample-file
      "cloverage/sample.clj")
 
@@ -197,6 +203,29 @@
 
 (deftest test-eval-ns
   (eval (wrap track-coverage 0 '(ns foo.bar))))
+
+
+(deftest test-eval-case
+  (doseq [x '[a b 3 #{3} fallthrough]]
+    (is (= (str x) (eval (wrap track-coverage 0
+                               (denamespace `(case '~x
+                                               a "a"
+                                               b "b"
+                                               3 "3"
+                                               #{3} "#{3}"
+                                               "fallthrough")))))))
+  (is (thrown? IllegalArgumentException
+               (eval (wrap track-coverage 0 (case 1))))))
+#_(deftest test-eval-case
+  (doseq [x '[a b 3 #{3} fallthrough]]
+    (is (= (str x) (eval (wrap track-coverage 0
+                               (replace {'x (list 'quote x)} '(case x
+                                             a "a"
+                                             b "b"
+                                             3 "3"
+                                             #{3} "#{3}"
+                                             "fallthrough")))))))
+  (is (thrown? Exception (eval (wrap track-coverage 0 (case 1))))))
 
 (deftest test-deftest
   #_(is (= 'foo
