@@ -19,19 +19,19 @@
     form
     (let [[op & body] form]
       (cond
-        ((some-fn special-symbol? 
+        ((some-fn special-symbol?
                   #(clojure.lang.Compiler/isMacro %)
                   (comp not symbol?)) op)
           (macroexpand-1 form) ;; these are safe, now java interop
         ;; (.substring s 2 5) => (. s substring 2 5)
-        ;; this has to be done 
+        ;; this has to be done
         (.startsWith (name op) ".")
           `(. (identity ~(first body))
-              ~(symbol (subs (name op) 1)) 
+              ~(symbol (subs (name op) 1))
               ~@(rest body))
         ;; (class.Name/member ...) => (. class.Name member ...)
         (clojure.lang.Compiler/namesStaticMember op)
-          (let [cls  (symbol (namespace op)) 
+          (let [cls  (symbol (namespace op))
                 memb (symbol (name op))]
             `(. ~cls ~memb ~@body))
         ;; (ClassName. ...) is handled correctly by macroexpand
@@ -64,6 +64,7 @@
     set!                   :set     ;; set must not evaluate the target expr
     (if do try throw)      :do      ;; these special forms can recurse on all args
     (loop let let* loop*)  :let
+    case*                  :case*
     (fn fn*)               :fn
     def                    :def     ;; def can recurse on initialization expr
     .                      :dotjava
@@ -204,7 +205,7 @@
   (f line
    `(~let-sym
      [~@(mapcat (partial wrap-binding f line)
-                
+
                 (partition 2 bindings))]
       ~@(doall (map (wrapper f line) body)))))
 
@@ -242,6 +243,18 @@
 
 (defmethod do-wrap :do [f line [do-symbol & body]]
   (f line `(~do-symbol ~@(map (wrapper f line) body))))
+
+(defmethod do-wrap :case* [f line [case-symbol test-var a b else-clause case-map & stuff]]
+  (assert (= case-symbol 'case*))
+  (let [wrap-it (wrapper f line)
+        wrapped-else (wrap-it else-clause)
+        wrapped-map (into (empty case-map)
+                          (zipmap (keys case-map)
+                                  (for [[k exp] (vals case-map)]
+                                    [k (wrap-it exp)])))]
+    (f line `(~case-symbol ~test-var ~a ~b ~wrapped-else
+                           ~wrapped-map ~@stuff))))
+
 
 (defmethod do-wrap :catch [f line [catch-symbol classname localname & body]]
   ;; can't transform into (try (...) (<capture> (finally ...)))
@@ -337,7 +350,7 @@
                               (with-out-str (prn wrapped))
                               (with-out-str (prn form)))
                          e))))
-              (recur (conj forms wrapped))) 
+              (recur (conj forms wrapped)))
             (do
               (let [rforms (reverse forms)]
                 (dump-instrumented rforms lib)
