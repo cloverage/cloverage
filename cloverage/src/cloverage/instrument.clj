@@ -287,7 +287,8 @@
         (recur (conj instrd-forms wrapped) (next forms)))
       (do
         (let [rforms (reverse instrd-forms)]
-          (dump-instrumented rforms filename))))))
+          (dump-instrumented rforms filename)
+          rforms)))))
 
 (defn nop [line-hint form]
   `(do ~form))
