@@ -26,10 +26,9 @@
 
 (defn add-original [old new]
   (if (instance? clojure.lang.IObj new)
-    (let [original (or (:original (meta old)) old)
-          res      (-> (propagate-line-numbers (:line (meta old)) new)
+    (let [res      (-> (propagate-line-numbers (:line (meta old)) new)
                        (vary-meta merge (meta old))
-                       (vary-meta assoc :original original))]
+                       (vary-meta assoc :original old))]
       res)
     new))
 

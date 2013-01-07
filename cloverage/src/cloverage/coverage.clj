@@ -11,7 +11,7 @@
             [bultitude.core :as blt])
   (:gen-class))
 
-(def ^:dynamic *instrd-ns*) ;; currently instrumented ns
+(def ^:dynamic *instrumented-ns*) ;; currently instrumented ns
 (def ^:dynamic *covered* (ref []))
 
 (defmacro with-coverage [libs & body]
@@ -42,7 +42,7 @@
   "Adds a structure representing the given form to the *covered* vector."
   [form line-hint]
   (tprnl "Adding form" form "at line" (:line (meta form)) "hint" line-hint)
-  (let [lib  *instrd-ns*
+  (let [lib  *instrumented-ns*
         file (resource-path lib)
         line (or (:line (meta form)) line-hint)
         form-info {:form (or (:original (meta form))
@@ -133,7 +133,7 @@
       (doseq [namespace (in-dependency-order (map symbol namespaces))]
         (let [file          (resource-path namespace)
               ns-forms      (forms namespace)]
-          (binding [*instrd-ns* namespace]
+          (binding [*instrumented-ns* namespace]
             (if nops?
               (instrument nop ns-forms file)
               (instrument track-coverage ns-forms file))))
