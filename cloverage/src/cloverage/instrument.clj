@@ -122,7 +122,7 @@
 
 ;; Don't wrap or descend into unknown forms
 (defmethod do-wrap :unknown [f line form]
-  (log/warn (str "Uknown special form " (seq form)))
+  (log/warn (str "Unknown special form " (seq form)))
   form)
 
 ;; Don't descend into atomic forms, but do wrap them
