@@ -1,12 +1,12 @@
 (ns cloverage.test-coverage
   (:import [java.io File])
   (:use [clojure.test :exclude [report]]
-        [cloverage coverage instrument]
+        [cloverage coverage instrument source]
         ))
 
 (defn- denamespace [tree]
   "Helper function to allow backticking w/o namespace interpolation."
-  (cond (seq? tree) (map de-namespace tree)
+  (cond (seq? tree) (map denamespace tree)
         (symbol? tree) (symbol (name tree))
         :else tree))
 
@@ -66,8 +66,8 @@
     (is (not (covered? 35)))))
 
 (defn coverage-fixture [f]
-  (binding [*covered* (ref [])
-            *instrumenting-file* ""]
+  (binding [*covered*         (ref [])
+            *instrumented-ns* "NO_SUCH_NAMESPACE"]
     (f)))
 
 (use-fixtures :each coverage-fixture)
@@ -240,7 +240,9 @@
   (some #(and (= form (:form %)) %) cov))
 
 (deftest test-instrument-gets-lines
-  (instrument track-coverage 'cloverage.sample)
+  (instrument track-coverage
+              (forms 'cloverage.sample)
+              (resource-path 'cloverage.sample))
   (let [cov @*covered*
         found (find-form cov '(+ 1 2))]
     #_(with-out-writer "out/foo"

@@ -7,11 +7,30 @@
         [cloverage.debug])
   (:require [clojure.set :as set]
             [clojure.test :as test]
-            [clojure.tools.logging :as log])
+            [clojure.tools.logging :as log]))
 
-  (:gen-class))
+(defn propagate-line-numbers
+  "Assign :line metadata to all possible elements in a form,
+   using start as default."
+  [start form]
+  (if (instance? clojure.lang.IObj form)
+    (let [line (or (:line (meta form)) start)
+          recs (if (seq? form)
+                 (doall (map (partial propagate-line-numbers line) form))
+                 form)
+          ret  (if line
+                 (vary-meta recs assoc :line line)
+                 recs)]
+      ret)
+    form))
 
-(def ^:dynamic *instrumenting-file*)
+(defn add-original [old new]
+  (if (instance? clojure.lang.IObj new)
+    (let [res      (-> (propagate-line-numbers (:line (meta old)) new)
+                       (vary-meta merge (meta old))
+                       (vary-meta assoc :original old))]
+      res)
+    new))
 
 (defn atomic-special? [sym]
   (contains? '#{quote var clojure.core/import* recur} sym))
@@ -26,6 +45,7 @@
     case*                  :case*
     (fn fn*)               :fn
     def                    :def     ;; def can recurse on initialization expr
+    defn                   :defn    ;; don't expand defn to preserve stack traces
     .                      :dotjava
     new                    :new
     defmulti               :defmulti ;; special case defmulti to avoid boilerplate
@@ -45,38 +65,6 @@
     (tprnl "Type of" (class form) form "is" res)
     (tprnl "Meta of" form "is" (meta form))
     res))
-
-(defn propagate-line-numbers [start form]
-  (if (instance? clojure.lang.IObj form)
-    (let [line (or (:line (meta form)) start)
-          recs (if (seq? form)
-                 (doall (map (partial propagate-line-numbers line) form))
-                 form)
-          ret  (vary-meta recs assoc :line line)]
-      ret)
-    form))
-
-(defn add-line-number [hint old new]
-  (if (instance? clojure.lang.IObj new)
-    (let [line  (or (:line (meta new)) hint)
-          recs  (if (seq? new)
-                  (doall (map (partial add-line-number line old) new))
-                  new)
-          ret   (if line
-                  (vary-meta recs assoc :line line)
-                  recs)]
-      (if (nil? line)
-        (tprn "LINE IS NIL for " hint old new))
-      ret)
-    new))
-
-(defn add-original [old new]
-  (if (instance? clojure.lang.IObj new)
-    (let [res (-> (add-line-number (:line (meta old)) old new)
-                  (vary-meta merge (meta old))
-                  (vary-meta assoc :original old))]
-      res)
-    new))
 
 (defmulti do-wrap
   "Traverse the given form and wrap all its sub-forms in a function that evals
@@ -145,8 +133,6 @@
     (tprn ":wrapped" (class form) (class wrapped) wrapped)
     (f line wrapped))) ;; FIXME(alexander): this should be (f line wrapped)
 
-(defmethod do-wrap :map [f line ])
-
 ;; Wrap a fn form
 (defmethod do-wrap :fn [f line form]
   (tprnl "Wrapping fn " form)
@@ -164,7 +150,6 @@
   (f line
    `(~let-sym
      [~@(mapcat (partial wrap-binding f line)
-
                 (partition 2 bindings))]
       ~@(doall (map (wrapper f line) body)))))
 
@@ -178,6 +163,27 @@
                              init      (second body)]
                          (f line
                             `(~def-sym ~name ~docstring ~(wrap f line init))))))
+
+(defmethod do-wrap :defn [f line [defn-sym name & body]]
+  ;; do not macroexpand defn to preserve function names in exception backtraces
+  (let [doc-string   (if (string? (first body)) (list (first body)) nil)
+        body         (if (string? (first body)) (next body) body)
+        pre-attr-map (if (map?    (first body)) (list (first body)) nil)
+        body         (if (map?    (first body)) (next body) body)
+        ;; when the function has many overloads, it can have attrs after bodies
+        has-post-attr (and (not (vector? (first body)))
+                           (map? (last body)))
+        post-attr-map (if has-post-attr
+                        (list (last body))
+                        nil)
+        body          (if has-post-attr
+                        (butlast body)
+                        body)
+        fdecls        (wrap-overloads f line body)]
+    (f line
+       `(~defn-sym ~name ~@doc-string ~@pre-attr-map
+                   ~@fdecls
+                   ~@post-attr-map))))
 
 (defmethod do-wrap :new [f line [new-sym class-name & args :as form]]
   (f line `(~new-sym ~class-name ~@(doall (map (wrapper f line) args)))))
@@ -214,12 +220,10 @@
     (f line `(~case-symbol ~test-var ~a ~b ~wrapped-else
                            ~wrapped-map ~@stuff))))
 
-
 (defmethod do-wrap :catch [f line [catch-symbol classname localname & body]]
   ;; can't transform into (try (...) (<capture> (finally ...)))
   ;; catch/finally must be direct children of try
   `(~catch-symbol ~classname ~localname ~@(map (wrapper f line) body)))
-
 
 (defmethod do-wrap :finally [f line [finally-symbol & body]]
   ;; can't transform into (try (...) (<capture> (finally ...)))
@@ -249,6 +253,8 @@
     (f line `(~defr-symbol ~name ~fields ~@specs))))
 
 (defmethod do-wrap :defmulti [f line [defm-symbol name & other]]
+  ;; wrap defmulti to avoid partial coverage warnings due to internal
+  ;; clojure code (stupid checks for wrong syntax)
   (let [docstring     (if (string? (first other)) (first other) nil)
         other         (if docstring (next other) other)
         attr-map      (if (map? (first other)) (first other) nil)
@@ -259,65 +265,37 @@
                                ~@(if attr-map  (list attr-map)  (list))
                                ~(wrap f line dispatch-form) ~@other))))
 
-(defn resource-path
-  "Given a symbol representing a lib, return a classpath-relative path.  Borrowed from core.clj."
-  [lib]
-  (tprnl "Getting resource for " lib)
-  (str (.. (name lib)
-           (replace \- \_)
-           (replace \. \/))
-       ".clj"))
-
-(defn resource-reader [resource]
-  (tprnl "Getting reader for " resource)
-  (tprnl "Classpath is")
-  (tprnl (seq (.getURLs (java.lang.ClassLoader/getSystemClassLoader))))
-  (InputStreamReader.
-   (.getResourceAsStream (clojure.lang.RT/baseLoader) resource)))
-
-;; TODO: use cloverage.source
 (defn instrument
-  "Reads all forms from the file referenced by the given lib name, and
-  returns a seq of all the forms, decorated with a function that when
-  called will record the line and file of the code that was executed."
-  [f lib]
-  (tprnl "Instrumenting" lib)
-  (when-not (symbol? lib)
-    (throw+ "instrument needs a symbol"))
-  (let [file (resource-path lib)]
-    (binding [*instrumenting-file* lib]
-      (with-open [in (LineNumberingPushbackReader. (resource-reader file))]
-        (loop [forms nil]
-          (if-let [form (read in false nil true)]
-            (let [wrapped (try (wrap f (:line (meta form)) (vary-meta form assoc :file file))
-                               (catch Throwable t
-                                 (throw+ t "Couldn't wrap form %s at line %s"
-                                         form (:line form))))
-                  wrapped (if (:line (meta form))
-                            (propagate-line-numbers (:line (meta form)) wrapped)
-                            wrapped)
-                  ]
-              (try
-               (binding [*file* file
-                         *source-path* file]
-                 (eval wrapped))
-               (binding [*print-meta* true]
-                 (tprn "Evalling" wrapped " with meta " (meta wrapped)))
-               (catch Exception e
-                 (throw (Exception.
-                         (str "Couldn't eval form "
-                              (with-out-str (prn wrapped))
-                              (with-out-str (prn form)))
-                         e))))
-              (recur (conj forms wrapped)))
-            (do
-              (let [rforms (reverse forms)]
-                (dump-instrumented rforms lib)
-                rforms))))))))
+  "Instruments and evaluates a list of forms."
+  [f forms filename]
+  (loop [instrd-forms nil
+         forms        forms]
+    (if-let [form (first forms)]
+      (let [line-hint (:line (meta form))
+            wrapped   (try
+                        (wrap f line-hint
+                                (vary-meta form assoc :file filename))
+                        (catch Throwable t
+                          (throw+ t "Couldn't wrap form %s at line %s"
+                                    form line-hint)))
+            wrapped   (propagate-line-numbers line-hint wrapped)]
+        (try
+          (binding [*file*        filename
+                    *source-path* filename]
+            (eval wrapped))
+          (binding [*print-meta* true]
+            (tprn "Evalling" wrapped " with meta " (meta wrapped)))
+          (catch Exception e
+            (throw (Exception.
+                     (str "Couldn't eval form "
+                          (with-out-str (prn wrapped))
+                          (with-out-str (prn form)))
+                     e))))
+        (recur (conj instrd-forms wrapped) (next forms)))
+      (do
+        (let [rforms (reverse instrd-forms)]
+          (dump-instrumented rforms filename)
+          rforms)))))
 
 (defn nop [line-hint form]
   `(do ~form))
-
-(defn instrument-nop
-  [lib]
-  (instrument nop lib))

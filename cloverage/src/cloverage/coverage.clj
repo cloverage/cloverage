@@ -4,13 +4,14 @@
            [java.lang Runtime])
   (:use [clojure.java.io :only [reader writer copy]]
         [clojure.tools.cli :only [cli]]
-        [cloverage instrument debug report dependency])
+        [cloverage source instrument debug report dependency])
   (:require [clojure.set :as set]
             [clojure.test :as test]
             [clojure.tools.logging :as log]
             [bultitude.core :as blt])
   (:gen-class))
 
+(def ^:dynamic *instrumented-ns*) ;; currently instrumented ns
 (def ^:dynamic *covered* (ref []))
 
 (defmacro with-coverage [libs & body]
@@ -41,7 +42,7 @@
   "Adds a structure representing the given form to the *covered* vector."
   [form line-hint]
   (tprnl "Adding form" form "at line" (:line (meta form)) "hint" line-hint)
-  (let [lib  *instrumenting-file*
+  (let [lib  *instrumented-ns*
         file (resource-path lib)
         line (or (:line (meta form)) line-hint)
         form-info {:form (or (:original (meta form))
@@ -130,9 +131,12 @@
       (println "Loading namespaces: " namespaces)
       (println "Test namespaces: " test-nses)
       (doseq [namespace (in-dependency-order (map symbol namespaces))]
-        (if nops?
-          (instrument-nop namespace)
-          (instrument track-coverage namespace))
+        (let [file          (resource-path namespace)
+              ns-forms      (forms namespace)]
+          (binding [*instrumented-ns* namespace]
+            (if nops?
+              (instrument nop ns-forms file)
+              (instrument track-coverage ns-forms file))))
         (println "Loaded " namespace " .")
         (mark-loaded namespace)) 
         ;; mark the ns as loaded
