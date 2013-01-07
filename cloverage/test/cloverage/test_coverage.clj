@@ -66,8 +66,8 @@
     (is (not (covered? 35)))))
 
 (defn coverage-fixture [f]
-  (binding [*covered*   (ref [])
-            *instrd-ns* "NO_SUCH_NAMESPACE"]
+  (binding [*covered*         (ref [])
+            *instrumented-ns* "NO_SUCH_NAMESPACE"]
     (f)))
 
 (use-fixtures :each coverage-fixture)
