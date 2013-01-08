@@ -12,9 +12,6 @@
    #{:sets :should :work}
    '(do :expression)])
 
-(deftest tree-walk-preserves-forms
-  (is (= simple-forms (instrument no-instr simple-forms))))
-
 (deftest wrap-preserves-value
   (doseq [simple-expr simple-forms]
     (is (= simple-expr (wrap no-instr 0 simple-expr)))

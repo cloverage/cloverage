@@ -144,8 +144,7 @@
 
 (deftest test-instrument-gets-lines
   (instrument track-coverage
-              (forms 'cloverage.sample)
-              (resource-path 'cloverage.sample))
+              'cloverage.sample)
   (let [cov @*covered*
         found (find-form cov '(+ 1 2))]
     #_(with-out-writer "out/foo"

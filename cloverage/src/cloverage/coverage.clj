@@ -131,14 +131,12 @@
       (println "Loading namespaces: " namespaces)
       (println "Test namespaces: " test-nses)
       (doseq [namespace (in-dependency-order (map symbol namespaces))]
-        (let [file          (resource-path namespace)
-              ns-forms      (forms namespace)]
-          (binding [*instrumented-ns* namespace]
-            (if nops?
-              (instrument nop ns-forms file)
-              (instrument track-coverage ns-forms file))))
+        (binding [*instrumented-ns* namespace]
+          (if nops?
+            (instrument nop namespace)
+            (instrument track-coverage namespace)))
         (println "Loaded " namespace " .")
-        (mark-loaded namespace)) 
+        (mark-loaded namespace))
         ;; mark the ns as loaded
       (println "Instrumented namespaces.")
       (when-not (empty? test-nses)
