@@ -1,10 +1,8 @@
 (ns cloverage.instrument
-  (:import  [java.io InputStreamReader]
-            [clojure.lang LineNumberingPushbackReader])
   (:use [slingshot.slingshot :only [throw+]]
         [clojure.java.io :only [writer]]
         [clojure.string  :only [split]]
-        [cloverage.debug])
+        [cloverage debug source])
   (:require [clojure.set :as set]
             [clojure.test :as test]
             [clojure.tools.logging :as log]))
@@ -271,38 +269,39 @@
 
 (defn instrument
   "Instruments and evaluates a list of forms."
-  ([f forms] (instrument f forms "NO_FILE"))
-  ([f forms filename]
-    (loop [instrd-forms nil
-           forms        forms]
-      (if-let [form (first forms)]
-        (let [line-hint (:line (meta form))
-              form      (if (iobj? form)
-                          (vary-meta form assoc :file filename)
-                          form)
-              wrapped   (try
-                          (wrap f line-hint form)
-                          (catch Throwable t
-                            (throw+ t "Couldn't wrap form %s at line %s"
-                                      form line-hint)))
-              wrapped   (propagate-line-numbers line-hint wrapped)]
-          (try
-            (binding [*file*        filename
-                      *source-path* filename]
-              (eval wrapped))
-            (binding [*print-meta* true]
-              (tprn "Evalling" wrapped " with meta " (meta wrapped)))
-            (catch Exception e
-              (throw (Exception.
-                       (str "Couldn't eval form "
-                            (with-out-str (prn wrapped))
-                            (with-out-str (prn form)))
-                       e))))
-          (recur (conj instrd-forms wrapped) (next forms)))
-        (do
-          (let [rforms (reverse instrd-forms)]
-            (dump-instrumented rforms filename)
-            rforms))))))
+  ([f lib]
+    (let [filename (resource-path lib)]
+      (with-open [src (form-reader lib)]
+        (loop [instrumented-forms nil]
+          (if-let [form (binding [*read-eval* false]
+                          (read src false nil true))]
+            (let [line-hint (:line (meta form))
+                  form      (if (iobj? form)
+                              (vary-meta form assoc :file filename)
+                              form)
+                  wrapped   (try
+                              (wrap f line-hint form)
+                              (catch Throwable t
+                                (throw+ t "Couldn't wrap form %s at line %s"
+                                          form line-hint)))
+                  wrapped   (propagate-line-numbers line-hint wrapped)]
+              (try
+                (binding [*file*        filename
+                          *source-path* filename]
+                  (eval wrapped))
+                (binding [*print-meta* true]
+                  (tprn "Evalling" wrapped " with meta " (meta wrapped)))
+                (catch Exception e
+                  (throw (Exception.
+                           (str "Couldn't eval form "
+                                (with-out-str (prn wrapped))
+                                (with-out-str (prn form)))
+                           e))))
+              (recur (conj instrumented-forms wrapped)))
+            (do
+              (let [rforms (reverse instrumented-forms)]
+                (dump-instrumented rforms filename)
+                rforms))))))))
 
 (defn nop
   "Instrument form with expressions that do nothing."
