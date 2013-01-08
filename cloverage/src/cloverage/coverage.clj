@@ -75,39 +75,36 @@
 
 (defn parse-args [args]
   (cli args ["-o" "--output"]
-            ["-t" "--[no-]text"
-               "Produce a text report." :default false]
-            ["-h" "--[no-]html"
-               "Produce an HTML report." :default true]
-            ["-r" "--[no-]raw"
-               "Output raw coverage data." :default false]
-            ["-d" "--[no-]debug"
-               "Output debugging information to stdout." :default false]
-            ["-n" "--[no-]nop" "Instrument with noops." :default false]
-            ["-p" "--pattern"
-               "Regex for instrumented namespaces, can specify multiple."
-               :default  []
-               :parse-fn (collecting-args-parser)]
-            ["--test-pattern"
-               "Regex for test namespaces, can specify multiple."
-               :default []
-               :parse-fn (collecting-args-parser)]
-            ["-x" "--test-ns"
-               "Additional test namespace. (can specify multiple times)"
-               :default  []
-               :parse-fn (collecting-args-parser)]))
+       ["--[no-]text"
+        "Produce a text report." :default false]
+       ["--[no-]html"
+        "Produce an HTML report." :default true]
+       ["--[no-]raw"
+        "Output raw coverage data (for debugging)." :default false]
+       ["-d" "--[no-]debug"
+        "Output debugging information to stdout." :default false]
+       ["--[no-]nop" "Instrument with noops." :default false]
+       ["-n" "--ns-regex"
+        "Regex for instrumented namespaces (can be repeated)."
+        :default  []
+        :parse-fn (collecting-args-parser)]
+       ["-t" "--test-ns-regex"
+        "Regex for test namespaces (can be repeated)."
+        :default []
+        :parse-fn (collecting-args-parser)]
+       ["-x" "--extra-test-ns"
+        "Additional test namespace (string) to add (can be repeated)"
+        :default  []
+        :parse-fn (collecting-args-parser)]))
 
 (defn mark-loaded [namespace]
-  (in-ns 'clojure.core)
-  (eval `(dosync (alter clojure.core/*loaded-libs* conj '~namespace))) 
-  (in-ns 'cloverage.coverage)
-  )
+  (binding [*ns* (find-ns 'clojure.core)]
+    (eval `(dosync (alter clojure.core/*loaded-libs* conj '~namespace)))))
 
-(defn find-nses [regexs]
-  (if-not (empty? regexs)
-    (filter (apply some-fn (map #(fn [sym] (re-matches % (name sym))) regexs))
-            (blt/namespaces-on-classpath))
-    []))
+(defn find-nses [patterns]
+  (for [ns (map name (blt/namespaces-on-classpath))
+        :when (some #(re-matches % ns) patterns)]
+    ns))
 
 (defn -main
   "Produce test coverage report for some namespaces"
@@ -119,9 +116,9 @@
         raw?          (:raw opts)
         debug?        (:debug opts)
         nops?         (:nop opts)
-        add-test-nses (:test-ns opts)
-        ns-regexs     (map re-pattern (:pattern opts)) 
-        test-regexs   (map re-pattern (:test-pattern opts)) 
+        add-test-nses (:extra-test-ns opts)
+        ns-regexs     (map re-pattern (:ns-regexp opts))
+        test-regexs   (map re-pattern (:test-ns-regexp opts))
         start         (System/currentTimeMillis)
         test-nses     (concat add-test-nses (find-nses test-regexs))
         namespaces    (concat add-nses      (find-nses ns-regexs))
@@ -136,12 +133,12 @@
             (instrument nop namespace)
             (instrument track-coverage namespace)))
         (println "Loaded " namespace " .")
-        (mark-loaded namespace))
         ;; mark the ns as loaded
+        (mark-loaded namespace))
       (println "Instrumented namespaces.")
       (when-not (empty? test-nses)
         (let [test-syms (map symbol test-nses)]
-          (apply require (map symbol test-nses)) 
+          (apply require (map symbol test-nses))
           (apply test/run-tests (map symbol test-nses))))
       (println "Ran tests.")
       (when output
