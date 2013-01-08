@@ -159,7 +159,9 @@
       (println "   <thead><tr>")
       (println "    <td> Namespace </td>")
       (println "    <td class=\"with-bar\"> Forms </td>")
+      (println (td-num "Forms %"))
       (println "    <td class=\"with-bar\"> Lines </td>")
+      (println (td-num "Lines %"))
       (println (apply str (map td-num ["Total" "Blank" "Instrumented"])))
       (println "   </tr></thead>")
       (doseq [file-stat (file-stats forms)]
@@ -181,9 +183,12 @@
           (printf  " <td><a href=\"%s.html\">%s</a></td>" filepath libname)
           (println (td-bar forms [:covered cov-forms]
                                  [:not-covered mis-forms]))
+          (println (td-num (format "%.2f %%" (/ (* 100.0 cov-forms) forms))))
           (println (td-bar instrd [:covered covered]
                                   [:partial partial]
                                   [:not-covered missed]))
+          (println (td-num (format "%.2f %%" (/ (* 100.0 (+ covered partial))
+                                                lines))))
           (println
             (apply str (map td-num [lines blank instrd])))
           (println "</tr>")
