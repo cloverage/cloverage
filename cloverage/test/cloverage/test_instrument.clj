@@ -12,13 +12,14 @@
    #{:sets :should :work}
    '(do :expression)])
 
-(deftest tree-walk-preserves-forms
-  (is (= simple-forms (instrument no-instr simple-forms))))
-
 (deftest wrap-preserves-value
   (doseq [simple-expr simple-forms]
     (is (= simple-expr (wrap no-instr 0 simple-expr)))
     (is (= (eval simple-expr) (eval (wrap nop 0 simple-expr))))))
+
+(deftest correctly-resolves-macro-symbols
+  ;; simply ensure that instrumentation succeeds without errors
+  (is (instrument no-instr 'cloverage.sample.read-eval-sample)))
 
 (deftest test-form-type
   (is (= :atomic (form-type 1)))
