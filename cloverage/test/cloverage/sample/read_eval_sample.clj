@@ -1,9 +1,10 @@
 (ns cloverage.sample.read-eval-sample)
 
-(def ^:dynamic dynamic-symbol)
-(defmacro with-bound-dynamic-symbol
+(def ^:dynamic *dynamic-var*)
+
+(defmacro with-bound-dynamic-var
   [& body]
-  `(binding [dynamic-symbol true]
+  `(binding [*dynamic-var* true]
      (do ~@body)))
 
 (defn do-something [arg]
