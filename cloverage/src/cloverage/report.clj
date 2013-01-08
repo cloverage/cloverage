@@ -132,12 +132,12 @@
   (str "<td class=\"with-bar\">"
        (apply str
          (map (fn [[key cnt]]
-                (if (> 0 cnt)
+                (if (> cnt 0)
                   (format "<div class=\"%s\"
                                 style=\"width:%s%%;
                                         float:left;\"> %d </div>"
-                    (name key) (/ (* 100.0 cnt) total) cnt))
-                  "")
+                    (name key) (/ (* 100.0 cnt) total) cnt)
+                  ""))
               parts))
        "</td>"))
 
@@ -159,7 +159,7 @@
       (println " <body>")
       (println "  <table>")
       (println "   <thead><tr>")
-      (println "    <td> Namespace </td>")
+      (println "    <td class=\"ns-name\"> Namespace </td>")
       (println "    <td class=\"with-bar\"> Forms </td>")
       (println (td-num "Forms %"))
       (println "    <td class=\"with-bar\"> Lines </td>")
