@@ -96,19 +96,44 @@
 (defn- html-spaces [s]
   (.replace s " " "&nbsp;"))
 
+;; Java 7 has a much nicer API, but this supports Java 6.
+(defn relative-path [target-dir base-dir]
+  ^{:doc "Return the path to target-dir relative to base-dir.
+          Both arguments are java.io.File"}
+  (loop [target-file (.getAbsoluteFile target-dir)
+         base-file   (.getAbsoluteFile base-dir)
+         postpend    ""
+         prepend     ""]
+    (let [target-path (.getAbsolutePath target-file)
+          base-path   (.getAbsolutePath base-file)]
+      (cond
+        (= base-path target-path)
+        (apply str prepend postpend)
+
+        (> (count base-path)
+           (count target-path))
+        (recur target-file (.getParentFile base-file) postpend (str prepend "../"))
+
+        :else
+        (let [new-target (.getParentFile target-file)
+              suffix     (subs target-path
+                               (count (.getAbsolutePath new-target)))]
+          (recur new-target base-file
+                 (str (subs suffix 1) "/" postpend)
+                 prepend))))))
+
 (defn html-report [out-dir forms]
   (copy (resource-reader "coverage.css") (File. out-dir "coverage.css"))
   (stats-report (File. out-dir "coverage.txt") forms)
   (doseq [[rel-file file-forms] (group-by :file forms)]
     (let [file     (File. out-dir (str rel-file ".html"))
-          rootpath (.relativize (.. file getParentFile toPath)
-                                (.toPath (File. out-dir)))
+          rootpath (relative-path (File. out-dir) (.getParentFile file))
           ]
       (.mkdirs (.getParentFile file))
       (with-out-writer file
         (println "<html>")
         (println " <head>")
-        (printf "  <link rel=\"stylesheet\" href=\"%s/coverage.css\"/>" rootpath)
+        (printf "  <link rel=\"stylesheet\" href=\"%scoverage.css\"/>" rootpath)
         (println "  <title>" rel-file "</title>")
         (println " </head>")
         (println " <body>")
@@ -143,15 +168,12 @@
   (format "<td class=\"with-number\">%s</td>" content))
 
 (defn html-summary [out-dir forms]
-  (let [index (File. out-dir "index.html")
-        rootpath (.relativize (.. index getParentFile toPath)
-                              (.toPath (File. out-dir)))
-        ]
-    (.mkdirs (.getParentFile index))
+  (let [index (File. out-dir "index.html")]
+    (.mkdirs (File. out-dir))
     (with-out-writer index
       (println "<html>")
       (println " <head>")
-      (printf  "  <link rel=\"stylesheet\" href=\"./%s/coverage.css\"/>" rootpath)
+      (println "  <link rel=\"stylesheet\" href=\"./coverage.css\"/>")
       (println "  <title>Coverage Summary</title>")
       (println " </head>")
       (println " <body>")
