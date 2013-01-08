@@ -9,11 +9,14 @@
             [clojure.test :as test]
             [clojure.tools.logging :as log]))
 
+(defn iobj? [form]
+  (instance? clojure.lang.IObj form))
+
 (defn propagate-line-numbers
   "Assign :line metadata to all possible elements in a form,
    using start as default."
   [start form]
-  (if (instance? clojure.lang.IObj form)
+  (if (iobj? form)
     (let [line (or (:line (meta form)) start)
           recs (if (seq? form)
                  (doall (map (partial propagate-line-numbers line) form))
@@ -25,7 +28,7 @@
     form))
 
 (defn add-original [old new]
-  (if (instance? clojure.lang.IObj new)
+  (if (iobj? new)
     (let [res      (-> (propagate-line-numbers (:line (meta old)) new)
                        (vary-meta merge (meta old))
                        (vary-meta assoc :original old))]
@@ -94,6 +97,7 @@
 ;; Wrap a list of function overloads, e.g.
 ;;   (([a] (inc a))
 ;;    ([a b] (+ a b)))
+;;  TODO: handle pre/post condition maps (can we instrument these?)
 (defn wrap-overloads [f line-hint form]
   (tprnl "Wrapping overloads " form)
   (let [line (or (:line (meta form)) line-hint)]
@@ -267,35 +271,45 @@
 
 (defn instrument
   "Instruments and evaluates a list of forms."
-  [f forms filename]
-  (loop [instrd-forms nil
-         forms        forms]
-    (if-let [form (first forms)]
-      (let [line-hint (:line (meta form))
-            wrapped   (try
-                        (wrap f line-hint
-                                (vary-meta form assoc :file filename))
-                        (catch Throwable t
-                          (throw+ t "Couldn't wrap form %s at line %s"
-                                    form line-hint)))
-            wrapped   (propagate-line-numbers line-hint wrapped)]
-        (try
-          (binding [*file*        filename
-                    *source-path* filename]
-            (eval wrapped))
-          (binding [*print-meta* true]
-            (tprn "Evalling" wrapped " with meta " (meta wrapped)))
-          (catch Exception e
-            (throw (Exception.
-                     (str "Couldn't eval form "
-                          (with-out-str (prn wrapped))
-                          (with-out-str (prn form)))
-                     e))))
-        (recur (conj instrd-forms wrapped) (next forms)))
-      (do
-        (let [rforms (reverse instrd-forms)]
-          (dump-instrumented rforms filename)
-          rforms)))))
+  ([f forms] (instrument f forms "NO_FILE"))
+  ([f forms filename]
+    (loop [instrd-forms nil
+           forms        forms]
+      (if-let [form (first forms)]
+        (let [line-hint (:line (meta form))
+              form      (if (iobj? form)
+                          (vary-meta form assoc :file filename)
+                          form)
+              wrapped   (try
+                          (wrap f line-hint form)
+                          (catch Throwable t
+                            (throw+ t "Couldn't wrap form %s at line %s"
+                                      form line-hint)))
+              wrapped   (propagate-line-numbers line-hint wrapped)]
+          (try
+            (binding [*file*        filename
+                      *source-path* filename]
+              (eval wrapped))
+            (binding [*print-meta* true]
+              (tprn "Evalling" wrapped " with meta " (meta wrapped)))
+            (catch Exception e
+              (throw (Exception.
+                       (str "Couldn't eval form "
+                            (with-out-str (prn wrapped))
+                            (with-out-str (prn form)))
+                       e))))
+          (recur (conj instrd-forms wrapped) (next forms)))
+        (do
+          (let [rforms (reverse instrd-forms)]
+            (dump-instrumented rforms filename)
+            rforms))))))
 
-(defn nop [line-hint form]
+(defn nop
+  "Instrument form with expressions that do nothing."
+  [line-hint form]
   `(do ~form))
+
+(defn no-instr
+  "Do not change form at all."
+  [line-hint form]
+  form)
