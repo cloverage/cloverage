@@ -96,13 +96,19 @@
 (defn- html-spaces [s]
   (.replace s " " "&nbsp;"))
 
+;; Java 7 has a much nicer API, but this supports Java 6.
+(defn relative-path [file base-dir]
+  ^{:doc "Return the path to file relative to base-dir. file is a java.io.File."}
+  (let [path (.getAbsolutePath file)
+        base (.getAbsolutePath (java.io.File. base-dir))]
+    (drop (count base) path)))
+
 (defn html-report [out-dir forms]
   (copy (resource-reader "coverage.css") (File. out-dir "coverage.css"))
   (stats-report (File. out-dir "coverage.txt") forms)
   (doseq [[rel-file file-forms] (group-by :file forms)]
     (let [file     (File. out-dir (str rel-file ".html"))
-          rootpath (.relativize (.. file getParentFile toPath)
-                                (.toPath (File. out-dir)))
+          rootpath (relative-path file out-dir)
           ]
       (.mkdirs (.getParentFile file))
       (with-out-writer file
@@ -144,9 +150,7 @@
 
 (defn html-summary [out-dir forms]
   (let [index (File. out-dir "index.html")
-        rootpath (.relativize (.. index getParentFile toPath)
-                              (.toPath (File. out-dir)))
-        ]
+        rootpath (relative-path index out-dir)]
     (.mkdirs (.getParentFile index))
     (with-out-writer index
       (println "<html>")
