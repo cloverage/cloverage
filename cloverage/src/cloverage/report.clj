@@ -132,10 +132,12 @@
   (str "<td class=\"with-bar\">"
        (apply str
          (map (fn [[key cnt]]
-                (format "<div class=\"%s\"
-                              style=\"width:%s%%;
-                                      float:left;\"> %d </div>"
-                  (name key) (/ (* 100.0 cnt) total) cnt))
+                (if (> 0 cnt)
+                  (format "<div class=\"%s\"
+                                style=\"width:%s%%;
+                                        float:left;\"> %d </div>"
+                    (name key) (/ (* 100.0 cnt) total) cnt))
+                  "")
               parts))
        "</td>"))
 
