@@ -84,14 +84,34 @@
   (partial wrap f line))
 
 (defn wrap-binding [f line-hint [args & body :as form]]
-  "Wrap a single function overload or let/loop binding
+  "Wrap a let/loop binding
 
-   e.g. - `([a b] (+ a b))` (defn) or
-        - `a (+ a b)`       (let or loop)"
+   e.g. - `a (+ a b)`       (let or loop)"
   (tprnl "Wrapping overload" args body)
   (let [line (or (:line (meta form)) line-hint)]
     (let [wrapped (doall (map (wrapper f line) body))]
       `(~args ~@wrapped))))
+
+(defn wrap-overload [f line-hint [args & body :as form]]
+  "Wrap a single function overload.
+
+   e.g. - ([a b] (+ a b)) or
+          ([n] {:pre [(> n 0)]} (/ 1 n))"
+   (tprnl "Wrapping function overload" args body)
+   (let [line  (or (:line (meta form)) line-hint)
+         conds (when (and (next body) (map? (first body)))
+                 (first body))
+         conds (when conds
+                 (zipmap (keys conds)
+                         (map (fn [exprs] (vec (map (wrapper f line) exprs)))
+                              (vals conds)))) ; must not wrap the vector itself
+         ;; i.e. [(> n 1)] -> [(do (> n 1))], not (do [...])
+         ;; the message of AssertionErrors will be different, too bad.
+         body  (if conds (next body) body)
+         wrapped (doall (map (wrapper f line) body))]
+     `(~args
+        ~@(when conds (list conds))
+        ~@wrapped)))
 
 ;; Wrap a list of function overloads, e.g.
 ;;   (([a] (inc a))
@@ -101,9 +121,9 @@
   (tprnl "Wrapping overloads " form)
   (let [line (or (:line (meta form)) line-hint)]
     (if (vector? (first form))
-      (wrap-binding f line form)
+      (wrap-overload f line form)
       (try
-       (doall (map (partial wrap-binding f line) form))
+       (doall (map (partial wrap-overload f line) form))
        (catch Exception e
          (tprnl "ERROR: " form)
          (tprnl e)
@@ -307,7 +327,7 @@
               (recur (conj instrumented-forms wrapped)))
             (do
               (let [rforms (reverse instrumented-forms)]
-                (dump-instrumented rforms filename)
+                (dump-instrumented rforms lib)
                 rforms))))))))
 
 (defn nop

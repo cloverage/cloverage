@@ -1,4 +1,5 @@
 (ns cloverage.test-instrument
+  (:import java.lang.AssertionError)
   (:use [clojure.test]
         [cloverage instrument source]))
 
@@ -30,3 +31,23 @@
   (is (= :coll (form-type #{1 2 3 4})))
   (is (= :list (form-type '(+ 1 2))))
   (is (= :do (form-type '(do 1 2 3)))))
+
+(deftest preserves-fn-conditions
+  (let [pre-fn (eval (wrap nop 0
+                           '(fn [n] {:pre [(> n 0) (even? n)]} n)))]
+    (is (thrown? AssertionError (pre-fn -1)))
+    (is (thrown? AssertionError (pre-fn 1)))
+    (is (= 2 (pre-fn 2))))
+  (let [post-fn (eval (wrap nop 0
+                            '(fn [n] {:post [(> % 3) (even? %)]} n)))]
+    (is (thrown? AssertionError (post-fn 1)))
+    (is (thrown? AssertionError (post-fn 5)))
+    (is (= 4 (post-fn 4))))
+  ;; XXX: side effect, but need to test defn since we special case it
+  (let [both-defn (eval (wrap nop 0
+                        '(defn both-defn [n]
+                           {:pre [(> n -1)] :post [(> n 0)]}
+                           n)))]
+    (is (thrown? AssertionError (both-defn 0)))
+    (is (thrown? AssertionError (both-defn -1)))
+    (is (= 1 (both-defn 1)))))
