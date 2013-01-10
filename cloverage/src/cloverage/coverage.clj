@@ -74,7 +74,8 @@
               @col))))
 
 (defn parse-args [args]
-  (cli args ["-o" "--output"]
+  (cli args
+       ["-o" "--output" "Output directory." :default "target/coverage"]
        ["--[no-]text"
         "Produce a text report." :default false]
        ["--[no-]html"
@@ -150,7 +151,7 @@
             (html-summary output stats)
             (html-report output stats))
           (when raw?
-            (raw-report output stats @*covered*))))
-      (println "Produced output.")))
+            (raw-report output stats @*covered*)))
+        (println "Produced output in" (.getAbsolutePath (File. output)) "."))))
   (shutdown-agents)
   nil)
