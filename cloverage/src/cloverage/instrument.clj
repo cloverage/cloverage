@@ -110,7 +110,7 @@
          body  (if conds (next body) body)
          wrapped (doall (map (wrapper f line) body))]
      `(~args
-        ~(when conds conds)
+        ~@(when conds (list conds))
         ~@wrapped)))
 
 ;; Wrap a list of function overloads, e.g.
