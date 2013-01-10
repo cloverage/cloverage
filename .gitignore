@@ -4,3 +4,9 @@ clojure-test-coverage.jar
 lib
 classes
 *.jar
+.*.swp
+target
+*/.lein-failures
+pom.xml
+*#
+.#*
