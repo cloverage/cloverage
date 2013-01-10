@@ -8,4 +8,4 @@
      (do ~@body)))
 
 (defn do-something [arg]
-  (with-bound-dynamic-symbol arg))
+  (with-bound-dynamic-var arg))
