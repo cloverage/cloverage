@@ -35,11 +35,11 @@ Distributed under the Eclipse Public License, the same as Clojure.
 
 ### Contributors
 
-2012 LShift, Jacek Lach, Alexander Schmolck, Frank Shearar
-2010 Michael Delaurentis
+* 2012 LShift, Jacek Lach, Alexander Schmolck, Frank Shearar
+* 2010 Michael Delaurentis
 
 ### Mentions
 
 Some code was taken from
-Java IO interop (clojure-contrib/duck-streams) by Stuart Sierra (see cloverage/source.clj)
-Topological sort (https://gist.github.com/1263783) by Alan Dipert (see cloverage/kahn.clj)
+* Java IO interop (clojure-contrib/duck-streams) by Stuart Sierra (see cloverage/source.clj)
+* Topological sort (https://gist.github.com/1263783) by Alan Dipert (see cloverage/kahn.clj)
