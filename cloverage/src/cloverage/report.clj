@@ -212,7 +212,7 @@
                                   [:partial partial]
                                   [:not-covered missed]))
           (println (td-num (format "%.2f %%" (/ (* 100.0 (+ covered partial))
-                                                lines))))
+                                                instrd))))
           (println
             (apply str (map td-num [lines blank instrd])))
           (println "</tr>")

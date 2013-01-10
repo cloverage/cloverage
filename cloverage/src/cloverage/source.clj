@@ -1,6 +1,7 @@
 (ns cloverage.source
-  (:import [java.io InputStreamReader]
-           [clojure.lang LineNumberingPushbackReader])
+  (:import java.io.InputStreamReader
+           java.lang.IllegalArgumentException
+           clojure.lang.LineNumberingPushbackReader)
   (:use    [cloverage.debug]))
 
 (defn resource-path
@@ -12,9 +13,11 @@
        ".clj"))
 
 (defn resource-reader [resource]
-  (tprnl (seq (.getURLs (java.lang.ClassLoader/getSystemClassLoader))))
-  (InputStreamReader.
-   (.getResourceAsStream (clojure.lang.RT/baseLoader) resource)))
+  (if-let [resource (.getResourceAsStream
+                      (clojure.lang.RT/baseLoader)
+                      resource)]
+    (InputStreamReader. resource)
+    (throw (IllegalArgumentException. (str "Cannot find resource " resource)))))
 
 (defn form-reader [ns-symbol]
   (LineNumberingPushbackReader. (resource-reader (resource-path ns-symbol))))
