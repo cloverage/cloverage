@@ -12,9 +12,12 @@
        ".clj"))
 
 (defn resource-reader [resource]
-  (tprnl (seq (.getURLs (java.lang.ClassLoader/getSystemClassLoader))))
-  (InputStreamReader.
-   (.getResourceAsStream (clojure.lang.RT/baseLoader) resource)))
+  (if-let [reader (InputStreamReader.
+                    (.getResourceAsStream
+                      (clojure.lang.RT/baseLoader)
+                      resource))]
+    reader
+    (throw (InvalidArgumentException. (str "Cannot find resource" resource)))))
 
 (defn form-reader [ns-symbol]
   (LineNumberingPushbackReader. (resource-reader (resource-path ns-symbol))))
