@@ -13,7 +13,7 @@
   (let [source-namespaces (ns-names-for-dirs (:source-paths project))
         test-namespace    (ns-names-for-dirs (:test-paths project))]
     (apply run/run (update-in project [:dependencies]
-                              conj    ['cloverage "1.0.0-SNAPSHOT"])
+                              conj    ['cloverage "1.0.1"])
            "-m" "cloverage.coverage"
            (concat (mapcat  #(list "-x" %) test-namespace)
                    args
