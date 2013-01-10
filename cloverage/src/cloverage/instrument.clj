@@ -38,20 +38,21 @@
 
 (defn list-type [[head & _]]
   (case head
-    catch                  :catch   ;; catch special cases classnames, and
-    finally                :finally ;; catch and finally can't be wrapped
-    set!                   :set     ;; set must not evaluate the target expr
-    (if do try throw)      :do      ;; these special forms can recurse on all args
-    (loop let let* loop*)  :let
-    case*                  :case*
-    (fn fn*)               :fn
-    def                    :def     ;; def can recurse on initialization expr
-    defn                   :defn    ;; don't expand defn to preserve stack traces
-    .                      :dotjava
-    new                    :new
-    defmulti               :defmulti ;; special case defmulti to avoid boilerplate
-    defprotocol            :atomic  ;; no code in protocols
-    defrecord              :record
+    catch                    :catch   ; catch special cases classnames, and
+    finally                  :finally ; catch and finally can't be wrapped
+    set!                     :set     ; set must not evaluate the target expr
+    (if do try throw)        :do      ; these special forms can recurse on all args
+    (cond clojure.core/cond) :cond    ; special case cond to avoid false partial
+    (loop let let* loop*)    :let
+    case*                    :case*
+    (fn fn*)                 :fn
+    def                      :def     ; def can recurse on initialization expr
+    defn                     :defn    ; don't expand defn to preserve stack traces
+    .                        :dotjava
+    new                      :new
+    defmulti                 :defmulti ; special case defmulti to avoid boilerplate
+    defprotocol              :atomic   ; no code in protocols
+    defrecord                :record
     (cond
       (atomic-special? head) :atomic
       (special-symbol? head) :unknown
@@ -210,6 +211,12 @@
 
 (defmethod do-wrap :do [f line [do-symbol & body]]
   (f line `(~do-symbol ~@(map (wrapper f line) body))))
+
+(defmethod do-wrap :cond [f line [cond-symbol & body :as form]]
+  (if (and (= 2 (count body))
+           (= :else (first body)))
+    (f line (macroexpand `(~cond-symbol :else ~(wrap f line (second body)))))
+    (wrap f line (macroexpand form))))
 
 (defmethod do-wrap :case* [f line [case-symbol test-var a b else-clause case-map & stuff]]
   (assert (= case-symbol 'case*))

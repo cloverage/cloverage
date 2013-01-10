@@ -95,3 +95,12 @@
   ;; permutation is partially covered
   (is (not (permutation? "foo" "foobar"))))
 
+(defn fully-covered-cond
+  [n]
+  (cond
+    (zero? n) :zero
+    :else     :nonzero))
+
+(deftest test-fully-covered-cond
+  (is (= :zero (fully-covered-cond 0)))
+  (is (= :nonzero (fully-covered-cond 1))))
