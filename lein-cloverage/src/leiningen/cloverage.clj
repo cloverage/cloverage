@@ -6,7 +6,7 @@
   (map name (mapcat blt/namespaces-in-dir dirs)))
 
 (defn get-lib-version []
-  (or (System/getenv "CLOVERAGE_VERSION") "1.0.1"))
+  (or (System/getenv "CLOVERAGE_VERSION") "RELEASE"))
 
 (defn cloverage
   "Run code coverage on the project.
