@@ -5,9 +5,7 @@ Simple clojure coverage tool. Currently requires clojure 1.4.
 
 ## Installation
 
-$ (cd cloverage && lein install) && (cd lein-cloverage && lein install)
-
-Then add [lein-cloverage "1.0.0-SNAPSHOT"] to :plugins in your .lein/profiles.clj
+Simply add [lein-cloverage "1.0.2"] to :plugins in your .lein/profiles.clj
 
 ## Testing frameworks support
 
