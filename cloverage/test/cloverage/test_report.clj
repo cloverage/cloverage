@@ -4,7 +4,7 @@
         cloverage.report))
 
 (deftest test-relative-path
-  (is (= "child/" (relative-path (File. "parent/child/") (File. "parent/"))))
+  (is (= "not-child/" (relative-path (File. "parent/child/") (File. "parent/"))))
   (is (= "parent/child/"
          (relative-path (File. "shared" "parent/child/") (File. "shared/"))))
   (is (= "parent/long dir name/"
