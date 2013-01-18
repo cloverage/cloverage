@@ -20,15 +20,26 @@
   (into (sorted-map) (group-by :file forms)))
 
 (defn- postprocess-file [lib file forms]
-  (with-open [in (reader (resource-reader file))]
-    (let [forms-by-line (group-by-line forms)
-          make-rec (fn [line text]
-                     (map (partial merge {:text text :line line
-                                          :lib  lib  :file file})
-                          (forms-by-line line [{:line line}])))
-          line-nums (next (iterate inc 0))
-          lines (into [] (line-seq in))]
-      (mapcat make-rec line-nums lines))))
+  (try
+    (with-open [in (reader (resource-reader file))]
+      (let [forms-by-line (group-by-line forms)
+            make-rec (fn [line text]
+                       (map (partial merge {:text text :line line
+                                            :lib  lib  :file file})
+                            (forms-by-line line [{:line line}])))
+            line-nums (next (iterate inc 0))
+            lines (into [] (line-seq in))]
+        (mapcat make-rec line-nums lines)))
+    (catch Exception e
+      (println "FAIL" (keys (group-by-line forms)))
+      (let [forms-by-line (group-by-line forms)
+            line-nums     (range 10)
+            make-rec      (fn [line text]
+                            (map (partial merge {:text text :line line
+                                                 :lib  lib  :file file})
+                                 (forms-by-line line [{:line line}])))
+            lines         (repeat "ERROR READING FILE")]
+             (mapcat make-rec line-nums lines)))))
 
 (defn gather-stats [forms]
   (let [forms-by-file (group-by :file forms)]

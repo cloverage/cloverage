@@ -22,20 +22,17 @@
      ~@body
      (gather-stats @*covered*)))
 
-(defn cover [idx]
-  "Mark the given file and line in as having been covered."
-  (dosync
-   (if (contains? @*covered* idx)
-     (alter *covered* assoc-in [idx :covered] true)
-     (log/warn (str "Couldn't track coverage for form with index " idx
-                    " covered has " (count @*covered*) ".")))))
-
 (defmacro capture
   "Eval the given form and record that the given line on the given
   files was run."
   [idx form]
   `(do
-     (cover ~idx)
+     (dosync
+       (if (contains? @*covered* ~idx)
+         (alter *covered* assoc-in [~idx :covered] true)
+         (println (str "Couldn't track coverage for form with index " ~idx
+                       " covered " (System/identityHashCode *covered*)
+                       " has " (count @*covered*) "."))))
      ~form))
 
 (defn add-form
@@ -65,7 +62,8 @@
         form' (if (instance? clojure.lang.IObj form)
                 (vary-meta form assoc :idx idx)
                 form)]
-    `(capture ~(add-form form' line-hint) ~form')))
+    (add-form form' line-hint)
+    (macroexpand `(capture ~idx ~form'))))
 
 (defn collecting-args-parser []
   (let [col (ref [])]
@@ -124,7 +122,8 @@
         test-nses     (concat add-test-nses (find-nses test-regexs))
         namespaces    (concat add-nses      (find-nses ns-regexs))
         ]
-    (binding [*ns*      (find-ns 'cloverage.coverage)
+    (binding [*covered* (ref [])
+              *ns*      (find-ns 'cloverage.coverage)
               *debug*   debug?]
       (println "Loading namespaces: " namespaces)
       (println "Test namespaces: " test-nses)
