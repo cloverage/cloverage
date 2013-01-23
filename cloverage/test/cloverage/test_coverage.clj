@@ -14,7 +14,7 @@
      "cloverage/sample.clj")
 
 (defn coverage-fixture [f]
-  (binding [*covered*         (ref [])
+  (binding [*covered*         (atom [])
             *instrumented-ns* "NO_SUCH_NAMESPACE"]
     (f)))
 

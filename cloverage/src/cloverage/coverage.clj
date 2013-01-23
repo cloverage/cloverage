@@ -12,10 +12,10 @@
   (:gen-class))
 
 (def ^:dynamic *instrumented-ns*) ;; currently instrumented ns
-(def ^:dynamic *covered* (ref []))
+(def ^:dynamic *covered* (atom []))
 
 (defmacro with-coverage [libs & body]
-  `(binding [*covered* (ref [])]
+  `(binding [*covered* (atom [])]
      (println "Capturing code coverage for" ~libs)
      (doseq [lib# ~libs]
        (instrument track-coverage lib#))
@@ -24,11 +24,10 @@
 
 (defn cover [idx]
   "Mark the given file and line in as having been covered."
-  (dosync
-   (if (contains? @*covered* idx)
-     (alter *covered* assoc-in [idx :covered] true)
-     (log/warn (str "Couldn't track coverage for form with index " idx
-                    " covered has " (count @*covered*) ".")))))
+  (if (contains? @*covered* idx)
+    (swap! *covered* assoc-in [idx :covered] true)
+    (log/warn (str "Couldn't track coverage for form with index " idx
+                   " covered has " (count @*covered*) "."))))
 
 (defmacro capture
   "Eval the given form and record that the given line on the given
@@ -55,9 +54,10 @@
     (binding [*print-meta* true]
       (tprn "Parsed form" form)
       (tprn "Adding" form-info))
-      (dosync
-       (alter *covered* conj form-info)
-       (dec (count @*covered*)))))
+      (->
+        (swap! *covered* conj form-info)
+        count
+        dec)))
 
 (defn track-coverage [line-hint form]
   (tprnl "Track coverage called with" form)
@@ -68,10 +68,9 @@
     `(capture ~(add-form form' line-hint) ~form')))
 
 (defn collecting-args-parser []
-  (let [col (ref [])]
+  (let [col (atom [])]
     (fn [val]
-      (dosync (alter col conj val)
-              @col))))
+      (swap! col conj val))))
 
 (defn parse-args [args]
   (cli args
