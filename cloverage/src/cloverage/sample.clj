@@ -1,4 +1,5 @@
 (ns cloverage.sample
+  (:import java.lang.RuntimeException)
   (:use [clojure test]))
 
 (+ 1 2)
@@ -104,3 +105,13 @@
 (deftest test-fully-covered-cond
   (is (= :zero (fully-covered-cond 0)))
   (is (= :nonzero (fully-covered-cond 1))))
+
+(defn transaction-fn
+  [n]
+  (dosync
+    (cond
+      (zero? n) :zero
+      :else     (throw (RuntimeException. "FAIL TRANSACTION")))))
+
+(deftest failing-transaction
+  (is (thrown? Exception (transaction-fn 1))))
