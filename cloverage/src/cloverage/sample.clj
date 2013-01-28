@@ -2,6 +2,8 @@
   (:import java.lang.RuntimeException)
   (:use [clojure test]))
 
+'()
+
 (+ 1 2)
 
 (+ (* 2 3)
