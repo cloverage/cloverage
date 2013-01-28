@@ -17,7 +17,7 @@
   (if (iobj? form)
     (let [line (or (:line (meta form)) start)
           recs (if (seq? form)
-                 (doall (map (partial propagate-line-numbers line) form))
+                 (seq (map (partial propagate-line-numbers line) form))
                  form)
           ret  (if line
                  (vary-meta recs assoc :line line)
