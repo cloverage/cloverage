@@ -143,14 +143,13 @@
       (println "Ran tests.")
       (when output
         (.mkdir (File. output))
-        (let [stats (gather-stats @*covered*)]
-          (when text?
-            (text-report output stats))
-          (when html?
-            (html-summary output stats)
-            (html-report output stats))
-          (when raw?
-            (raw-report output stats @*covered*)))
-        (println "Produced output in" (.getAbsolutePath (File. output)) "."))))
+        (let [stats (gather-stats @*covered*)
+              results [(when text? (text-report output stats))
+                       (when html? (html-report output stats)
+                                   (html-summary output stats))
+                       (when raw? (raw-report output stats @*covered*))]]
+
+          (println "Produced output in" (.getAbsolutePath (File. output)) ".")
+          (doseq [r results] (when r (println r)))))))
   (shutdown-agents)
   nil)

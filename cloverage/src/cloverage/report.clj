@@ -219,8 +219,8 @@
           ))
       (println "  </ul>")
       (println " </body>")
-      (println "</html>")))
-  )
+      (println "</html>"))
+    (format "HTML: file://%s" (.getAbsolutePath index))))
 
 (defn raw-report [out-dir stats covered]
   (with-out-writer (File. (File. out-dir) "raw-data.clj")
