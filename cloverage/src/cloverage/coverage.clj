@@ -93,9 +93,10 @@
         :default []
         :parse-fn (collecting-args-parser)]
        ["-x" "--extra-test-ns"
-        "Additional test namespace (string) to add (can be repeated)"
+        "Additional test namespace (string) to add (can be repeated)."
         :default  []
-        :parse-fn (collecting-args-parser)]))
+        :parse-fn (collecting-args-parser)]
+       ["-h" "--help" "Show help." :default false :flag true]))
 
 (defn mark-loaded [namespace]
   (binding [*ns* (find-ns 'clojure.core)]
@@ -109,13 +110,14 @@
 (defn -main
   "Produce test coverage report for some namespaces"
   [& args]
-  (let [[opts, add-nses] (parse-args args)
+  (let [[opts, add-nses help] (parse-args args)
         output        (:output opts)
         text?         (:text opts)
         html?         (:html opts)
         raw?          (:raw opts)
         debug?        (:debug opts)
         nops?         (:nop opts)
+        help?         (:help opts)
         add-test-nses (:extra-test-ns opts)
         ns-regexs     (map re-pattern (:ns-regexp opts))
         test-regexs   (map re-pattern (:test-ns-regexp opts))
@@ -123,33 +125,35 @@
         test-nses     (concat add-test-nses (find-nses test-regexs))
         namespaces    (concat add-nses      (find-nses ns-regexs))
         ]
-    (binding [*ns*      (find-ns 'cloverage.coverage)
-              *debug*   debug?]
-      (println "Loading namespaces: " namespaces)
-      (println "Test namespaces: " test-nses)
-      (doseq [namespace (in-dependency-order (map symbol namespaces))]
-        (binding [*instrumented-ns* namespace]
-          (if nops?
-            (instrument nop namespace)
-            (instrument track-coverage namespace)))
-        (println "Loaded " namespace " .")
-        ;; mark the ns as loaded
-        (mark-loaded namespace))
-      (println "Instrumented namespaces.")
-      (when-not (empty? test-nses)
-        (let [test-syms (map symbol test-nses)]
-          (apply require (map symbol test-nses))
-          (apply test/run-tests (map symbol test-nses))))
-      (println "Ran tests.")
-      (when output
-        (.mkdir (File. output))
-        (let [stats (gather-stats @*covered*)
-              results [(when text? (text-report output stats))
-                       (when html? (html-report output stats)
-                                   (html-summary output stats))
-                       (when raw? (raw-report output stats @*covered*))]]
+    (if help?
+      (println help)
+      (binding [*ns*      (find-ns 'cloverage.coverage)
+                *debug*   debug?]
+        (println "Loading namespaces: " namespaces)
+        (println "Test namespaces: " test-nses)
+        (doseq [namespace (in-dependency-order (map symbol namespaces))]
+          (binding [*instrumented-ns* namespace]
+            (if nops?
+              (instrument nop namespace)
+              (instrument track-coverage namespace)))
+          (println "Loaded " namespace " .")
+          ;; mark the ns as loaded
+          (mark-loaded namespace))
+        (println "Instrumented namespaces.")
+        (when-not (empty? test-nses)
+          (let [test-syms (map symbol test-nses)]
+            (apply require (map symbol test-nses))
+            (apply test/run-tests (map symbol test-nses))))
+        (println "Ran tests.")
+        (when output
+          (.mkdir (File. output))
+          (let [stats (gather-stats @*covered*)
+                results [(when text? (text-report output stats))
+                         (when html? (html-report output stats)
+                                     (html-summary output stats))
+                         (when raw? (raw-report output stats @*covered*))]]
 
-          (println "Produced output in" (.getAbsolutePath (File. output)) ".")
-          (doseq [r results] (when r (println r)))))))
+            (println "Produced output in" (.getAbsolutePath (File. output)) ".")
+            (doseq [r results] (when r (println r))))))))
   (shutdown-agents)
   nil)
