@@ -110,7 +110,7 @@
 (defn -main
   "Produce test coverage report for some namespaces"
   [& args]
-  (let [[opts, add-nses help] (parse-args args)
+  (let [[opts add-nses help] (parse-args args)
         output        (:output opts)
         text?         (:text opts)
         html?         (:html opts)
