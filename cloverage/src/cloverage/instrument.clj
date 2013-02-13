@@ -16,7 +16,8 @@
   [start form]
   (if (iobj? form)
     (let [line (or (:line (meta form)) start)
-          recs (if (seq? form)
+          recs (if (and (seq? form) (seq form))
+                 ;; (seq '()) gives nil which makes us NPE. Bad.
                  (seq (map (partial propagate-line-numbers line) form))
                  form)
           ret  (if line
