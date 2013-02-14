@@ -16,6 +16,10 @@
 {:a (+ 1 2)
  (/ 4 2) "two"}
 
+(defn function-with-empty-list []
+  ;; used to break stuff - see issues #14 and #17
+  '())
+
 (defn not-covered-at-all
   "This function is not covered at all"
   [arg1 arg2]
