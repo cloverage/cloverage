@@ -118,7 +118,7 @@
 (defn wrap-fn-bindings [f line-hint form wrapping-fn]
   (let [line (or (:line (meta form)) line-hint)]
     (if (vector? (first form))
-      (wrap-overload f line form)
+      (wrapping-fn f line form)
       (try
        (doall (map (partial wrapping-fn f line) form))
        (catch Exception e
