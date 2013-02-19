@@ -45,6 +45,7 @@
     (if do try throw)        :do      ; these special forms can recurse on all args
     (cond clojure.core/cond) :cond    ; special case cond to avoid false partial
     (loop let let* loop*)    :let
+    letfn                    :letfn
     case*                    :case*
     (fn fn*)                 :fn
     def                      :def     ; def can recurse on initialization expr
@@ -132,6 +133,46 @@
            (Exception. (pr-str "While wrapping" (:original (meta form)))
                        e)))))))
 
+(defn wrap-letfn-binding [f line-hint [name args & body :as form]]
+  "Wrap a single letfn binding.
+
+   e.g. - (foo [a b] (+ a b)) or
+          (bar [n] {:pre [(> n 0)]} (/ 1 n))"
+  (tprnl "Wrapping letfn binding" args body)
+  (let [line  (or (:line (meta form)) line-hint)
+        conds (when (and (next body) (map? (first body)))
+                (first body))
+        conds (when conds
+                (zipmap (keys conds)
+                        (map (fn [exprs] (vec (map (wrapper f line) exprs)))
+                             (vals conds)))) ; must not wrap the vector itself
+        ;; i.e. [(> n 1)] -> [(do (> n 1))], not (do [...])
+        ;; the message of AssertionErrors will be different, too bad.
+        body  (if conds (next body) body)
+        wrapped (doall (map (wrapper f line) body))]
+    `(~name
+      ~args
+      ~@(when conds (list conds))
+      ~@wrapped)))
+
+;; Wrap a list of letfn bindings, e.g.
+;;   [(foo [a] (inc a))
+;;    (bar [a b] (+ a b))]
+;;  TODO: handle pre/post condition maps (can we instrument these?)
+(defn wrap-letfn-bindings [f line-hint form]
+  (tprnl "Wrapping letfn bindings " form)
+  (let [line (or (:line (meta form)) line-hint)]
+    (if (vector? (second form))
+      (wrap-letfn-binding f line form)
+      (try
+        (doall (map (partial wrap-letfn-binding f line) form))
+        (catch Exception e
+          (tprnl "ERROR: " form)
+          (tprnl e)
+          (throw
+           (Exception. (pr-str "While wrapping" (:original (meta form)))
+                       e)))))))
+
 ;; Don't wrap or descend into unknown forms
 (defmethod do-wrap :unknown [f line form]
   (log/warn (str "Unknown special form " (seq form)))
@@ -176,6 +217,12 @@
      [~@(mapcat (partial wrap-binding f line)
                 (partition 2 bindings))]
       ~@(doall (map (wrapper f line) body)))))
+
+(defmethod do-wrap :letfn [f line [letfn-sym bindings & body :as form]]
+  (f line
+     `(~letfn-sym
+       [~@(wrap-letfn-bindings f line bindings)]
+       ~@(doall (map (wrapper f line) body)))))
 
 (defmethod do-wrap :def [f line [def-sym name & body :as form]]
   (cond
