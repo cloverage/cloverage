@@ -115,23 +115,26 @@
         ~@(when conds (list conds))
         ~@wrapped)))
 
-;; Wrap a list of function overloads, e.g.
-;;   (([a] (inc a))
-;;    ([a b] (+ a b)))
-;;  TODO: handle pre/post condition maps (can we instrument these?)
-(defn wrap-overloads [f line-hint form]
-  (tprnl "Wrapping overloads " form)
+(defn wrap-fn-bindings [f line-hint form wrapping-fn]
   (let [line (or (:line (meta form)) line-hint)]
     (if (vector? (first form))
       (wrap-overload f line form)
       (try
-       (doall (map (partial wrap-overload f line) form))
+       (doall (map (partial wrapping-fn f line) form))
        (catch Exception e
          (tprnl "ERROR: " form)
          (tprnl e)
          (throw
            (Exception. (pr-str "While wrapping" (:original (meta form)))
                        e)))))))
+
+;; Wrap a list of function overloads, e.g.
+;;   (([a] (inc a))
+;;    ([a b] (+ a b)))
+;;  TODO: handle pre/post condition maps (can we instrument these?)
+(defn wrap-overloads [f line-hint form]
+  (tprnl "Wrapping overloads " form)
+  (wrap-fn-bindings f line-hint form wrap-overload))
 
 (defn wrap-letfn-binding [f line-hint [name args & body :as form]]
   "Wrap a single letfn binding.
@@ -161,17 +164,7 @@
 ;;  TODO: handle pre/post condition maps (can we instrument these?)
 (defn wrap-letfn-bindings [f line-hint form]
   (tprnl "Wrapping letfn bindings " form)
-  (let [line (or (:line (meta form)) line-hint)]
-    (if (vector? (second form))
-      (wrap-letfn-binding f line form)
-      (try
-        (doall (map (partial wrap-letfn-binding f line) form))
-        (catch Exception e
-          (tprnl "ERROR: " form)
-          (tprnl e)
-          (throw
-           (Exception. (pr-str "While wrapping" (:original (meta form)))
-                       e)))))))
+  (wrap-fn-bindings f line-hint form wrap-letfn-binding))
 
 ;; Don't wrap or descend into unknown forms
 (defmethod do-wrap :unknown [f line form]
