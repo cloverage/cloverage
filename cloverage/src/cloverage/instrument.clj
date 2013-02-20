@@ -175,7 +175,7 @@
 (defmethod do-wrap :let [f line [let-sym bindings & body :as form]]
   (f line
    `(~let-sym
-     [~@(mapcat (partial wrap-overloads f line)
+     [~@(mapcat (partial wrap-binding f line)
                 (partition 2 bindings))]
       ~@(doall (map (wrapper f line) body)))))
 
