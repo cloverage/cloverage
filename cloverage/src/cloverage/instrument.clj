@@ -163,11 +163,11 @@
 
 (defn wrap-fn-expression [f line form]
  (let [fn-sym (first form)
-        res    (if (symbol? (second form))
-                 ;; If the fn has a name, include it
-                 `(~fn-sym ~(second form)
-                           ~@(wrap-overloads f line (rest (rest form))))
-                 `(~fn-sym ~@(wrap-overloads f line (rest form))))]
+       res    (if (symbol? (second form))
+                ;; If the fn has a name, include it
+                `(~fn-sym ~(second form)
+                          ~@(wrap-overloads f line (rest (rest form))))
+                `(~fn-sym ~@(wrap-overloads f line (rest form))))]
     (tprnl "Instrumented function" res)
     res))
 
