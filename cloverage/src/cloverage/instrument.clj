@@ -189,7 +189,7 @@
                                 (throw+ (str "Can't construct empty " (class form))))
                               `(into ~(empty form) [] ~(vec wrappee))))]
     (tprn ":wrapped" (class form) (class wrapped) wrapped)
-    (f line wrapped))) ;; FIXME(alexander): this should be (f line wrapped)
+    (f line wrapped)))
 
 ;; Wrap a fn form
 (defmethod do-wrap :fn [f line form]
