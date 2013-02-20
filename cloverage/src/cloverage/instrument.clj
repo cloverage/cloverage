@@ -115,26 +115,22 @@
         ~@(when conds (list conds))
         ~@wrapped)))
 
-(defn wrap-fn-bindings [f line-hint form wrapping-fn]
+;; Wrap a list of function overloads, e.g.
+;;   (([a] (inc a))
+;;    ([a b] (+ a b)))
+(defn wrap-overloads [f line-hint form]
+  (tprnl "Wrapping overloads " form)
   (let [line (or (:line (meta form)) line-hint)]
     (if (vector? (first form))
-      (wrapping-fn f line form)
+      (wrap-overload f line form)
       (try
-       (doall (map (partial wrapping-fn f line) form))
+       (doall (map (partial wrap-overload f line) form))
        (catch Exception e
          (tprnl "ERROR: " form)
          (tprnl e)
          (throw
            (Exception. (pr-str "While wrapping" (:original (meta form)))
                        e)))))))
-
-;; Wrap a list of function overloads, e.g.
-;;   (([a] (inc a))
-;;    ([a b] (+ a b)))
-;;  TODO: handle pre/post condition maps (can we instrument these?)
-(defn wrap-overloads [f line-hint form]
-  (tprnl "Wrapping overloads " form)
-  (wrap-fn-bindings f line-hint form wrap-overload))
 
 ;; Don't wrap or descend into unknown forms
 (defmethod do-wrap :unknown [f line form]
@@ -179,7 +175,7 @@
 (defmethod do-wrap :let [f line [let-sym bindings & body :as form]]
   (f line
    `(~let-sym
-     [~@(mapcat (partial wrap-binding f line)
+     [~@(mapcat (partial wrap-overloads f line)
                 (partition 2 bindings))]
       ~@(doall (map (wrapper f line) body)))))
 
