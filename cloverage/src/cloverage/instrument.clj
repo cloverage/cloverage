@@ -45,7 +45,7 @@
     (if do try throw)        :do      ; these special forms can recurse on all args
     (cond clojure.core/cond) :cond    ; special case cond to avoid false partial
     (loop let let* loop*)    :let
-    letfn                    :letfn
+    letfn*                   :letfn
     case*                    :case*
     (fn fn*)                 :fn
     def                      :def     ; def can recurse on initialization expr
@@ -136,36 +136,6 @@
   (tprnl "Wrapping overloads " form)
   (wrap-fn-bindings f line-hint form wrap-overload))
 
-(defn wrap-letfn-binding [f line-hint [name args & body :as form]]
-  "Wrap a single letfn binding.
-
-   e.g. - (foo [a b] (+ a b)) or
-          (bar [n] {:pre [(> n 0)]} (/ 1 n))"
-  (tprnl "Wrapping letfn binding" args body)
-  (let [line  (or (:line (meta form)) line-hint)
-        conds (when (and (next body) (map? (first body)))
-                (first body))
-        conds (when conds
-                (zipmap (keys conds)
-                        (map (fn [exprs] (vec (map (wrapper f line) exprs)))
-                             (vals conds)))) ; must not wrap the vector itself
-        ;; i.e. [(> n 1)] -> [(do (> n 1))], not (do [...])
-        ;; the message of AssertionErrors will be different, too bad.
-        body  (if conds (next body) body)
-        wrapped (doall (map (wrapper f line) body))]
-    `(~name
-      ~args
-      ~@(when conds (list conds))
-      ~@wrapped)))
-
-;; Wrap a list of letfn bindings, e.g.
-;;   [(foo [a] (inc a))
-;;    (bar [a b] (+ a b))]
-;;  TODO: handle pre/post condition maps (can we instrument these?)
-(defn wrap-letfn-bindings [f line-hint form]
-  (tprnl "Wrapping letfn bindings " form)
-  (wrap-fn-bindings f line-hint form wrap-letfn-binding))
-
 ;; Don't wrap or descend into unknown forms
 (defmethod do-wrap :unknown [f line form]
   (log/warn (str "Unknown special form " (seq form)))
@@ -191,18 +161,20 @@
     (tprn ":wrapped" (class form) (class wrapped) wrapped)
     (f line wrapped)))
 
+(defn wrap-fn-expression [f line form]
+ (let [fn-sym (first form)
+        res    (if (symbol? (second form))
+                 ;; If the fn has a name, include it
+                 `(~fn-sym ~(second form)
+                           ~@(wrap-overloads f line (rest (rest form))))
+                 `(~fn-sym ~@(wrap-overloads f line (rest form))))]
+    (tprnl "Instrumented function" res)
+    res))
+
 ;; Wrap a fn form
 (defmethod do-wrap :fn [f line form]
   (tprnl "Wrapping fn " form)
-  (let [fn-sym (first form)
-        res    (if (symbol? (second form))
-                 ;; If the fn has a name, include it
-                 (f line `(~fn-sym ~(second form)
-                              ~@(wrap-overloads f line (rest (rest form)))))
-                 (f line `(~fn-sym
-                      ~@(wrap-overloads f line (rest form)))))]
-    (tprnl "Wrapped is" res)
-    res))
+  (f line (wrap-fn-expression f line form)))
 
 (defmethod do-wrap :let [f line [let-sym bindings & body :as form]]
   (f line
@@ -212,9 +184,12 @@
       ~@(doall (map (wrapper f line) body)))))
 
 (defmethod do-wrap :letfn [f line [letfn-sym bindings & body :as form]]
+  ;; (letfn* [foo (fn foo [bar] ...) ...] body)
+  ;; must not wrap (fn foo [bar] ...)
   (f line
      `(~letfn-sym
-       [~@(wrap-letfn-bindings f line bindings)]
+       [~@(mapcat (fn [[sym fun]] `(~sym ~(wrap-fn-expression f line fun)))
+                  (partition 2 bindings))]
        ~@(doall (map (wrapper f line) body)))))
 
 (defmethod do-wrap :def [f line [def-sym name & body :as form]]
@@ -228,26 +203,10 @@
                          (f line
                             `(~def-sym ~name ~docstring ~(wrap f line init))))))
 
-(defmethod do-wrap :defn [f line [defn-sym name & body]]
+(defmethod do-wrap :defn [f line form]
   ;; do not macroexpand defn to preserve function names in exception backtraces
-  (let [doc-string   (if (string? (first body)) (list (first body)) nil)
-        body         (if (string? (first body)) (next body) body)
-        pre-attr-map (if (map?    (first body)) (list (first body)) nil)
-        body         (if (map?    (first body)) (next body) body)
-        ;; when the function has many overloads, it can have attrs after bodies
-        has-post-attr (and (not (vector? (first body)))
-                           (map? (last body)))
-        post-attr-map (if has-post-attr
-                        (list (last body))
-                        nil)
-        body          (if has-post-attr
-                        (butlast body)
-                        body)
-        fdecls        (wrap-overloads f line body)]
-    (f line
-       `(~defn-sym ~name ~@doc-string ~@pre-attr-map
-                   ~@fdecls
-                   ~@post-attr-map))))
+  (let [[def-sym name fn-expr] (macroexpand-1 form)]
+    (f line `(~def-sym ~name ~(wrap-fn-expression f line fn-expr)))))
 
 (defmethod do-wrap :new [f line [new-sym class-name & args :as form]]
   (f line `(~new-sym ~class-name ~@(doall (map (wrapper f line) args)))))
