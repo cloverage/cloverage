@@ -157,7 +157,7 @@
     (tprn ":wrapped" (class form) (class wrapped) wrapped)
     (f line wrapped)))
 
-(defn wrap-fn-expression [f line form]
+(defn wrap-fn-body [f line form]
  (let [fn-sym (first form)
        res    (if (symbol? (second form))
                 ;; If the fn has a name, include it
@@ -170,7 +170,7 @@
 ;; Wrap a fn form
 (defmethod do-wrap :fn [f line form]
   (tprnl "Wrapping fn " form)
-  (f line (wrap-fn-expression f line form)))
+  (f line (wrap-fn-body f line form)))
 
 (defmethod do-wrap :let [f line [let-sym bindings & body :as form]]
   (f line
@@ -189,7 +189,7 @@
        `(~letfn*-sym
           [~@(mapcat
                (fn [[sym fun] orig-bind]
-                 `(~sym ~(wrap-fn-expression f (:line (meta orig-bind)) fun)))
+                 `(~sym ~(wrap-fn-body f (:line (meta orig-bind)) fun)))
                (partition 2 exp-bindings)
                bindings)]
           ~@(doall (map (wrapper f line) body))))))
@@ -209,7 +209,7 @@
   ;; do not wrap fn expressions in (def name (fn ...))
   ;; to preserve function names in exception backtraces
   (let [[def-sym name fn-expr] (macroexpand-1 form)]
-    (f line `(~def-sym ~name ~(wrap-fn-expression f line fn-expr)))))
+    (f line `(~def-sym ~name ~(wrap-fn-body f line fn-expr)))))
 
 (defmethod do-wrap :new [f line [new-sym class-name & args :as form]]
   (f line `(~new-sym ~class-name ~@(doall (map (wrapper f line) args)))))
