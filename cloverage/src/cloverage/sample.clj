@@ -123,6 +123,7 @@
   (is (thrown? Exception (transaction-fn 1))))
 
 (letfn [(covered [] (+ 2 3))
-        (not-covered [] {:and :not-tracked})
+        (not-covered []
+          {:and :not-tracked})
         (not-covered [] ({:preimage :image} :preimage))]
   (covered))
