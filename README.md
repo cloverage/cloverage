@@ -29,6 +29,13 @@ project being tested, then run:
 Where *args-to-coverage* will usually be something like "-n 'ns.regex.*' -t 'text.ns.regex.*'"
 
 
+## Changelog
+
+1.0.3:
+ - fix empty list crash
+ - add letfn support
+ - print html report URL after testing
+
 ## License
 
 Distributed under the Eclipse Public License, the same as Clojure.
