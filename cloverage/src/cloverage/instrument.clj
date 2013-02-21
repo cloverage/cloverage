@@ -45,7 +45,7 @@
     (if do try throw)        :do      ; these special forms can recurse on all args
     (cond clojure.core/cond) :cond    ; special case cond to avoid false partial
     (loop let let* loop*)    :let
-    letfn*                   :letfn
+    letfn                    :letfn
     case*                    :case*
     (fn fn*)                 :fn
     def                      :def     ; def can recurse on initialization expr
@@ -179,14 +179,20 @@
                 (partition 2 bindings))]
       ~@(doall (map (wrapper f line) body)))))
 
-(defmethod do-wrap :letfn [f line [letfn-sym bindings & body :as form]]
+(defmethod do-wrap :letfn [f line [_ bindings & _ :as form]]
+  ;; (letfn [(foo [bar] ...) ...] body) ->
   ;; (letfn* [foo (fn foo [bar] ...) ...] body)
   ;; must not wrap (fn foo [bar] ...)
-  (f line
-     `(~letfn-sym
-       [~@(mapcat (fn [[sym fun]] `(~sym ~(wrap-fn-expression f line fun)))
-                  (partition 2 bindings))]
-       ~@(doall (map (wrapper f line) body)))))
+  ;; we expand it manually to preserve function lines
+  (let [[letfn*-sym exp-bindings & body] (macroexpand-1 form)]
+    (f line
+       `(~letfn*-sym
+          [~@(mapcat
+               (fn [[sym fun] orig-bind]
+                 `(~sym ~(wrap-fn-expression f (:line (meta orig-bind)) fun)))
+               (partition 2 exp-bindings)
+               bindings)]
+          ~@(doall (map (wrapper f line) body))))))
 
 (defmethod do-wrap :def [f line [def-sym name & body :as form]]
   (cond
@@ -200,7 +206,8 @@
                             `(~def-sym ~name ~docstring ~(wrap f line init))))))
 
 (defmethod do-wrap :defn [f line form]
-  ;; do not macroexpand defn to preserve function names in exception backtraces
+  ;; do not wrap fn expressions in (def name (fn ...))
+  ;; to preserve function names in exception backtraces
   (let [[def-sym name fn-expr] (macroexpand-1 form)]
     (f line `(~def-sym ~name ~(wrap-fn-expression f line fn-expr)))))
 
