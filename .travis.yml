@@ -7,3 +7,7 @@ jdk:
   - oraclejdk7
   - openjdk7
   - openjdk6
+
+after_success:
+  - (cd cloverage && lein2 deploy clojars)
+  - (cd lein-cloverage && lein2 deploy clojars)
