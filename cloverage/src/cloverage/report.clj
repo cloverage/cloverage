@@ -115,7 +115,7 @@
       (print "/>"))))
 
 (defn- cov [t left right]
-  (let [percent (float (* 100 (/ left right)))]
+  (let [percent (if (> right 0) (float (* 100 (/ left right))) 0.0)]
     {:tag :coverage :type t :value (format "%.0f%% (%d/%d)" percent left right)}))
 
 (defn- do-counters [stats]
