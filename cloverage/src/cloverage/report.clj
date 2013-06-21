@@ -1,9 +1,9 @@
 (ns cloverage.report
   (:import [java.io File])
   (:use [clojure.java.io :only [writer reader copy]]
-        [clojure.string :only [escape]]
         [cloverage.source :only [resource-reader]])
-  (:require clojure.pprint))
+  (:require clojure.pprint)
+  (:require [clojure.data.xml :as xml]))
 
 ;; borrowed from duck-streams
 (defmacro with-out-writer
@@ -94,29 +94,9 @@
                              :else           "?")]
             (println prefix (:text line))))))))
 
-(defn- escape-xml [s] (escape s {\< "&lt;" \> "&gt;" \& "&amp;"
-                                 \' "&apos;" \" "&quot;"}))
-(defn- as-str [v] (if (keyword? v) (name v) (str v)))
-
-(defn- prxml-attribute [name value]
-  (printf " %s = \"%s\"" (as-str name) (escape-xml (str value))))
-
-(defn- prxml-node [node]
-  (let [tag   (name (:tag node))
-        attrs (dissoc node :children :tag)]
-    (printf "<%s" tag)
-    (doseq [[k v] attrs]
-      (prxml-attribute k v))
-    (if (seq (:children node))
-      (do (print ">")
-          (doseq [c (seq (:children node))]
-            (prxml-node c))
-          (printf "</%s>" tag))
-      (print "/>"))))
-
 (defn- cov [t left right]
   (let [percent (if (> right 0) (float (* 100 (/ left right))) 0.0)]
-    {:tag :coverage :type t :value (format "%.0f%% (%d/%d)" percent left right)}))
+    [:coverage {:type t :value (format "%.0f%% (%d/%d)" percent left right)}]))
 
 (defn- do-counters [stats]
   {:lib            ((first stats) :lib)
@@ -126,32 +106,30 @@
    :cov-line-count (reduce + (map :covered-lines stats))})
 
 (defn- counters->cov [tag name cntrs]
-  {:tag tag :name name :children
-   [(cov "class, %" 0 1) (cov "method, %" 0 1)
-    (cov "block, %" (cntrs :cov-form-count) (cntrs :form-count))
-    (cov "line, %"  (cntrs :cov-line-count) (cntrs :line-count))]})
+  [tag {:name name}
+   (cov "class, %" 0 1) (cov "method, %" 0 1)
+   (cov "block, %" (cntrs :cov-form-count) (cntrs :form-count))
+   (cov "line, %"  (cntrs :cov-line-count) (cntrs :line-count))])
 
-(defn emma-xml-report [out-dir forms]
+(defn emma-xml-report
+  "Create '${out-dir}/coverage.xml' in EMMA format (emma.sourceforge.net)."
+  [out-dir forms]
   (let [output-file (File. out-dir "coverage.xml")
-        stats      (file-stats forms)
+        stats      (doall (file-stats forms))
         file-count (count (distinct (map :file stats)))
         lib-count  (count (distinct (map :lib stats)))
         total      (do-counters stats)
-        by-pkg     (map do-counters (vals (group-by :lib stats)))
-        data       (update-in (counters->cov :all "total" total)
-                              [:children] concat
-                              (map #(counters->cov :package (% :lib) %) by-pkg))]
+        by-pkg     (map do-counters (vals (group-by :lib stats)))]
     (.mkdirs (.getParentFile output-file))
     (with-open [wr (writer output-file)]
-      (binding [clojure.core/*out* wr]
-        (prxml-node {:tag :report
-                     :children [{:tag :stats
-                                 :children [{:tag :packages :value lib-count}
-                                            {:tag :methods  :value (total :form-count)}
-                                            {:tag :srcfiles :value file-count}
-                                            {:tag :srclines :value (total :line-count)}]}
-                                {:tag :data
-                                 :children [ data ]}]} )))))
+      (-> [:report
+           [:stats (map #(vector %1 {:value %2})
+                        [:packages :methods :srcfiles :srclines]
+                        [lib-count (total :form-count) file-count (total :line-count)])]
+           [:data (apply conj (counters->cov :all "total" total)
+                         (map #(counters->cov :package (% :lib) %) by-pkg))]]
+          xml/sexp-as-element (xml/emit wr)))
+    nil))
 
 (defn- html-spaces [s]
   (.replace s " " "&nbsp;"))
