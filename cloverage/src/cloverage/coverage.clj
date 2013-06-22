@@ -79,6 +79,8 @@
         "Produce a text report." :default false]
        ["--[no-]html"
         "Produce an HTML report." :default true]
+       ["--[no-]emma-xml"
+        "Produce an EMMA XML report. [emma.sourceforge.net]" :default false]
        ["--[no-]raw"
         "Output raw coverage data (for debugging)." :default false]
        ["-d" "--[no-]debug"
@@ -115,6 +117,7 @@
         text?         (:text opts)
         html?         (:html opts)
         raw?          (:raw opts)
+        emma-xml?     (:emma-xml opts)
         debug?        (:debug opts)
         nops?         (:nop opts)
         help?         (:help opts)
@@ -151,6 +154,7 @@
                 results [(when text? (text-report output stats))
                          (when html? (html-report output stats)
                                      (html-summary output stats))
+                         (when emma-xml? (emma-xml-report output stats))
                          (when raw? (raw-report output stats @*covered*))]]
 
             (println "Produced output in" (.getAbsolutePath (File. output)) ".")
