@@ -2,7 +2,8 @@
   (:import [java.io File])
   (:use [clojure.java.io :only [writer reader copy]]
         [cloverage.source :only [resource-reader]])
-  (:require clojure.pprint))
+  (:require clojure.pprint)
+  (:require [clojure.data.xml :as xml]))
 
 ;; borrowed from duck-streams
 (defmacro with-out-writer
@@ -92,6 +93,43 @@
                              (:instrumented? line) "✘"
                              :else           "?")]
             (println prefix (:text line))))))))
+
+(defn- cov [t left right]
+  (let [percent (if (> right 0) (float (* 100 (/ left right))) 0.0)]
+    [:coverage {:type t :value (format "%.0f%% (%d/%d)" percent left right)}]))
+
+(defn- do-counters [stats]
+  {:lib            ((first stats) :lib)
+   :form-count     (reduce + (map :forms stats))
+   :cov-form-count (reduce + (map :covered-forms stats))
+   :line-count     (reduce + (map :instrd-lines stats))
+   :cov-line-count (reduce + (map :covered-lines stats))})
+
+(defn- counters->cov [tag name cntrs]
+  [tag {:name name}
+   (cov "class, %" 0 1) (cov "method, %" 0 1)
+   (cov "block, %" (cntrs :cov-form-count) (cntrs :form-count))
+   (cov "line, %"  (cntrs :cov-line-count) (cntrs :line-count))])
+
+(defn emma-xml-report
+  "Create '${out-dir}/coverage.xml' in EMMA format (emma.sourceforge.net)."
+  [out-dir forms]
+  (let [output-file (File. out-dir "coverage.xml")
+        stats      (doall (file-stats forms))
+        file-count (count (distinct (map :file stats)))
+        lib-count  (count (distinct (map :lib stats)))
+        total      (do-counters stats)
+        by-pkg     (map do-counters (vals (group-by :lib stats)))]
+    (.mkdirs (.getParentFile output-file))
+    (with-open [wr (writer output-file)]
+      (-> [:report
+           [:stats (map #(vector %1 {:value %2})
+                        [:packages :methods :srcfiles :srclines]
+                        [lib-count (total :form-count) file-count (total :line-count)])]
+           [:data (apply conj (counters->cov :all "total" total)
+                         (map #(counters->cov :package (% :lib) %) by-pkg))]]
+          xml/sexp-as-element (xml/emit wr)))
+    nil))
 
 (defn- html-spaces [s]
   (.replace s " " "&nbsp;"))
