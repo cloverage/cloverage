@@ -25,8 +25,7 @@
   "This function is not covered at all"
   [arg1 arg2]
   (+ 2 3)
-  (- 2 3)
-  )
+  (- 2 3))
 
 (defn partially-covered
   [cnd]
@@ -47,7 +46,7 @@
 (defmethod mixed-coverage-multi String
   ;; fully covered
   [x]
-  x)
+  (do x))
 
 (defmethod mixed-coverage-multi Long
   ;; partially covered
@@ -132,5 +131,9 @@
 (defn loop "Not really loop."
   [n] (+ n n))
 
-(defn loop-shouldnt-crash []
+(defn global-loop-shouldnt-crash []
   (loop 3))
+
+(defn locals-dont-crash []
+  (let [letfn #(+ % 1)]
+    (letfn 2)))

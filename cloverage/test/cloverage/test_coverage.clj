@@ -1,8 +1,8 @@
 (ns cloverage.test-coverage
   (:import [java.io File])
   (:use [clojure.test :exclude [report]]
-        [cloverage coverage instrument source]
-        ))
+        [cloverage coverage instrument source])
+  (:require [riddley.walk :refer [macroexpand-all]]))
 
 (defn- denamespace [tree]
   "Helper function to allow backticking w/o namespace interpolation."
@@ -11,7 +11,7 @@
         :else tree))
 
 (def sample-file
-     "cloverage/sample.clj")
+  "cloverage/sample.clj")
 
 (defn coverage-fixture [f]
   (binding [*covered*         (atom [])
@@ -22,94 +22,102 @@
 
 (def output-dir  "out")
 
+(defn expand=
+  "Check that two expressions are equal modulo recursive macroexpansion."
+  [f1 f2]
+  (let [e1 (macroexpand-all f1)
+        e2 (macroexpand-all f2)]
+    (= e1 e2)))
+
 ;; TODO: all test-wrap-X tests should be split in one test that checks
 ;; whether wrap works correctly, and one that checks track-coverage.
 (deftest test-wrap-primitives
-  (is (= `(capture 0 ~'1)     (wrap track-coverage 0 1)))
-  (is (= `(capture 1 "foo")   (wrap track-coverage 0 "foo")))
-  (is (= `(capture 2 ~'bar)   (wrap track-coverage 0 'bar)))
-  (is (= `(capture 3 ~'true)  (wrap track-coverage 0 'true)))
-  (is (= '(1 "foo" bar true)
-         (map :form @*covered*))))
+  (is (expand= `(capture 0 1)     (wrap track-coverage 0 1)))
+  (is (expand= `(capture 1 "foo")   (wrap track-coverage 0 "foo")))
+  (is (expand= `(capture 2 ~'bar)   (wrap track-coverage 0 'bar)))
+  (is (expand= `(capture 3 ~'true)  (wrap track-coverage 0 'true)))
+  (is (expand= '(1 "foo" bar true)
+               (map :form @*covered*))))
 
 (deftest test-wrap-vector
-  (is (= `(capture 3
-                   [(capture 0 1)
-                    (capture 1 "foo")
-                    (capture 2 ~'bar)])
-         (wrap track-coverage 0 '[1 "foo" bar]))))
+  (is (expand= `(capture 0
+                         [(capture 1 1)
+                          (capture 2 "foo")
+                          (capture 3 ~'bar)])
+               (wrap track-coverage 0 '[1 "foo" bar]))))
 
 (deftest test-wrap-map
-  (is (= `(capture 4 {(capture 0 :a) (capture 2 ~'apple)
-                      (capture 1 :b)  (capture 3 ~'banana)})
-         (wrap track-coverage 0 '{:a apple :b banana}))))
+  (is (expand= `(capture 0 {(capture 3 :a) (capture 4 ~'apple)
+                            (capture 1 :b)  (capture 2 ~'banana)})
+               (wrap track-coverage 0 '{:a apple :b banana}))))
 
 (deftest test-wrap-list
-  (is (= `(capture 3 ((capture 0 +) (capture 1 1)
-                      (capture 2 2)))
-         (wrap track-coverage 0 `(+ 1 2)))))
+  (is (expand= `(capture 0 ((capture 1 +) (capture 2 1)
+                            (capture 3 2)))
+               (wrap track-coverage 0 `(+ 1 2)))))
 
+;; XXX: the order that forms are registered is now from outside in. Bad?
 (deftest test-wrap-fn
-  (is (= `(capture 1 (~(symbol "fn")
-                      [~'a] (capture 0 ~'a)))
-         (wrap track-coverage 0
-          '(fn [a] a)))
+  (is (expand= `(capture 0 (~(symbol "fn")
+                                     [~'a] (capture 1 ~'a)))
+               (wrap track-coverage 0
+                     '(fn [a] a)))
       "Unnamed fn with single overload")
-  (is (= `(capture 4 (~(symbol "fn")
-                      ([~'a] (capture 2 ~'a))
-                      ([~'a ~'b] (capture 3 ~'b))))
-         (wrap track-coverage 0 '(fn ([a] a) ([a b] b))))
+  (is (expand= `(capture 2 (~(symbol "fn")
+                                     ([~'a] (capture 3 ~'a))
+                                     ([~'a ~'b] (capture 4 ~'b))))
+               (wrap track-coverage 0 '(fn ([a] a) ([a b] b))))
       "Unnamed fn with multiple overloads")
-  (is (= `(capture 6 (~(symbol "fn") ~'foo
-                      [~'a] (capture 5 ~'a)))
-         (wrap track-coverage 0
-          '(fn foo [a] a)))
+  (is (expand= `(capture 5 (~(symbol "fn") ~'foo
+                                     [~'a] (capture 6 ~'a)))
+               (wrap track-coverage 0
+                     '(fn foo [a] a)))
       "Named fn with single overload")
-  (is (= `(capture 9 (~(symbol "fn") ~'foo
-                      ([~'a] (capture 7 ~'a))
-                      ([~'a ~'b] (capture 8 ~'b))))
-         (wrap track-coverage 0 '(fn foo ([a] a) ([a b] b))))
+  (is (expand= `(capture 7 (~(symbol "fn") ~'foo
+                                     ([~'a] (capture 8 ~'a))
+                                     ([~'a ~'b] (capture 9 ~'b))))
+               (wrap track-coverage 0 '(fn foo ([a] a) ([a b] b))))
       "Named fn with multiple overloads"))
 
 (deftest test-wrap-def
-  (is (= `(capture 0 (~(symbol "def") ~'foobar))
-         (wrap track-coverage 0 '(def foobar))))
-  (is (= `(capture 2 (~(symbol "def") ~'foobar (capture 1 1)))
-         (wrap track-coverage 0 '(def foobar 1)))))
+  (is (expand= `(capture 0 (~(symbol "def") ~'foobar))
+               (wrap track-coverage 0 '(def foobar))))
+  (is (expand= `(capture 1 (~(symbol "def") ~'foobar (capture 2 1)))
+               (wrap track-coverage 0 '(def foobar 1)))))
 
 (deftest test-wrap-let
-  (is (= `(capture 0 (~(symbol "let") []))
-         (wrap track-coverage 0 '(let []))))
-  (is (= `(capture 2 (~(symbol "let") [~'a (capture 1 1)]))
-         (wrap track-coverage 0 '(let [a 1]))))
-  (is (= `(capture 5 (~(symbol "let") [~'a (capture 3 1)
-                                        ~'b (capture 4 2)]))
-         (wrap track-coverage 0 '(let [a 1 b 2]))))
-  (is (= `(capture 9 (~(symbol "let") [~'a (capture 6 1)
-                                        ~'b (capture 7 2)]
-                      (capture 8 ~'a)))
-         (wrap track-coverage 0 '(let [a 1 b 2] a)))))
+  (is (expand= `(capture 0 (~(symbol "let") []))
+               (wrap track-coverage 0 '(let []))))
+  (is (expand= `(capture 1 (~(symbol "let") [~'a (capture 2 1)]))
+               (wrap track-coverage 0 '(let [a 1]))))
+  (is (expand= `(capture 3 (~(symbol "let") [~'a (capture 4 1)
+                                             ~'b (capture 5 2)]))
+               (wrap track-coverage 0 '(let [a 1 b 2]))))
+  (is (expand= `(capture 6 (~(symbol "let") [~'a (capture 7 1)
+                                             ~'b (capture 8 2)]
+                                     (capture 9 ~'a)))
+               (wrap track-coverage 0 '(let [a 1 b 2] a)))))
 
 (deftest test-wrap-cond
-  (is (= `(capture 0 nil)
-         (wrap track-coverage 0 '(cond)))))
+  (is (expand= `(capture 0 nil)
+               (wrap track-coverage 0 '(cond)))))
 
 (deftest test-wrap-overloads
-  (is (= `(([~'a] (capture 0 ~'a))
-           ([~'a ~'b] (capture 1 ~'a) (capture 2 ~'b)))
-         (wrap-overloads track-coverage 0 '(([a] a)
-                           ([a b] a b)))))
-  (is (= `([~'a] (capture 3 ~'a))
-         (wrap-overloads track-coverage 0 '([a] a)))))
+  (is (expand= `(([~'a] (capture 0 ~'a))
+                 ([~'a ~'b] (capture 1 ~'a) (capture 2 ~'b)))
+               (wrap-overloads track-coverage 0 '(([a] a)
+                                                  ([a b] a b)))))
+  (is (expand= `([~'a] (capture 3 ~'a))
+               (wrap-overloads track-coverage 0 '([a] a)))))
 
 (deftest test-wrap-for
   (is (not (nil? (wrap track-coverage 0 '(for [i (range 5)] i))))))
 
 (deftest test-wrap-str
   (wrap track-coverage 0
-   '(defn -main [& args]
-      (doseq [file (file-seq ".")]
-        (println "File is" file)))))
+        '(defn -main [& args]
+           (doseq [file (file-seq ".")]
+             (println "File is" file)))))
 
 (deftest test-eval-atomic
   (is (= 1 (eval (wrap track-coverage 0 1))))
@@ -156,8 +164,8 @@
     (is (find-form cov '(inc (m c 0))))))
 
 (deftest test-wrap-new
-  (is (= `(capture 1 (~'new java.io.File (capture 0 "foo/bar")))
-         (wrap track-coverage 0 '(new java.io.File "foo/bar")))))
+  (is (expand= `(capture 0 (~'new java.io.File (capture 1 "foo/bar")))
+               (wrap track-coverage 0 '(new java.io.File "foo/bar")))))
 
 (deftest test-main
   (cloverage.coverage/-main
