@@ -11,7 +11,7 @@
         :else tree))
 
 (def sample-file
-  "cloverage/sample.clj")
+     "cloverage/sample.clj")
 
 (defn coverage-fixture [f]
   (binding [*covered*         (atom [])

@@ -60,6 +60,7 @@
         dec)))
 
 (defn track-coverage [line-hint form]
+  (tprnl "Track coverage called with" form)
   (let [idx   (count @*covered*)
         form' (if (instance? clojure.lang.IObj form)
                 (vary-meta form assoc :idx idx)

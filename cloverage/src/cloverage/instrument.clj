@@ -93,6 +93,8 @@
     `#{defrecord}   :record
 
     atomic-special?   :atomic
+    ;; XXX: we used to not do anything with unknown specials, now we wrap them
+    ;; in a macro, then macroexpand back to original form. Methinks it's ok.
     special-symbol?   :unknown
     (constantly true) :list))
 
