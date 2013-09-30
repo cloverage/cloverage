@@ -1,4 +1,5 @@
 (ns cloverage.sample
+  (:refer-clojure :exclude [loop])
   (:import java.lang.RuntimeException)
   (:use [clojure test]))
 
@@ -127,3 +128,9 @@
           {:and :not-tracked})
         (not-covered [] ({:preimage :image} :preimage))]
   (covered))
+
+(defn loop "Not really loop."
+  [n] (+ n n))
+
+(defn loop-shouldnt-crash []
+  (loop 3))

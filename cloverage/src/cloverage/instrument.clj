@@ -37,28 +37,64 @@
 (defn atomic-special? [sym]
   (contains? '#{quote var clojure.core/import* recur} sym))
 
+;; Snipped from tools.reader
+;; https://github.com/clojure/tools.reader/blob/master/src/main/clojure/clojure/tools/reader.clj#L456
+(defn- resolve-ns [sym]
+  (or ((ns-aliases *ns*) sym)
+      (find-ns sym)))
+
+(defn- resolve-symbol [s]
+  (if (pos? (.indexOf (name s) "."))
+    s
+    (if-let [ns-str (namespace s)]
+      (let [ns (resolve-ns (symbol ns-str))]
+        (if (or (nil? ns)
+                (= (name (ns-name ns)) ns-str)) ;; not an alias
+          s
+          (symbol (name (.name ns)) (name s))))
+      (if-let [o ((ns-map *ns*) s)]
+        (if (class? o)
+          (symbol (.getName ^Class o))
+          (if (var? o)
+            (symbol (-> o .ns .name name) (-> o .sym name))))
+        ;; changed to returned unnamespaced symbol if it fails to resolve
+        s))))
+
+(defn- maybe-resolve-symbol [expr]
+  (if (symbol? expr)
+    (resolve-symbol expr)
+    expr))
+
 (defn list-type [[head & _]]
-  (case head
-    catch                    :catch   ; catch special cases classnames, and
-    finally                  :finally ; catch and finally can't be wrapped
-    set!                     :set     ; set must not evaluate the target expr
-    (if do try throw)        :do      ; these special forms can recurse on all args
-    (cond clojure.core/cond) :cond    ; special case cond to avoid false partial
-    (loop let let* loop*)    :let
-    letfn                    :letfn
-    case*                    :case*
-    (fn fn*)                 :fn
-    def                      :def     ; def can recurse on initialization expr
-    defn                     :defn    ; don't expand defn to preserve stack traces
-    .                        :dotjava
-    new                      :new
-    defmulti                 :defmulti ; special case defmulti to avoid boilerplate
-    defprotocol              :atomic   ; no code in protocols
-    defrecord                :record
-    (cond
-      (atomic-special? head) :atomic
-      (special-symbol? head) :unknown
-      :else                  :list)))
+  (condp #(%1 %2) (maybe-resolve-symbol head)
+    ;; namespace-less specials
+    '#{catch}           :catch
+    '#{finally}         :finally
+    '#{if do try throw} :do      ; these special forms can recurse on all args
+    '#{let* loop*}      :let
+    '#{def}             :def     ; def can recurse on initialization expr
+    '#{fn*}             :fn
+    '#{set!}            :set     ; set must not evaluate the target expr
+    '#{.}               :dotjava
+    '#{case*}           :case*
+    '#{new}             :new
+    ;; FIXME: monitor-enter monitor-exit
+    ;; FIXME: import*?
+    ;; FIXME: deftype*
+
+    ;; namespaced macros
+    `#{cond}          :cond    ; special case cond to avoid false partial
+    `#{loop let}      :let
+    `#{letfn}         :letfn
+    `#{fn}            :fn
+    `#{defn}          :defn    ; don't expand defn to preserve stack traces
+    `#{defmulti}      :defmulti ; special case defmulti to avoid boilerplate
+    `#{defprotocol}   :atomic   ; no code in protocols
+    `#{defrecord}     :record
+
+    atomic-special?   :atomic
+    special-symbol?   :unknown
+    (constantly true) :list))
 
 (defn form-type
   "Classifies the given form"
