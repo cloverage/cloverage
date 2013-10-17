@@ -39,7 +39,7 @@
   (contains? '#{quote var clojure.core/import* recur} sym))
 
 ;; Snipped from tools.reader
-;; https://github.com/clojure/tools.reader/blob/master/src/main/clojure/clojure/tools/reader.clj#L456
+;; https://github.com/clojure/tools.reader/blob/de7b39c3/src/main/clojure/clojure/tools/reader.clj#L456
 (defn- resolve-ns [sym]
   (or ((ns-aliases *ns*) sym)
       (find-ns sym)))
