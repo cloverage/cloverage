@@ -134,7 +134,6 @@
 (deftest test-eval-ns
   (eval (wrap track-coverage 0 '(ns foo.bar))))
 
-
 (deftest test-eval-case
   (doseq [x '[a b 3 #{3} fallthrough]]
     (is (= (str x) (eval (wrap track-coverage 0
@@ -146,6 +145,20 @@
                                                "fallthrough")))))))
   (is (thrown? IllegalArgumentException
                (eval (wrap track-coverage 0 (case 1))))))
+
+;; non-local and public to easily access in eval
+;; tests are not ran from the namespace they're defined in
+(def ran-finally (atom nil))
+(deftest test-eval-try
+  (is (= :caught
+         (eval (wrap track-coverage 0
+               '(try (swap! cloverage.test-coverage/ran-finally (constantly false))
+                     (throw (Exception. "try-catch test"))
+                     (catch Exception e
+                       :caught)
+                     (finally
+                       (swap! cloverage.test-coverage/ran-finally (constantly true))))))))
+  (= true @ran-finally))
 
 (defn find-form [cov form]
   (some #(and (= form (:form %)) %) cov))
