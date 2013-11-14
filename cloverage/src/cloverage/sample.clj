@@ -1,4 +1,5 @@
 (ns cloverage.sample
+  (:refer-clojure :exclude [loop])
   (:import java.lang.RuntimeException)
   (:use [clojure test]))
 
@@ -24,8 +25,7 @@
   "This function is not covered at all"
   [arg1 arg2]
   (+ 2 3)
-  (- 2 3)
-  )
+  (- 2 3))
 
 (defn partially-covered
   [cnd]
@@ -46,7 +46,7 @@
 (defmethod mixed-coverage-multi String
   ;; fully covered
   [x]
-  x)
+  (do x))
 
 (defmethod mixed-coverage-multi Long
   ;; partially covered
@@ -127,3 +127,13 @@
           {:and :not-tracked})
         (not-covered [] ({:preimage :image} :preimage))]
   (covered))
+
+(defn loop "Not really loop."
+  [n] (+ n n))
+
+(defn global-loop-shouldnt-crash []
+  (loop 3))
+
+(defn locals-dont-crash []
+  (let [letfn #(+ % 1)]
+    (letfn 2)))
