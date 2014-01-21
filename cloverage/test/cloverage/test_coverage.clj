@@ -181,8 +181,11 @@
                (wrap track-coverage 0 '(new java.io.File "foo/bar")))))
 
 (deftest test-main
-  (cloverage.coverage/-main
-   "-o" "out"
-   "--text" "--html" "--raw" "--emma-xml"
-   "-x" "cloverage.sample"
-   "cloverage.sample"))
+  (binding [cloverage.coverage/*exit-after-test* false]
+    (is (=
+         (cloverage.coverage/-main
+          "-o" "out"
+          "--text" "--html" "--raw" "--emma-xml"
+          "-x" "cloverage.sample"
+          "cloverage.sample")
+         0))))
