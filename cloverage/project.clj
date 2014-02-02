@@ -5,7 +5,7 @@
         :dir  ".."
         :url  "https://www.github.com/lshift/cloverage"
         :tag  "HEAD"}
-  :main cloverage.coverage
+  :main ^:skip-aot cloverage.coverage
   :license {:name "Eclipse Public License - v 1.0"
             :url "http://www.eclipse.org/legal/epl-v10.html"
             :distribution :repo
