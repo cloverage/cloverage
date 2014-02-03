@@ -148,9 +148,13 @@
                             (let [test-syms (map symbol test-nses)]
                               (apply require (map symbol test-nses))
                               (apply test/run-tests (map symbol test-nses))))
-              exit-code   (if test-result
-                            (+ (:error test-result) (:fail test-result))
-                            -1)]
+              ;; sum up errors as in lein test
+              errors      (when test-result
+                            (reduce + ((juxt :error :fail) test-result)))
+              exit-code   (cond
+                            (not test-result) -1
+                            (> errors 128)    -2
+                            :else             errors)]
           (println "Ran tests.")
           (when output
             (.mkdir (File. output))
