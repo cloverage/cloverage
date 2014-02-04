@@ -13,6 +13,7 @@
 
 (def ^:dynamic *instrumented-ns*) ;; currently instrumented ns
 (def ^:dynamic *covered* (atom []))
+(def ^:dynamic *exit-after-test* true)
 
 (defmacro with-coverage [libs & body]
   `(binding [*covered* (atom [])]
@@ -143,21 +144,30 @@
           ;; mark the ns as loaded
           (mark-loaded namespace))
         (println "Instrumented namespaces.")
-        (when-not (empty? test-nses)
-          (let [test-syms (map symbol test-nses)]
-            (apply require (map symbol test-nses))
-            (apply test/run-tests (map symbol test-nses))))
-        (println "Ran tests.")
-        (when output
-          (.mkdir (File. output))
-          (let [stats (gather-stats @*covered*)
-                results [(when text? (text-report output stats))
-                         (when html? (html-report output stats)
-                                     (html-summary output stats))
-                         (when emma-xml? (emma-xml-report output stats))
-                         (when raw? (raw-report output stats @*covered*))]]
+        (let [test-result (when-not (empty? test-nses)
+                            (let [test-syms (map symbol test-nses)]
+                              (apply require (map symbol test-nses))
+                              (apply test/run-tests (map symbol test-nses))))
+              ;; sum up errors as in lein test
+              errors      (when test-result
+                            (reduce + ((juxt :error :fail) test-result)))
+              exit-code   (cond
+                            (not test-result) -1
+                            (> errors 128)    -2
+                            :else             errors)]
+          (println "Ran tests.")
+          (when output
+            (.mkdir (File. output))
+            (let [stats (gather-stats @*covered*)
+                  results [(when text? (text-report output stats))
+                           (when html? (html-report output stats)
+                             (html-summary output stats))
+                           (when emma-xml? (emma-xml-report output stats))
+                           (when raw? (raw-report output stats @*covered*))]]
 
-            (println "Produced output in" (.getAbsolutePath (File. output)) ".")
-            (doseq [r results] (when r (println r))))))))
-  (shutdown-agents)
-  nil)
+              (println "Produced output in" (.getAbsolutePath (File. output)) ".")
+              (doseq [r results] (when r (println r)))))
+          (if *exit-after-test*
+            (do (shutdown-agents)
+                (System/exit exit-code))
+            exit-code))))))
