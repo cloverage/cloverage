@@ -381,8 +381,7 @@
                               (wrap f line-hint form)
                               (catch Throwable t
                                 (throw+ t "Couldn't wrap form %s at line %s"
-                                          form line-hint)))
-                  wrapped   (propagate-line-numbers line-hint wrapped)]
+                                          form line-hint)))]
               (try
                 (binding [*file*        filename
                           *source-path* filename]
@@ -392,6 +391,8 @@
                 (catch Exception e
                   (throw (Exception.
                            (str "Couldn't eval form "
+                                (binding [*print-meta* true]
+                                  (with-out-str (prn wrapped)))
                                 (with-out-str (prn (macroexpand-all wrapped)))
                                 (with-out-str (prn form)))
                            e))))
