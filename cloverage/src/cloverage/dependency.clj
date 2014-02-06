@@ -43,7 +43,7 @@
     (symbol?  libspec) [libspec] 
     (libspec? libspec) [(first (filter (complement keyword?) libspec))] 
     (vector?  libspec) (let [[prefix & args] libspec]
-                         (map #(symbol (str prefix \. %)) args))))
+                         (map #(symbol (str prefix \. (if (seq? %) (first %) %))) args))))
 
 (defn- ref-dependencies [reference]
   (when (#{:use :require :load} (first reference))
