@@ -9,7 +9,9 @@
             [riddley.walk :refer [macroexpand-all]]))
 
 (defn iobj? [form]
-  (instance? clojure.lang.IObj form))
+  (and
+    (instance? clojure.lang.IObj form)
+    (not (instance? clojure.lang.AFunction form))))
 
 (defn propagate-line-numbers
   "Assign :line metadata to all possible elements in a form,
