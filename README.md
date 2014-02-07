@@ -29,7 +29,36 @@ project being tested, then run:
 Where *args-to-coverage* will usually be something like "-n 'ns.regex.*' -t 'text.ns.regex.*'"
 
 
+## Troubleshooting
+
+    IllegalArgumentException No matching field found: foo for class user.Bar  clojure.lang.Reflector.getInstanceField (Reflector.java:271)
+
+This is usually caused by protocols with methods starting with -. Before clojure 1.6:
+```
+user=> (defprotocol Foo (-foo [x] x))
+Foo
+user=> (deftype Bar [] Foo (-foo [_] "foo"))
+user.Bar
+user=> (-foo (Bar.))
+"foo"
+user=> ((do -foo) (Bar.))
+
+IllegalArgumentException No matching field found: foo for class user.Bar  clojure.lang.Reflector.getInstanceField (Reflector.java:271)
+```
+
+Since cloverage *will* wrap the -foo symbol to track whether it's accessed, you will get this error. Upgrade to clojure 1.6.
+
+
+
 ## Changelog
+1.0.4-SNAPSHOT:
+- Features:
+ - Minimal EMMA XML output format support.
+ - Cloverage now exits with positive exit code when your tests fail
+- Bugfixes:
+ - Better instrumentation logic is no longer confused by macro/symbol shadowing
+ - Support for (:require [(namespace.prefix (suffix :as rename))]) ns forms
+ - Cloverage jars no longer include all dependenceis
 
 1.0.3:
  - fix empty list crash
