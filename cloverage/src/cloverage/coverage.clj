@@ -19,7 +19,7 @@
   `(binding [*covered* (atom [])]
      (println "Capturing code coverage for" ~libs)
      (doseq [lib# ~libs]
-       (instrument track-coverage lib#))
+       (instrument #'track-coverage lib#))
      ~@body
      (gather-stats @*covered*)))
 
@@ -138,8 +138,8 @@
         (doseq [namespace (in-dependency-order (map symbol namespaces))]
           (binding [*instrumented-ns* namespace]
             (if nops?
-              (instrument nop namespace)
-              (instrument track-coverage namespace)))
+              (instrument #'nop namespace)
+              (instrument #'track-coverage namespace)))
           (println "Loaded " namespace " .")
           ;; mark the ns as loaded
           (mark-loaded namespace))
