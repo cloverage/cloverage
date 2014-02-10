@@ -58,7 +58,22 @@
            [incanter.stats :only (sample-normal sample-gamma sample-dirichlet
                                   sample-inv-wishart sample-mvn mean)]))
    :expected '[incanter.bayes #{incanter.core incanter.stats}]}
-  })
+  :parkour-dseq
+  {:ns-source
+   '(ns parkour.io.dseq
+      (:require [clojure.core.protocols :as ccp]
+                [clojure.core.reducers :as r]
+                [parkour (conf :as conf) (cstep :as cstep) (wrapper :as w)]
+                [parkour.mapreduce (source :as src)]
+                [parkour.io.dseq (mapred :as mr1) (mapreduce :as mr2)]
+                [parkour.util :refer [ignore-errors]])
+      (:import [java.io Closeable Writer]
+               [clojure.lang IObj]))
+   :expected '[parkour.io.dseq
+               #{clojure.core.protocols clojure.core.reducers parkour.conf
+                 parkour.cstep parkour.wrapper parkour.mapreduce.source
+                 parkour.io.dseq.mapred parkour.io.dseq.mapreduce
+                 parkour.util}]}})
 
 (deftest test-dependency-extraction
   (doall (for [[ns-name
