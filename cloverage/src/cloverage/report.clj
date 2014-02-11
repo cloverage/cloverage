@@ -5,7 +5,6 @@
   (:require clojure.pprint
             [clojure.string :as cs]
             [clojure.data.xml :as xml]
-            [clj-http.client :as http]
             [cheshire.core :as json]))
 
 ;; borrowed from duck-streams
@@ -263,17 +262,10 @@
       (println "</html>"))
     (format "HTML: file://%s" (.getAbsolutePath index))))
 
-(defn- send-coveralls-report [report]
-  (let [req (http/post "https://coveralls.io/api/v1/jobs"
-                       {:multipart {:name "json_file"
-                                    :content (json/generate-string report)}
-                        :throw-exceptions false})]
-    (= 200 (:status req))))
-
-(defn coveralls-report [forms]
+(defn coveralls-report [out-dir forms]
   (letfn [(has-env [s] (= (System/getenv s) "true"))
           (service-info [sname job-id-var] [sname (System/getenv job-id-var)])]
-    (if-let [[service job-id]
+    (let [[service job-id]
              (cond
                ;; docs.travis-ci.com/user/ci-environment/
                (has-env "TRAVIS") (service-info "travis-ci" "TRAVIS_JOB_ID")
@@ -287,30 +279,27 @@
                  (service-info "jenkins" "BUILD_ID")
                ;; bit.ly/codeship-env-vars
                (= (System/getenv "CI_NAME") "codeship")
-                 (service-info "codeship" "CI_BUILD_NUMBER"))]
-        (let [covdata (map
-                        (fn [[file file-forms]]
-                          (let [lines line-stats file-forms]
-                            {:name file
-                             :source (cs/join "\n" (map :text lines))
-                             ;; 2: covered
-                             ;; 1: partially covered
-                             ;; 0: not covered
-                             :coverage (map (fn [line]
-                                              (cond (:blank?   line) nil
-                                                    (:covered? line) 2
-                                                    (:partial? line) 1
-                                                    (:instrumented? line) 0
-                                                    :else nil)) lines)}))
-                          (filter (fn [[file _]] file)
-                                  (group-by :file forms)))]
-          (print "sending report to Coveralls... ")
-          (if (send-coveralls-report {:service_job_id job-id
-                                      :service_name service
-                                      :source_files covdata})
-            (println "Success!")
-            (println "Error!"))
-        (println "Not on a CI server, not sending the data."))))
+                 (service-info "codeship" "CI_BUILD_NUMBER"))
+          covdata (map
+                    (fn [[file file-forms]]
+                      (let [lines (line-stats file-forms)]
+                        {:name file
+                         :source (cs/join "\n" (map :text lines))
+                         ;; 2: covered
+                         ;; 1: partially covered
+                         ;; 0: not covered
+                         :coverage (map (fn [line]
+                                          (cond (:blank?   line) nil
+                                                (:covered? line) 2
+                                                (:partial? line) 1
+                                                (:instrumented? line) 0
+                                                :else nil)) lines)}))
+                      (filter (fn [[file _]] file)
+                              (group-by :file forms)))]
+          (with-out-writer (File. (File. out-dir) "coveralls.json")
+            (print (json/generate-string {:service_job_id job-id
+                                          :service_name service
+                                          :source_files covdata}))))))
 
 (defn raw-report [out-dir stats covered]
   (with-out-writer (File. (File. out-dir) "raw-data.clj")

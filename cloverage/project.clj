@@ -17,5 +17,4 @@
                  [bultitude "0.2.0"]
                  [riddley "0.1.4"]
                  [slingshot "0.10.3"]
-                 [cheshire "5.3.1"]
-                 [clj-http "0.7.8"]])
+                 [cheshire "5.3.1"]])
