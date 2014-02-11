@@ -82,6 +82,8 @@
         "Produce an HTML report." :default true]
        ["--[no-]emma-xml"
         "Produce an EMMA XML report. [emma.sourceforge.net]" :default false]
+       ["--[no-]coveralls"
+        "Send a JSON report to Coveralls if on a CI server" :default false]
        ["--[no-]raw"
         "Output raw coverage data (for debugging)." :default false]
        ["-d" "--[no-]debug"
