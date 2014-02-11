@@ -82,6 +82,8 @@
         "Produce an HTML report." :default true]
        ["--[no-]emma-xml"
         "Produce an EMMA XML report. [emma.sourceforge.net]" :default false]
+       ["--[no-]coveralls"
+        "Send a JSON report to Coveralls if on a CI server" :default false]
        ["--[no-]raw"
         "Output raw coverage data (for debugging)." :default false]
        ["-d" "--[no-]debug"
@@ -119,6 +121,7 @@
         html?         (:html opts)
         raw?          (:raw opts)
         emma-xml?     (:emma-xml opts)
+        coveralls?    (:coveralls opts)
         debug?        (:debug opts)
         nops?         (:nop opts)
         help?         (:help opts)
@@ -163,7 +166,8 @@
                            (when html? (html-report output stats)
                              (html-summary output stats))
                            (when emma-xml? (emma-xml-report output stats))
-                           (when raw? (raw-report output stats @*covered*))]]
+                           (when raw? (raw-report output stats @*covered*))
+                           (when coveralls? (coveralls-report output stats))]]
 
               (println "Produced output in" (.getAbsolutePath (File. output)) ".")
               (doseq [r results] (when r (println r)))))

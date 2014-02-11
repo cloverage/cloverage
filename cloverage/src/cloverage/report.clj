@@ -2,8 +2,10 @@
   (:import [java.io File])
   (:use [clojure.java.io :only [writer reader copy]]
         [cloverage.source :only [resource-reader]])
-  (:require clojure.pprint)
-  (:require [clojure.data.xml :as xml]))
+  (:require clojure.pprint
+            [clojure.string :as cs]
+            [clojure.data.xml :as xml]
+            [cheshire.core :as json]))
 
 ;; borrowed from duck-streams
 (defmacro with-out-writer
@@ -259,6 +261,45 @@
       (println " </body>")
       (println "</html>"))
     (format "HTML: file://%s" (.getAbsolutePath index))))
+
+(defn coveralls-report [out-dir forms]
+  (letfn [(has-env [s] (= (System/getenv s) "true"))
+          (service-info [sname job-id-var] [sname (System/getenv job-id-var)])]
+    (let [[service job-id]
+             (cond
+               ;; docs.travis-ci.com/user/ci-environment/
+               (has-env "TRAVIS") (service-info "travis-ci" "TRAVIS_JOB_ID")
+               ;; circleci.com/docs/environment-variables
+               (has-env "CIRCLECI")
+                 (service-info "circleci" "CIRCLE_BUILD_NUM")
+               ;; bit.ly/semaphoreapp-env-vars
+               (has-env "SEMAPHORE") (service-info "semaphore" "REVISION")
+               ;; bit.ly/jenkins-env-vars
+               (System/getenv "JENKINS_URL")
+                 (service-info "jenkins" "BUILD_ID")
+               ;; bit.ly/codeship-env-vars
+               (= (System/getenv "CI_NAME") "codeship")
+                 (service-info "codeship" "CI_BUILD_NUMBER"))
+          covdata (map
+                    (fn [[file file-forms]]
+                      (let [lines (line-stats file-forms)]
+                        {:name file
+                         :source (cs/join "\n" (map :text lines))
+                         ;; 2: covered
+                         ;; 1: partially covered
+                         ;; 0: not covered
+                         :coverage (map (fn [line]
+                                          (cond (:blank?   line) nil
+                                                (:covered? line) 2
+                                                (:partial? line) 1
+                                                (:instrumented? line) 0
+                                                :else nil)) lines)}))
+                      (filter (fn [[file _]] file)
+                              (group-by :file forms)))]
+          (with-out-writer (File. out-dir "coveralls.json")
+            (print (json/generate-string {:service_job_id job-id
+                                          :service_name service
+                                          :source_files covdata}))))))
 
 (defn raw-report [out-dir stats covered]
   (with-out-writer (File. (File. out-dir) "raw-data.clj")

@@ -16,4 +16,5 @@
                  [org.clojure/data.xml "0.0.7"]
                  [bultitude "0.2.0"]
                  [riddley "0.1.4"]
-                 [slingshot "0.10.3"]])
+                 [slingshot "0.10.3"]
+                 [cheshire "5.3.1"]])
