@@ -296,7 +296,7 @@
                                                 :else nil)) lines)}))
                       (filter (fn [[file _]] file)
                               (group-by :file forms)))]
-          (with-out-writer (File. (File. out-dir) "coveralls.json")
+          (with-out-writer (File. out-dir "coveralls.json")
             (print (json/generate-string {:service_job_id job-id
                                           :service_name service
                                           :source_files covdata}))))))
