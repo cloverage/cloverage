@@ -185,7 +185,7 @@
     (is (=
          (cloverage.coverage/-main
           "-o" "out"
-          "--text" "--html" "--raw" "--emma-xml"
+          "--text" "--html" "--raw" "--emma-xml" "--coveralls"
           "-x" "cloverage.sample"
           "cloverage.sample")
          0))))

@@ -121,6 +121,7 @@
         html?         (:html opts)
         raw?          (:raw opts)
         emma-xml?     (:emma-xml opts)
+        coveralls?    (:coveralls opts)
         debug?        (:debug opts)
         nops?         (:nop opts)
         help?         (:help opts)
@@ -165,7 +166,8 @@
                            (when html? (html-report output stats)
                              (html-summary output stats))
                            (when emma-xml? (emma-xml-report output stats))
-                           (when raw? (raw-report output stats @*covered*))]]
+                           (when raw? (raw-report output stats @*covered*))
+                           (when coveralls? (coveralls-report output stats))]]
 
               (println "Produced output in" (.getAbsolutePath (File. output)) ".")
               (doseq [r results] (when r (println r)))))
