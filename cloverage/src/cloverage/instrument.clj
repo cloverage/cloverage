@@ -9,7 +9,9 @@
             [riddley.walk :refer [macroexpand-all]]))
 
 (defn iobj? [form]
-  (instance? clojure.lang.IObj form))
+  (and
+    (instance? clojure.lang.IObj form)
+    (not (instance? clojure.lang.AFunction form))))
 
 (defn propagate-line-numbers
   "Assign :line metadata to all possible elements in a form,
@@ -113,6 +115,11 @@
      (tprnl "Meta of" form "is" (meta form))
      res)))
 
+(defn- var->sym [fvar]
+  (let [it (name (.sym fvar))
+        nsn (name (ns-name (.ns fvar)))]
+    (symbol nsn it)))
+
 (defmulti do-wrap
   "Traverse the given form and wrap all its sub-forms in a function that evals
    the form and records that it was called."
@@ -122,8 +129,9 @@
 (defmacro wrapm
   "Helper macro for wrap.
   Takes advantage of &env to track lexical scope while walking `form`."
-  [f line-hint form]
-  (let [line (or (:line (meta form)) line-hint)
+  [f-sym line-hint form]
+  (let [f    (resolve f-sym)
+        line (or (:line (meta form)) line-hint)
         result (do-wrap f line form &env)]
     result))
 
@@ -133,8 +141,10 @@
   all sub-expressions of `form` that can be meaningfully wrapped.
   `f` should take an expression and return one that evaluates in exactly the
   same way, possibly with additional side effects."
-  [f line-hint form]
-  `(wrapm ~f ~line-hint ~form))
+  [f-var line-hint form]
+  (when-not (var? f-var)
+    (throw (Exception. (str "Wrap must be given a function var. Got " f-var " [" (type f-var) "] instead."))))
+  `(wrapm ~(var->sym f-var) ~line-hint ~form))
 
 (defn wrapper
   "Return a function that when called, wraps f through its argument."
@@ -367,7 +377,7 @@
 
 (defn instrument
   "Instruments and evaluates a list of forms."
-  ([f lib]
+  ([f-var lib]
     (let [filename (resource-path lib)]
       (with-open [src (form-reader lib)]
         (loop [instrumented-forms nil]
@@ -378,11 +388,10 @@
                               (vary-meta form assoc :file filename)
                               form)
                   wrapped   (try
-                              (wrap f line-hint form)
+                              (wrap f-var line-hint form)
                               (catch Throwable t
                                 (throw+ t "Couldn't wrap form %s at line %s"
-                                          form line-hint)))
-                  wrapped   (propagate-line-numbers line-hint wrapped)]
+                                          form line-hint)))]
               (try
                 (binding [*file*        filename
                           *source-path* filename]
@@ -392,6 +401,8 @@
                 (catch Exception e
                   (throw (Exception.
                            (str "Couldn't eval form "
+                                (binding [*print-meta* true]
+                                  (with-out-str (prn wrapped)))
                                 (with-out-str (prn (macroexpand-all wrapped)))
                                 (with-out-str (prn form)))
                            e))))

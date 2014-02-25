@@ -134,6 +134,12 @@
 (defn global-loop-shouldnt-crash []
   (loop 3))
 
+;; top-level propagate-line-numbers broke preconditions
+(defn make-matrix
+  ([data ncol]
+   {:pre [true]}
+   :ok))
+
 (defn locals-dont-crash []
   (let [letfn #(+ % 1)]
     (letfn 2)))
