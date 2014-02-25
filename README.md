@@ -54,11 +54,12 @@ Since cloverage *will* wrap the -foo symbol to track whether it's accessed, you 
 1.0.4-SNAPSHOT:
 - Features:
  - Minimal EMMA XML output format support.
- - Cloverage now exits with positive exit code when your tests fail
+ - [Coveralls](https://coveralls.io) output format.
+ - Cloverage now exits with non-zero exit code when your tests fail
 - Bugfixes:
  - Better instrumentation logic is no longer confused by macro/symbol shadowing
  - Support for (:require [(namespace.prefix (suffix :as rename))]) ns forms
- - Cloverage jars no longer include all dependenceis
+ - Cloverage jars no longer include all dependencies
 
 1.0.3:
  - fix empty list crash
