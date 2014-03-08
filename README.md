@@ -7,7 +7,7 @@ Simple clojure coverage tool. Currently requires clojure 1.4.
 
 ## Installation
 
-Simply add [lein-cloverage "1.0.2"] to :plugins in your .lein/profiles.clj
+Add `[lein-cloverage "1.0.2"]` to :plugins in your .lein/profiles.clj
 
 ## Testing frameworks support
 
@@ -19,6 +19,11 @@ by wrapping facts in `deftest` declarations.
 ### lein
 Run `lein cloverage` in your project. See cloverage/coverage.clj for more
 options.
+
+To specify the version of cloverage manually, set the `CLOVERAGE_VERSION`
+to desired value, for example `CLOVERAGE_VERSION=1.0.4-SNAPSHOT lein cloverage`
+
+By default, the plugin will use the latest release version of cloverage.
 
 ### mvn
 
