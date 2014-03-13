@@ -209,8 +209,20 @@
 (defn- td-num [content]
   (format "<td class=\"with-number\">%s</td>" content))
 
+(defn total-stats [forms]
+  (let [all-file-stats (file-stats forms)
+        total      #(reduce + (map % all-file-stats))
+        covered    (total :covered-lines)
+        partial    (total :partial-lines)
+        lines      (total :instrd-lines)
+        cov-forms  (total :covered-forms)
+        forms      (total :forms)]
+    {:percent-lines-covered (* (/ (+ covered partial) lines) 100.0)
+     :percent-forms-covered (* (/ cov-forms forms) 100.0)}))
+
 (defn html-summary [out-dir forms]
-  (let [index (File. out-dir "index.html")]
+  (let [index (File. out-dir "index.html")
+        totalled-stats (total-stats forms)]
     (.mkdirs (File. out-dir))
     (with-out-writer index
       (println "<html>")
@@ -241,8 +253,7 @@
               covered   (:covered-lines file-stat)
               partial   (:partial-lines file-stat)
               blank     (:blank-lines   file-stat)
-              missed    (- instrd partial covered)
-              ]
+              missed    (- instrd partial covered)]
           (println "<tr>")
           (printf  " <td><a href=\"%s.html\">%s</a></td>" filepath libname)
           (println (td-bar forms [:covered cov-forms]
@@ -257,7 +268,13 @@
             (apply str (map td-num [lines blank instrd])))
           (println "</tr>")
           ))
-      (println "  </ul>")
+      (println "<tr><td>Totals:</td>")
+      (println (td-bar nil))
+      (println (td-num (format "%.2f %%" (:percent-forms-covered totalled-stats))))
+      (println (td-bar nil))
+      (println (td-num (format "%.2f %%" (:percent-lines-covered totalled-stats))))
+      (println "   </tr>")
+      (println "  </table>")
       (println " </body>")
       (println "</html>"))
     (format "HTML: file://%s" (.getAbsolutePath index))))
