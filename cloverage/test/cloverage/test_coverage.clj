@@ -29,6 +29,17 @@
         e2 (macroexpand-all f2)]
     (= e1 e2)))
 
+(deftest preserves-type-hint
+  (is (= 'long
+         ;; top level type hint always worked, but ones nested in :list did not
+         (-> (wrap #'track-coverage 0 '(prn ^long (long 0)))
+             macroexpand-all
+             (nth 2) ; (do (cloverage/cover 0) (...)
+             (nth 1) ; ((do (cloverage/cover 1) prn) (...))
+             (nth 2) ; (do (cloverage/cover 2) (...))
+             meta
+             :tag))))
+ 
 ;; TODO: all test-wrap-X tests should be split in one test that checks
 ;; whether wrap works correctly, and one that checks track-coverage.
 (deftest test-wrap-primitives

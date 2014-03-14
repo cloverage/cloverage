@@ -21,7 +21,9 @@
     (let [line (or (:line (meta form)) start)
           recs (if (and (seq? form) (seq form))
                  ;; (seq '()) gives nil which makes us NPE. Bad.
-                 (seq (map (partial propagate-line-numbers line) form))
+                 (with-meta
+                   (seq (map (partial propagate-line-numbers line) form))
+                   (meta form))
                  form)
           ret  (if line
                  (vary-meta recs assoc :line line)
