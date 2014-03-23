@@ -56,11 +56,12 @@ Since cloverage *will* wrap the -foo symbol to track whether it's accessed, you 
 
 
 ## Changelog
-1.0.4-SNAPSHOT:
+1.0.4:
 - Features:
  - Minimal EMMA XML output format support.
  - [Coveralls](https://coveralls.io) output format.
  - Cloverage now exits with non-zero exit code when your tests fail
+ - Total % coverage summary in index.html
 - Bugfixes:
  - Better instrumentation logic is no longer confused by macro/symbol shadowing
  - Support for (:require [(namespace.prefix (suffix :as rename))]) ns forms
