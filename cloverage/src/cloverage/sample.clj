@@ -143,3 +143,10 @@
 (defn locals-dont-crash []
   (let [letfn #(+ % 1)]
     (letfn 2)))
+
+(defn inline-use []
+  (bytes (byte-array (map byte [1 2]))))
+
+(deftest CLJ-1330-workaround []
+  (is (not= (type (inline-use))
+            clojure.lang.Cons)))
