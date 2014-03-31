@@ -96,6 +96,9 @@
     `#{defprotocol} :atomic   ; no code in protocols
     `#{defrecord}   :record
 
+    ;; http://dev.clojure.org/jira/browse/CLJ-1330 means AOT-compiled definlines
+    ;; are broken when used indirectly. Work around - do not wrap the definline
+    `#{booleans bytes chars shorts floats ints doubles longs} :inlined
     atomic-special?   :atomic
     ;; XXX: we used to not do anything with unknown specials, now we wrap them
     ;; in a macro, then macroexpand back to original form. Methinks it's ok.
@@ -204,6 +207,10 @@
 (defmethod do-wrap :unknown [f line form _]
   (log/warn (str "Unknown special form " (seq form)))
   form)
+
+;; Don't wrap definline functions - see http://dev.clojure.org/jira/browse/CLJ-1330
+(defmethod do-wrap :inlined [f line [inline-fn & body] _]
+  `(~inline-fn ~@(map (wrapper f line) body)))
 
 ;; Don't descend into atomic forms, but do wrap them
 (defmethod do-wrap :atomic [f line form _]

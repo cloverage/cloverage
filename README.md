@@ -56,6 +56,10 @@ Since cloverage *will* wrap the -foo symbol to track whether it's accessed, you 
 
 
 ## Changelog
+1.0.5:
+- Bugfixes:
+ - Work around AOT-ed inline functions not being wrappable (http://dev.clojure.org/jira/browse/CLJ-1330)
+
 1.0.4:
 - Features:
  - Minimal EMMA XML output format support.
