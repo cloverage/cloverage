@@ -240,7 +240,7 @@
       (println (td-num "Lines %"))
       (println (apply str (map td-num ["Total" "Blank" "Instrumented"])))
       (println "   </tr></thead>")
-      (doseq [file-stat (file-stats forms)]
+      (doseq [file-stat (sort-by :lib (file-stats forms))]
         (let [filepath  (:file file-stat)
               libname   (:lib  file-stat)
 
