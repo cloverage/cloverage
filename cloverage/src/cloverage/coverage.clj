@@ -86,6 +86,8 @@
         "Send a JSON report to Coveralls if on a CI server" :default false]
        ["--[no-]raw"
         "Output raw coverage data (for debugging)." :default false]
+       ["--[no-]summary"
+        "Prints a summary" :default true]
        ["-d" "--[no-]debug"
         "Output debugging information to stdout." :default false]
        ["--[no-]nop" "Instrument with noops." :default false]
@@ -122,6 +124,7 @@
         raw?          (:raw opts)
         emma-xml?     (:emma-xml opts)
         coveralls?    (:coveralls opts)
+        summary?      (:summary opts)
         debug?        (:debug opts)
         nops?         (:nop opts)
         help?         (:help opts)
@@ -167,7 +170,8 @@
                              (html-summary output stats))
                            (when emma-xml? (emma-xml-report output stats))
                            (when raw? (raw-report output stats @*covered*))
-                           (when coveralls? (coveralls-report output stats))]]
+                           (when coveralls? (coveralls-report output stats))
+                           (when summary? (summary stats))]]
 
               (println "Produced output in" (.getAbsolutePath (File. output)) ".")
               (doseq [r results] (when r (println r)))))

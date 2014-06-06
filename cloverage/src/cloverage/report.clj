@@ -323,3 +323,42 @@
     (clojure.pprint/pprint (zipmap (range) covered)))
   (with-out-writer (File. (File. out-dir) "raw-stats.clj")
                    (clojure.pprint/pprint stats)))
+
+(defn summary
+  "Create a text summary for output on the command line"
+  [forms]
+  (let [totalled-stats (total-stats forms)
+        namespaces (map (fn [file-stat]
+                          (let [filepath  (:file file-stat)
+                                libname   (:lib  file-stat)
+
+                                forms     (:forms file-stat)
+                                cov-forms (:covered-forms file-stat)
+                                mis-forms (- forms cov-forms)
+
+                                lines     (:lines file-stat)
+                                instrd    (:instrd-lines  file-stat)
+                                covered   (:covered-lines file-stat)
+                                partial   (:partial-lines file-stat)
+                                blank     (:blank-lines   file-stat)
+                                missed    (- instrd partial covered)]
+                            {:name libname
+                             :forms_% (format "%.2f %%" (/ (* 100.0 cov-forms) forms))
+                             :lines_% (format "%.2f %%" (/ (* 100.0 (+ covered partial)) instrd))
+                             :forms (/ (* 100.0 cov-forms) forms)
+                             :lines (/ (* 100.0 (+ covered partial)) instrd)}))
+                        (sort-by :lib (file-stats forms)))
+        bad-namespaces (filter #(or (not= 100.0 (:forms %)) (not= 100.0 (:lines %))) namespaces)]
+
+    (str
+      (when (< 0 (count bad-namespaces))
+        (str
+          (with-out-str (clojure.pprint/print-table [:name :forms_% :lines_%] bad-namespaces))
+          "Files with 100% coverage: "
+          (- (count namespaces) (count bad-namespaces))
+          "\n"))
+      "\nForms covered: "
+      (format "%.2f %%" (:percent-forms-covered totalled-stats))
+      "\nLines covered: "
+      (format "%.2f %%" (:percent-lines-covered totalled-stats))
+      "\n")))
