@@ -384,6 +384,14 @@
                                ~@(if attr-map  (list attr-map)  (list))
                                ~(wrap f line dispatch-form) ~@other))))
 
+(defn nop
+  "Instrument form with expressions that do nothing."
+  [line-hint form]
+  `(do ~form))
+
+(defn special-case-to-ignore? [form]
+  (= "ns" (str (first form))))
+
 (defn instrument
   "Instruments and evaluates a list of forms."
   ([f-var lib]
@@ -396,11 +404,13 @@
                   form      (if (iobj? form)
                               (vary-meta form assoc :file filename)
                               form)
-                  wrapped   (try
-                              (wrap f-var line-hint form)
-                              (catch Throwable t
-                                (throw+ t "Couldn't wrap form %s at line %s"
-                                          form line-hint)))]
+                  wrapped   (if (special-case-to-ignore? form)
+                              (nop line-hint form)
+                              (try
+                                (wrap f-var line-hint form)
+                                (catch Throwable t
+                                  (throw+ t "Couldn't wrap form %s at line %s"
+                                          form line-hint))))]
               (try
                 (binding [*file*        filename
                           *source-path* filename]
@@ -420,11 +430,6 @@
               (let [rforms (reverse instrumented-forms)]
                 (dump-instrumented rforms lib)
                 rforms))))))))
-
-(defn nop
-  "Instrument form with expressions that do nothing."
-  [line-hint form]
-  `(do ~form))
 
 (defn no-instr
   "Do not change form at all."
