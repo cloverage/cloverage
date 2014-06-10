@@ -95,6 +95,10 @@
         "Regex for instrumented namespaces (can be repeated)."
         :default  []
         :parse-fn (collecting-args-parser)]
+       ["-e" "--ns-exclude-regex"
+        "Regex for namespaces not to be instrumented (can be repeated)."
+        :default  []
+        :parse-fn (collecting-args-parser)]
        ["-t" "--test-ns-regex"
         "Regex for test namespaces (can be repeated)."
         :default []
@@ -131,10 +135,14 @@
         add-test-nses (:extra-test-ns opts)
         ns-regexs     (map re-pattern (:ns-regexp opts))
         test-regexs   (map re-pattern (:test-ns-regexp opts))
+        exclude-regex (map re-pattern (:ns-exclude-regex opts))
         start         (System/currentTimeMillis)
         test-nses     (concat add-test-nses (find-nses test-regexs))
-        namespaces    (concat add-nses      (find-nses ns-regexs))
-        ]
+        namespaces    (clojure.set/difference
+                        (into #{}
+                              (concat add-nses
+                                      (find-nses ns-regexs)))
+                        (into #{} (find-nses exclude-regex)))]
     (if help?
       (println help)
       (binding [*ns*      (find-ns 'cloverage.coverage)
