@@ -143,7 +143,8 @@
   (is (= 4 (eval (wrap #'track-coverage 0 '(do 4))))))
 
 (deftest test-eval-ns
-  (eval (wrap #'track-coverage 0 '(ns foo.bar))))
+  (eval (wrap #'track-coverage 0 '(ns foo.bar)))
+  (is (= (count (filter :tracked @*covered*)) (count (filter :covered @*covered*)))))
 
 (deftest test-eval-case
   (doseq [x '[a b 3 #{3} fallthrough]]

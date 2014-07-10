@@ -95,6 +95,7 @@
     `#{defmulti}    :defmulti ; special case defmulti to avoid boilerplate
     `#{defprotocol} :atomic   ; no code in protocols
     `#{defrecord}   :record
+    `#{ns}          :atomic
 
     ;; http://dev.clojure.org/jira/browse/CLJ-1330 means AOT-compiled definlines
     ;; are broken when used indirectly. Work around - do not wrap the definline
