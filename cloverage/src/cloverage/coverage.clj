@@ -93,15 +93,21 @@
        ["--[no-]nop" "Instrument with noops." :default false]
        ["-n" "--ns-regex"
         "Regex for instrumented namespaces (can be repeated)."
-        :default  []
+        :default []
         :parse-fn (collecting-args-parser)]
        ["-t" "--test-ns-regex"
         "Regex for test namespaces (can be repeated)."
         :default []
         :parse-fn (collecting-args-parser)]
+       ["-p" "--src-ns-path"
+        "Path (string) to directory containing source code namespaces."
+        :default nil]
+       ["-s" "--test-ns-path"
+        "Path (string) to directory containing test namespaces."
+        :default nil]
        ["-x" "--extra-test-ns"
         "Additional test namespace (string) to add (can be repeated)."
-        :default  []
+        :default []
         :parse-fn (collecting-args-parser)]
        ["-h" "--help" "Show help." :default false :flag true]))
 
@@ -109,10 +115,13 @@
   (binding [*ns* (find-ns 'clojure.core)]
     (eval `(dosync (alter clojure.core/*loaded-libs* conj '~namespace)))))
 
-(defn find-nses [patterns]
-  (for [ns (map name (blt/namespaces-on-classpath))
-        :when (some #(re-matches % ns) patterns)]
-    ns))
+(defn find-nses [patterns path]
+  (let [namespaces (if (nil? path)
+                     (blt/namespaces-on-classpath)
+                     (blt/namespaces-on-classpath :classpath path))]
+    (for [ns (map name namespaces)
+          :when (some #(re-matches % ns) patterns)]
+      ns)))
 
 (defn -main
   "Produce test coverage report for some namespaces"
@@ -131,10 +140,11 @@
         add-test-nses (:extra-test-ns opts)
         ns-regexs     (map re-pattern (:ns-regexp opts))
         test-regexs   (map re-pattern (:test-ns-regexp opts))
+        ns-path       (:src-ns-path opts)
+        test-ns-path  (:test-ns-path opts)
         start         (System/currentTimeMillis)
-        test-nses     (concat add-test-nses (find-nses test-regexs))
-        namespaces    (concat add-nses      (find-nses ns-regexs))
-        ]
+        test-nses     (concat add-test-nses (find-nses test-regexs test-ns-path))
+        namespaces    (concat add-nses      (find-nses ns-regexs ns-path))]
     (if help?
       (println help)
       (binding [*ns*      (find-ns 'cloverage.coverage)
