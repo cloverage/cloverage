@@ -217,12 +217,20 @@
 (defmethod do-wrap :atomic [f line form _]
   (f line form))
 
+;; Only here for Clojure 1.4 compatibility, 1.6 has record?
+(defn- map-record? [x]
+  (instance? clojure.lang.IRecord x))
+
 ;; For a collection, just recur on its elements.
 (defmethod do-wrap :coll [f line form _]
   (tprn ":coll" form)
   (let [wrappee (map (wrapper f line) form)
         wrapped (cond (vector? form) `[~@wrappee]
                       (set? form) `#{~@wrappee}
+                      (map-record? form) (merge form
+                                           (zipmap
+                                             (keys form)
+                                             (doall (map (wrapper f line) (vals form)))))
                       (map? form) (zipmap
                                    (doall (map (wrapper f line) (keys form)))
                                    (doall (map (wrapper f line) (vals form))))
