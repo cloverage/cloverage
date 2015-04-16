@@ -129,7 +129,7 @@
         nops?         (:nop opts)
         help?         (:help opts)
         add-test-nses (:extra-test-ns opts)
-        ns-regexs     (map re-pattern (:ns-regexp opts))
+        ns-regexs     (map re-pattern (:ns-regex opts))
         test-regexs   (map re-pattern (:test-ns-regexp opts))
         start         (System/currentTimeMillis)
         test-nses     (concat add-test-nses (find-nses test-regexs))
