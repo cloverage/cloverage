@@ -14,3 +14,6 @@
   (is (= "dir/" (relative-path (File. "/tmp/dir/") (File. "/tmp"))))
   (is (= "" (relative-path (File. "/") (File. "/"))))
   (is (= "" (relative-path (File. "dir/file/") (File. "dir/file/")))))
+
+(deftest total-stats-zero
+  (is (= {:percent-lines-covered 0.0, :percent-forms-covered 0.0} (total-stats {}))))
