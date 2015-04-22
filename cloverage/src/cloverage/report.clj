@@ -218,8 +218,8 @@
         cov-forms  (total :covered-forms)
         forms      (total :forms)
         line-total (+ covered partial)]
-    {:percent-lines-covered (if (= line-total 0) 0. (* (/ line-total lines) 100.0))
-     :percent-forms-covered (if (= cov-forms 0) 0. (* (/ cov-forms forms) 100.0))}))
+    {:percent-lines-covered (if (= lines 0) 0. (* (/ line-total lines) 100.0))
+     :percent-forms-covered (if (= lines 0) 0. (* (/ cov-forms forms) 100.0))}))
 
 (defn html-summary [out-dir forms]
   (let [index (File. out-dir "index.html")
