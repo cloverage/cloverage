@@ -9,5 +9,4 @@ jdk:
   - openjdk6
 
 after_success:
-  - (cd cloverage && lein2 deploy clojars)
-  - (cd lein-cloverage && lein2 deploy clojars)
+  - bash deploy.sh
