@@ -9,6 +9,7 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"
             :distribution :repo
             :comments "same as Clojure"}
+  :deploy-repositories [["clojars" {:username :env/clojars_username :password :env/clojars_password}]]
   :min-lein-version "2.0.0"
   :dependencies [[bultitude "0.2.0"]]
   :eval-in-leiningen true)
