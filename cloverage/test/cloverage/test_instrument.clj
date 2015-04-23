@@ -28,6 +28,13 @@
   ([f] (form-type- f nil))
   ([f e] (form-type f e)))
 
+(defprotocol Protocol
+  (method [this]))
+
+(defrecord Record [foo]
+  Protocol
+  (method [_] foo))
+
 (deftest test-form-type
   (is (= :atomic (form-type- 1)))
   (is (= :atomic (form-type- "foo")))
@@ -35,11 +42,15 @@
   (is (= :coll (form-type- [1 2 3 4])))
   (is (= :coll (form-type- {1 2 3 4})))
   (is (= :coll (form-type- #{1 2 3 4})))
+  (is (= :coll (form-type- (Record. 1))))
   (is (= :list (form-type- '(+ 1 2))))
   (is (= :do (form-type- '(do 1 2 3))))
   (is (= :list (form-type- '(loop 1 2 3)
                           {'loop 'hoop} ;fake a local binding
                           ))))
+
+(deftest do-wrap-for-record-returns-record
+  (is (= 1 (eval (method (eval (wrap #'nop 0 (Record. 1))))))))
 
 (deftest preserves-fn-conditions
   (let [pre-fn (eval (wrap #'nop 0
