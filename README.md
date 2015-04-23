@@ -11,8 +11,7 @@ Add `[lein-cloverage "1.0.2"]` to :plugins in your .lein/profiles.clj
 
 ## Testing frameworks support
 
-This library currently only supports clojure.test. You can get midje to work
-by wrapping facts in `deftest` declarations.
+This library supports clojure.test and Midje.
 
 ## Usage
 
