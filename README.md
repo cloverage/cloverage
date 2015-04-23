@@ -53,7 +53,9 @@ IllegalArgumentException No matching field found: foo for class user.Bar  clojur
 
 Since cloverage *will* wrap the -foo symbol to track whether it's accessed, you will get this error. Upgrade to clojure 1.6.
 
+## Releases
 
+In order to release to Clojars, you'll need to set `CLOJARS_USERNAME` and `CLOJARS_PASSWORD` in your environment variables.
 
 ## Changelog
 1.0.5:
@@ -82,6 +84,7 @@ Distributed under the Eclipse Public License, the same as Clojure.
 
 ### Contributors
 
+* 2015 LShift, Tom Parker
 * 2012 LShift, Jacek Lach, Alexander Schmolck, Frank Shearar
 * 2010 Michael Delaurentis
 
