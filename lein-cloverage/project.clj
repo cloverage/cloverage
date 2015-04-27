@@ -1,4 +1,4 @@
-(defproject lein-cloverage "1.0.3-SNAPSHOT"
+(defproject lein-cloverage "1.0.3"
   :description "Lein plugin for cloverage"
   :url "https://github.com/lshift/cloverage"
   :scm {:name "git"
