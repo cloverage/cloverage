@@ -10,7 +10,12 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"
             :distribution :repo
             :comments "same as Clojure"}
-  :deploy-repositories [["clojars" {:username :env/clojars_username :password :env/clojars_password}]]
+  :deploy-repositories [["clojars" {:username :env/clojars_username :password :env/clojars_password :sign-releases false}]]
+  :plugins [[lein-release "1.0.6"]]
+  :lein-release {
+    :scm :git ; Because we're not in the top-level directory, so it doesn't auto-detect
+    :deploy-via :clojars
+  }
   :dependencies [[org.clojure/clojure "1.4.0"]
                  [org.clojure/tools.cli "0.2.2"]
                  [org.clojure/tools.logging "0.2.3"]
