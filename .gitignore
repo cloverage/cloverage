@@ -11,3 +11,5 @@ pom.xml
 *#
 .#*
 */.lein-repl-history
+*/out/
+.nrepl-port
