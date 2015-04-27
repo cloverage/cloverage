@@ -57,7 +57,17 @@ Since cloverage *will* wrap the -foo symbol to track whether it's accessed, you 
 
 In order to release to Clojars, you'll need to set `CLOJARS_USERNAME` and `CLOJARS_PASSWORD` in your environment variables.
 
+e.g. `CLOJARS_USERNAME=lshift CLOJARS_PASSWORD=<LShift Clojars password> lein release` in each of the cloverage and lein-cloverage folders.
+
 ## Changelog
+1.0.6
+- Features
+  - Automatic push out of snapshot releases (#65)
+  - Handle records correctly (#59)
+  - Text summary of results (#50)
+- Bugfixes
+  - Cope with zero-namespace situations correctly (#62)
+
 1.0.5:
 - Bugfixes:
  - Work around AOT-ed inline functions not being wrappable (http://dev.clojure.org/jira/browse/CLJ-1330)
