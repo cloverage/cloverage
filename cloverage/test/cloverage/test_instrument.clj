@@ -50,7 +50,7 @@
                           ))))
 
 (deftest do-wrap-for-record-returns-record
-  (is (= 1 (eval (method (eval (wrap #'nop 0 (Record. 1))))))))
+  (is (= 1 (method (eval (wrap #'nop 0 (Record. 1)))))))
 
 (deftest preserves-fn-conditions
   (let [pre-fn (eval (wrap #'nop 0

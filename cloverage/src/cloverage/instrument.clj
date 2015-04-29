@@ -230,7 +230,7 @@
                       (map-record? form) (merge form
                                            (zipmap
                                              (keys form)
-                                             (doall (map (wrapper f line) (vals form)))))
+                                             (vals form)))
                       (map? form) (zipmap
                                    (doall (map (wrapper f line) (keys form)))
                                    (doall (map (wrapper f line) (vals form))))
