@@ -229,8 +229,8 @@
                       (set? form) `#{~@wrappee}
                       (map-record? form) (merge form
                                            (zipmap
-                                             (keys form)
-                                             (vals form)))
+                                             (doall (map (wrapper f line) (keys form)))
+                                             (doall (map (wrapper f line) (vals form)))))
                       (map? form) (zipmap
                                    (doall (map (wrapper f line) (keys form)))
                                    (doall (map (wrapper f line) (vals form))))
