@@ -39,7 +39,7 @@
              (nth 2) ; (do (cloverage/cover 2) (...))
              meta
              :tag))))
- 
+
 ;; TODO: all test-wrap-X tests should be split in one test that checks
 ;; whether wrap works correctly, and one that checks track-coverage.
 (deftest test-wrap-primitives
@@ -191,6 +191,34 @@
 (deftest test-wrap-new
   (is (expand= `(capture 0 (~'new java.io.File (capture 1 "foo/bar")))
                (wrap #'track-coverage 0 '(new java.io.File "foo/bar")))))
+
+(defn- compare-colls [& colls]
+  "Given N collections compares them. Returns true if collections have same
+  elements (order does not matter)."
+  (apply = (map frequencies colls)))
+
+(deftest test-find-nses
+  (testing "empty sequence is returned when neither paths nor regexs are provided"
+    (is (empty? (find-nses nil []))))
+  (testing "all namespaces in a directory get returned when only path is provided"
+    (is (compare-colls (find-nses "test/cloverage/sample" [])
+                       ["cloverage.sample.dummy-sample"
+                        "cloverage.sample.read-eval-sample"])))
+  (testing "only matching namespaces (from classpath) are returned when only
+           regex patterns are provided:"
+    (testing "single pattern case"
+      (is (= (find-nses nil [#"^cloverage\.sample\.read.*$"])
+             ["cloverage.sample.read-eval-sample"])))
+    (testing "multiple patterns case"
+      (is (compare-colls (find-nses nil [#"^cloverage\.sample\.read.*$"
+                                         #"^cloverage\..*coverage$"])
+                         ["cloverage.sample.read-eval-sample"
+                          "cloverage.test-coverage"
+                          "cloverage.coverage"]))))
+  (testing "only matching namespaces from a directory are returned when both path
+           and patterns are provided"
+    (is (= (find-nses "test/cloverage/sample" [#".*dummy.*"])
+           ["cloverage.sample.dummy-sample"]))))
 
 (deftest test-main
   (binding [cloverage.coverage/*exit-after-test* false]
