@@ -95,7 +95,7 @@
         "Regex for instrumented namespaces (can be repeated)."
         :default  []
         :parse-fn (collecting-args-parser)]
-       ["-e" "--ns-exclude-regex"
+       ["-e" "--exclude-ns-regex"
         "Regex for namespaces not to be instrumented (can be repeated)."
         :default  []
         :parse-fn (collecting-args-parser)]
@@ -103,6 +103,12 @@
         "Regex for test namespaces (can be repeated)."
         :default []
         :parse-fn (collecting-args-parser)]
+       ["-p" "--src-ns-path"
+        "Path (string) to directory containing source code namespaces."
+        :default nil]
+       ["-s" "--test-ns-path"
+        "Path (string) to directory containing test namespaces."
+        :default nil]
        ["-x" "--extra-test-ns"
         "Additional test namespace (string) to add (can be repeated)."
         :default  []
@@ -113,10 +119,21 @@
   (binding [*ns* (find-ns 'clojure.core)]
     (eval `(dosync (alter clojure.core/*loaded-libs* conj '~namespace)))))
 
-(defn find-nses [patterns]
-  (for [ns (map name (blt/namespaces-on-classpath))
-        :when (some #(re-matches % ns) patterns)]
-    ns))
+(defn find-nses [ns-path regex-patterns]
+  "Given ns-path and regex-patterns returns:
+  * empty sequence when ns-path is nil and regex-patterns is empty
+  * all namespaces on ns-path (if regex-patterns is empty)
+  * all namespaces on the classpath that match any of the regex-patterns (if ns-path is nil)
+  * namespaces on ns-path that match any of the regex-patterns"
+  (let [namespaces (->> (cond
+                         (and (nil? ns-path) (empty? regex-patterns)) '()
+                         (nil? ns-path) (blt/namespaces-on-classpath)
+                         :else (blt/namespaces-on-classpath :classpath ns-path))
+                        (map name))]
+    (if (seq regex-patterns)
+      (filter (fn [namespace] (some #(re-matches % namespace) regex-patterns))
+              namespaces)
+      namespaces)))
 
 (defn -main
   "Produce test coverage report for some namespaces"
@@ -135,14 +152,18 @@
         add-test-nses (:extra-test-ns opts)
         ns-regexs     (map re-pattern (:ns-regexp opts))
         test-regexs   (map re-pattern (:test-ns-regexp opts))
+        ns-path       (:src-ns-path opts)
+        test-ns-path  (:test-ns-path opts)
         exclude-regex (map re-pattern (:ns-exclude-regex opts))
         start         (System/currentTimeMillis)
-        test-nses     (concat add-test-nses (find-nses test-regexs))
-        namespaces    (clojure.set/difference
-                        (into #{}
-                              (concat add-nses
-                                      (find-nses ns-regexs)))
-                        (into #{} (find-nses exclude-regex)))]
+        namespaces    (apply 
+                        list
+                        (set/difference
+                          (into #{}
+                                (concat add-nses
+                                        (find-nses ns-path ns-regexs)))
+                          (into #{} (find-nses ns-path exclude-regex))))
+        test-nses     (concat add-test-nses (find-nses test-ns-path test-regexs))]
     (if help?
       (println help)
       (binding [*ns*      (find-ns 'cloverage.coverage)
