@@ -154,7 +154,7 @@
         test-regexs   (map re-pattern (:test-ns-regex opts))
         ns-path       (:src-ns-path opts)
         test-ns-path  (:test-ns-path opts)
-        exclude-regex (map re-pattern (:ns-exclude-regex opts))
+        exclude-regexs(map re-pattern (:exclude-ns-regex opts))
         start         (System/currentTimeMillis)
         namespaces    (apply 
                         list
@@ -162,7 +162,7 @@
                           (into #{}
                                 (concat add-nses
                                         (find-nses ns-path ns-regexs)))
-                          (into #{} (find-nses ns-path exclude-regex))))
+                          (into #{} (find-nses ns-path exclude-regexs))))
         test-nses     (concat add-test-nses (find-nses test-ns-path test-regexs))]
     (if help?
       (println help)
