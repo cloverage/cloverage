@@ -95,6 +95,10 @@
         "Regex for instrumented namespaces (can be repeated)."
         :default  []
         :parse-fn (collecting-args-parser)]
+       ["-e" "--exclude-ns-regex"
+        "Regex for namespaces not to be instrumented (can be repeated)."
+        :default  []
+        :parse-fn (collecting-args-parser)]
        ["-t" "--test-ns-regex"
         "Regex for test namespaces (can be repeated)."
         :default []
@@ -150,8 +154,15 @@
         test-regexs   (map re-pattern (:test-ns-regex opts))
         ns-path       (:src-ns-path opts)
         test-ns-path  (:test-ns-path opts)
+        exclude-regexs(map re-pattern (:exclude-ns-regex opts))
         start         (System/currentTimeMillis)
-        namespaces    (concat add-nses      (find-nses ns-path ns-regexs))
+        namespaces    (apply 
+                        list
+                        (set/difference
+                          (into #{}
+                                (concat add-nses
+                                        (find-nses ns-path ns-regexs)))
+                          (into #{} (find-nses ns-path exclude-regexs))))
         test-nses     (concat add-test-nses (find-nses test-ns-path test-regexs))]
     (if help?
       (println help)
