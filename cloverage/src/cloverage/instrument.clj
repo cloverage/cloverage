@@ -6,6 +6,7 @@
   (:require [clojure.set :as set]
             [clojure.test :as test]
             [clojure.tools.logging :as log]
+            [cloverage.rewrite :refer [unchunk]]
             [riddley.walk :refer [macroexpand-all]]))
 
 (defn iobj? [form]
@@ -90,6 +91,7 @@
     `#{cond}        :cond    ; special case cond to avoid false partial
     `#{loop let}    :let
     `#{letfn}       :letfn
+    `#{for doseq}   :for
     `#{fn}          :fn
     `#{defn}        :defn    ; don't expand defn to preserve stack traces
     `#{defmulti}    :defmulti ; special case defmulti to avoid boilerplate
@@ -357,6 +359,16 @@
                             (= head 'catch)   (wrap-catch f line elem)
                             :else             (wrap f line elem)))))
                     body))))
+
+(defmethod do-wrap :for [f line form env]
+  (tprnl "Wrapping " (class form) form)
+  (let [expanded (unchunk form)]
+    (tprnl "Expanded" form "into" expanded)
+    (tprnl "Meta on expanded is" (meta expanded))
+    (if (= :list (form-type expanded env))
+      (let [wrapped (doall (map (wrapper f line) expanded))]
+        (f line (add-original form wrapped)))
+      (wrap f line (add-original form expanded)))))
 
 (defmethod do-wrap :list [f line form env]
   (tprnl "Wrapping " (class form) form)
