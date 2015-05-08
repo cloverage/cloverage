@@ -361,14 +361,7 @@
                     body))))
 
 (defmethod do-wrap :for [f line form env]
-  (tprnl "Wrapping " (class form) form)
-  (let [expanded (unchunk form)]
-    (tprnl "Expanded" form "into" expanded)
-    (tprnl "Meta on expanded is" (meta expanded))
-    (if (= :list (form-type expanded env))
-      (let [wrapped (doall (map (wrapper f line) expanded))]
-        (f line (add-original form wrapped)))
-      (wrap f line (add-original form expanded)))))
+  (do-wrap f line (unchunk form) env))
 
 (defmethod do-wrap :list [f line form env]
   (tprnl "Wrapping " (class form) form)
