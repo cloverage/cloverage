@@ -156,7 +156,7 @@
         ns-path       (:src-ns-path opts)
         test-ns-path  (:test-ns-path opts)
         start         (System/currentTimeMillis)
-        namespaces    (clojure.set/difference
+        namespaces    (set/difference
                         (into #{}
                               (concat add-nses
                                       (find-nses ns-path ns-regexs)))
