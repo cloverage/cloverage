@@ -166,7 +166,7 @@
       (println help)
       (binding [*ns*      (find-ns 'cloverage.coverage)
                 *debug*   debug?]
-        (println "Loading namespaces: " namespaces)
+        (println "Loading namespaces: " (apply list namespaces))
         (println "Test namespaces: " test-nses)
         (doseq [namespace (in-dependency-order (map symbol namespaces))]
           (binding [*instrumented-ns* namespace]
