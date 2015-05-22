@@ -95,6 +95,10 @@
         "Regex for instrumented namespaces (can be repeated)."
         :default  []
         :parse-fn (collecting-args-parser)]
+       ["-e" "--ns-exclude-regex"
+        "Regex for namespaces not to be instrumented (can be repeated)."
+        :default  []
+        :parse-fn (collecting-args-parser)]
        ["-t" "--test-ns-regex"
         "Regex for test namespaces (can be repeated)."
         :default []
@@ -148,16 +152,21 @@
         add-test-nses (:extra-test-ns opts)
         ns-regexs     (map re-pattern (:ns-regex opts))
         test-regexs   (map re-pattern (:test-ns-regex opts))
+        exclude-regex (map re-pattern (:ns-exclude-regex opts))
         ns-path       (:src-ns-path opts)
         test-ns-path  (:test-ns-path opts)
         start         (System/currentTimeMillis)
-        namespaces    (concat add-nses      (find-nses ns-path ns-regexs))
+        namespaces    (set/difference
+                        (into #{}
+                              (concat add-nses
+                                      (find-nses ns-path ns-regexs)))
+                        (into #{} (find-nses ns-path exclude-regex)))
         test-nses     (concat add-test-nses (find-nses test-ns-path test-regexs))]
     (if help?
       (println help)
       (binding [*ns*      (find-ns 'cloverage.coverage)
                 *debug*   debug?]
-        (println "Loading namespaces: " namespaces)
+        (println "Loading namespaces: " (apply list namespaces))
         (println "Test namespaces: " test-nses)
         (doseq [namespace (in-dependency-order (map symbol namespaces))]
           (binding [*instrumented-ns* namespace]
