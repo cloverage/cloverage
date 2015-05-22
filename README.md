@@ -60,6 +60,14 @@ In order to release to Clojars, you'll need to set `CLOJARS_USERNAME` and `CLOJA
 e.g. `CLOJARS_USERNAME=lshift CLOJARS_PASSWORD=<LShift Clojars password> lein release` in each of the cloverage and lein-cloverage folders.
 
 ## Changelog
+1.0.7
+- Features
+  - Option to exclude namespaces (#57/#73)
+  - Improved records fixes for Compojure (#66/#69)
+  - Option to specify a path to src/test namespaces (#70)
+- Bugfixes
+  - Correct test namespaces regex usage (#67)
+
 1.0.6
 - Features
   - Automatic push out of snapshot releases (#65)
