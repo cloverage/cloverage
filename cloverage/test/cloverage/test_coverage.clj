@@ -226,6 +226,28 @@
     (is (= (find-nses ["test/cloverage/sample"] [#".*dummy.*"])
            ["cloverage.sample.dummy.sample"]))))
 
+(deftest test-flags
+  (binding [cloverage.coverage/*exit-after-test* false]
+    (let [main (fn [& args]
+                 (binding [*out* (new java.io.StringWriter)]
+                   (apply cloverage.coverage/-main args)))]
+      (testing "test paths can be filtered with --test-ns-regex"
+        (is (=
+             (main
+              "--no-html" "--nop"
+              "-s" "test/cloverage/sample"
+              "-t" "ns.that.does.not.exist"
+              "cloverage.sample")
+            -1)))
+      (testing "--extra-test-ns will not get filtered by --test-ns-regex"
+        (is (=
+             (main
+              "--no-html" "--nop"
+              "-x" "cloverage.sample"
+              "-t" "ns.that.does.not.exist"
+              "cloverage.sample")
+            0))))))
+
 (deftest test-main
   (binding [cloverage.coverage/*exit-after-test* false]
     (is (=
