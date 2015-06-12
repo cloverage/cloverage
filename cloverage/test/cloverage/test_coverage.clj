@@ -199,26 +199,32 @@
 
 (deftest test-find-nses
   (testing "empty sequence is returned when neither paths nor regexs are provided"
-    (is (empty? (find-nses nil []))))
-  (testing "all namespaces in a directory get returned when only path is provided"
-    (is (compare-colls (find-nses "test/cloverage/sample" [])
-                       ["cloverage.sample.dummy-sample"
-                        "cloverage.sample.read-eval-sample"])))
+    (is (empty? (find-nses [] []))))
+  (testing "all namespaces in the provided directories get returned"
+    (testing "when one path is provided"
+      (is (compare-colls (find-nses ["test/cloverage/sample"] [])
+                         ["cloverage.sample.dummy.sample"
+                          "cloverage.sample.read-eval.sample"])))
+    (testing "when multiple paths are provided"
+      (is (compare-colls (find-nses ["test/cloverage/sample/read_eval"
+                                     "test/cloverage/sample/dummy"] [])
+                         ["cloverage.sample.dummy.sample"
+                          "cloverage.sample.read-eval.sample"]))))
   (testing "only matching namespaces (from classpath) are returned when only
            regex patterns are provided:"
     (testing "single pattern case"
-      (is (= (find-nses nil [#"^cloverage\.sample\.read.*$"])
-             ["cloverage.sample.read-eval-sample"])))
+      (is (= (find-nses [] [#"^cloverage\.sample\.read.*$"])
+             ["cloverage.sample.read-eval.sample"])))
     (testing "multiple patterns case"
-      (is (compare-colls (find-nses nil [#"^cloverage\.sample\.read.*$"
-                                         #"^cloverage\..*coverage$"])
-                         ["cloverage.sample.read-eval-sample"
+      (is (compare-colls (find-nses [] [#"^cloverage\.sample\.read.*$"
+                                        #"^cloverage\..*coverage$"])
+                         ["cloverage.sample.read-eval.sample"
                           "cloverage.test-coverage"
                           "cloverage.coverage"]))))
   (testing "only matching namespaces from a directory are returned when both path
            and patterns are provided"
-    (is (= (find-nses "test/cloverage/sample" [#".*dummy.*"])
-           ["cloverage.sample.dummy-sample"]))))
+    (is (= (find-nses ["test/cloverage/sample"] [#".*dummy.*"])
+           ["cloverage.sample.dummy.sample"]))))
 
 (deftest test-main
   (binding [cloverage.coverage/*exit-after-test* false]

@@ -1,4 +1,4 @@
-(ns cloverage.sample.read-eval-sample)
+(ns cloverage.sample.read-eval.sample)
 
 (def ^:dynamic *dynamic-var*)
 
