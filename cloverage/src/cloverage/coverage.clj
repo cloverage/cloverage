@@ -103,11 +103,11 @@
         "Regex for test namespaces (can be repeated)."
         :default []
         :parse-fn (collecting-args-parser)]
-       ["-p" "--src-ns-paths"
+       ["-p" "--src-ns-path"
         "Path (string) to directory containing source code namespaces (can be repeated)."
         :default  []
         :parse-fn (collecting-args-parser)]
-       ["-s" "--test-ns-paths"
+       ["-s" "--test-ns-path"
         "Path (string) to directory containing test namespaces (can be repeated)."
         :default  []
         :parse-fn (collecting-args-parser)]
@@ -156,8 +156,8 @@
         ns-regexs     (map re-pattern (:ns-regex opts))
         test-regexs   (map re-pattern (:test-ns-regex opts))
         exclude-regex (map re-pattern (:ns-exclude-regex opts))
-        ns-paths      (:src-ns-paths opts)
-        test-ns-paths (:test-ns-paths opts)
+        ns-paths      (:src-ns-path opts)
+        test-ns-paths (:test-ns-path opts)
         start         (System/currentTimeMillis)
         namespaces    (set/difference
                         (into #{}
