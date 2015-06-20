@@ -84,6 +84,8 @@
         "Produce an HTML report." :default true]
        ["--[no-]emma-xml"
         "Produce an EMMA XML report. [emma.sourceforge.net]" :default false]
+       ["--[no-]codecov"
+        "Generate a JSON report for Codecov.io" :default false]
        ["--[no-]coveralls"
         "Send a JSON report to Coveralls if on a CI server" :default false]
        ["--[no-]raw"
@@ -146,6 +148,7 @@
         html?         (:html opts)
         raw?          (:raw opts)
         emma-xml?     (:emma-xml opts)
+        codecov?      (:codecov opts)
         coveralls?    (:coveralls opts)
         summary?      (:summary opts)
         debug?        (:debug opts)
@@ -199,6 +202,7 @@
                              (html-summary output stats))
                            (when emma-xml? (emma-xml-report output stats))
                            (when raw? (raw-report output stats @*covered*))
+                           (when codecov? (codecov-report output stats))
                            (when coveralls? (coveralls-report output stats))
                            (when summary? (summary stats))]]
 
