@@ -26,7 +26,9 @@
 (defn cover [idx]
   "Mark the given file and line in as having been covered."
   (if (contains? @*covered* idx)
-    (swap! *covered* assoc-in [idx :covered] true)
+    (swap! *covered* #(-> %
+                          (assoc-in [idx :covered] true)
+                          (update-in [idx :hits] (fnil inc 1))))
     (log/warn (str "Couldn't track coverage for form with index " idx
                    " covered has " (count @*covered*) "."))))
 

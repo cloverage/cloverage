@@ -41,11 +41,16 @@
 (defn line-stats [forms]
   (for [[line line-forms] (group-by-line forms)]
     (let [total (count (filter :tracked line-forms))
-          hit   (count (filter :covered line-forms))]
+          hit   (count (filter :covered line-forms))
+          times-hit (if (zero? hit)
+                      hit
+                      (apply max (filter number?
+                                         (map :hits line-forms))))]
       {:line     line
        :text     (:text (first line-forms))
        :total    total
        :hit      hit
+       :times-hit times-hit
        :blank?   (empty? (:text (first line-forms)))
        :covered? (and (> total 0) (= total hit))
        :partial? (and (> hit 0) (< hit total))
