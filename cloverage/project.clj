@@ -18,10 +18,10 @@
   }
   :dependencies [[org.clojure/clojure "1.6.0"]
                  [org.clojure/tools.reader "0.9.2"]
-                 [org.clojure/tools.cli "0.2.2"]
-                 [org.clojure/tools.logging "0.2.3"]
-                 [org.clojure/data.xml "0.0.7"]
-                 [bultitude "0.2.0"]
-                 [riddley "0.1.4"]
-                 [slingshot "0.10.3"]
-                 [cheshire "5.3.1"]])
+                 [org.clojure/tools.cli "0.3.1"]
+                 [org.clojure/tools.logging "0.3.1"]
+                 [org.clojure/data.xml "0.0.8"]
+                 [bultitude "0.2.7"]
+                 [riddley "0.1.10"]
+                 [slingshot "0.12.2"]
+                 [cheshire "5.5.0"]])
