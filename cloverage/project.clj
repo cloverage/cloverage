@@ -17,7 +17,7 @@
     :scm :git ; Because we're not in the top-level directory, so it doesn't auto-detect
     :deploy-via :clojars
   }
-  :dependencies [[org.clojure/clojure "1.6.0"]
+  :dependencies [[org.clojure/clojure "1.4.0"]
                  [org.clojure/tools.reader "0.9.2"]
                  [org.clojure/tools.cli "0.3.1"]
                  [org.clojure/tools.logging "0.3.1"]
