@@ -2,7 +2,8 @@
   (:import [java.io File])
   (:use [clojure.test :exclude [report]]
         [cloverage coverage instrument source])
-  (:require [riddley.walk :refer [macroexpand-all]]))
+  (:require [riddley.walk :refer [macroexpand-all]]
+            [clojure.string :as str]))
 
 (defn- denamespace [tree]
   "Helper function to allow backticking w/o namespace interpolation."
@@ -225,7 +226,11 @@
     (is (=
          (cloverage.coverage/-main
           "-o" "out"
+          "-j" "out/junit.xml"
           "--text" "--html" "--raw" "--emma-xml" "--coveralls"
           "-x" "cloverage.sample"
           "cloverage.sample")
-         0))))
+         0))
+    (is (= ["<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+            "<testsuites>"]
+           (take 2 (str/split (slurp "out/junit.xml") #"\n"))))))

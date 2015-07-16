@@ -7,6 +7,7 @@
         [cloverage source instrument debug report dependency])
   (:require [clojure.set :as set]
             [clojure.test :as test]
+            [clojure.test.junit :as junit]
             [clojure.tools.logging :as log]
             [bultitude.core :as blt])
   (:gen-class))
@@ -76,6 +77,7 @@
 (defn parse-args [args]
   (cli args
        ["-o" "--output" "Output directory." :default "target/coverage"]
+       ["-j" "--junit-output" "Output test results as junit xml file"]
        ["--[no-]text"
         "Produce a text report." :default false]
        ["--[no-]html"
@@ -140,6 +142,7 @@
   [& args]
   (let [[opts add-nses help] (parse-args args)
         output        (:output opts)
+        junit-output  (:junit-output opts)
         text?         (:text opts)
         html?         (:html opts)
         raw?          (:raw opts)
@@ -177,10 +180,16 @@
           ;; mark the ns as loaded
           (mark-loaded namespace))
         (println "Instrumented namespaces.")
+        (when output
+          (.mkdir (File. output)))
         (let [test-result (when-not (empty? test-nses)
                             (let [test-syms (map symbol test-nses)]
                               (apply require (map symbol test-nses))
-                              (apply test/run-tests (map symbol test-nses))))
+                              (if junit-output
+                                (binding [test/*test-out* (clojure.java.io/writer junit-output)]
+                                  (junit/with-junit-output
+                                   (apply test/run-tests (map symbol test-nses))))
+                                (apply test/run-tests (map symbol test-nses)))))
               ;; sum up errors as in lein test
               errors      (when test-result
                             (reduce + ((juxt :error :fail) test-result)))
@@ -190,7 +199,6 @@
                             :else             errors)]
           (println "Ran tests.")
           (when output
-            (.mkdir (File. output))
             (let [stats (gather-stats @*covered*)
                   results [(when text? (text-report output stats))
                            (when html? (html-report output stats)
