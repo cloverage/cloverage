@@ -4,6 +4,7 @@
             [clojure.set :as set]
             [clojure.test :as test]
             [clojure.tools.cli :as cli]
+            [clojure.test.junit :as junit]
             [clojure.tools.logging :as log]
             [cloverage.debug :as debug]
             [cloverage.dependency :as dep]
@@ -86,6 +87,7 @@
 (defn parse-args [args]
   (cli/cli args
            ["-o" "--output" "Output directory." :default "target/coverage"]
+           ["-j" "--junit-output" "Output test results as junit xml file"]
            ["--[no-]text"
             "Produce a text report." :default false]
            ["--[no-]html"
@@ -184,6 +186,7 @@
   [& args]
   (let [[opts add-nses help] (parse-args args)
         output        (:output opts)
+        junit-output  (:junit-output opts)
         text?         (:text opts)
         html?         (:html opts)
         raw?          (:raw opts)
@@ -224,9 +227,16 @@
           ;; mark the ns as loaded
           (mark-loaded namespace))
         (println "Instrumented namespaces.")
+        (when output
+          (.mkdir (File. output)))
         (let [test-result (when-not (empty? test-nses)
                             (let [test-syms (map symbol test-nses)]
-                              (runner test-syms)))
+                              (apply require (map symbol test-nses))
+                              (if junit-output
+                                (binding [test/*test-out* (clojure.java.io/writer junit-output)]
+                                  (junit/with-junit-output
+                                   (apply test/run-tests (map symbol test-nses))))
+                                (apply test/run-tests (map symbol test-nses)))))
               ;; sum up errors as in lein test
               errors      (when test-result
                             (:errors test-result))
@@ -247,7 +257,6 @@
                            (when codecov? (rep/codecov-report output stats))
                            (when coveralls? (rep/coveralls-report output stats))
                            (when summary? (rep/summary stats))]]
-
               (println "Produced output in" (.getAbsolutePath (File. output)) ".")
               (doseq [r results] (when r (println r)))))
           (if *exit-after-test*
