@@ -3,6 +3,9 @@ lein: lein2
 install: (cd cloverage && lein2 deps) && (cd lein-cloverage && lein2 deps)
 script: (cd cloverage && lein2 test) && (cd lein-cloverage && lein2 test)
 sudo: false
+cache:
+  directories:
+    - $HOME/.m2
 
 jdk:
   - oraclejdk7
