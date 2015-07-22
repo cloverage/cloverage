@@ -21,7 +21,7 @@
 
 (deftest correctly-resolves-macro-symbols
   ;; simply ensure that instrumentation succeeds without errors
-  (is (instrument #'no-instr 'cloverage.sample.read-eval-sample)))
+  (is (instrument #'no-instr 'cloverage.sample.read-eval.sample)))
 
 (defn- form-type-
   "Provide a default empty env to form-type, purely for easier testing."

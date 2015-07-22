@@ -108,11 +108,13 @@
         :default []
         :parse-fn (collecting-args-parser)]
        ["-p" "--src-ns-path"
-        "Path (string) to directory containing source code namespaces."
-        :default nil]
+        "Path (string) to directory containing source code namespaces (can be repeated)."
+        :default  []
+        :parse-fn (collecting-args-parser)]
        ["-s" "--test-ns-path"
-        "Path (string) to directory containing test namespaces."
-        :default nil]
+        "Path (string) to directory containing test namespaces (can be repeated)."
+        :default  []
+        :parse-fn (collecting-args-parser)]
        ["-x" "--extra-test-ns"
         "Additional test namespace (string) to add (can be repeated)."
         :default  []
@@ -123,16 +125,17 @@
   (binding [*ns* (find-ns 'clojure.core)]
     (eval `(dosync (alter clojure.core/*loaded-libs* conj '~namespace)))))
 
-(defn find-nses [ns-path regex-patterns]
-  "Given ns-path and regex-patterns returns:
-  * empty sequence when ns-path is nil and regex-patterns is empty
-  * all namespaces on ns-path (if regex-patterns is empty)
-  * all namespaces on the classpath that match any of the regex-patterns (if ns-path is nil)
-  * namespaces on ns-path that match any of the regex-patterns"
+(defn find-nses
+  "Given ns-paths and regex-patterns returns:
+  * empty sequence when ns-paths is empty and regex-patterns is empty
+  * all namespaces on ns-paths (if regex-patterns is empty)
+  * all namespaces on the classpath that match any of the regex-patterns (if ns-paths is empty)
+  * namespaces on ns-paths that match any of the regex-patterns"
+  [ns-paths regex-patterns]
   (let [namespaces (->> (cond
-                         (and (nil? ns-path) (empty? regex-patterns)) '()
-                         (nil? ns-path) (blt/namespaces-on-classpath)
-                         :else (blt/namespaces-on-classpath :classpath ns-path))
+                         (and (empty? ns-paths) (empty? regex-patterns)) '()
+                         (empty? ns-paths) (blt/namespaces-on-classpath)
+                         :else (mapcat blt/namespaces-in-dir ns-paths))
                         (map name))]
     (if (seq regex-patterns)
       (filter (fn [namespace] (some #(re-matches % namespace) regex-patterns))
@@ -158,15 +161,15 @@
         ns-regexs     (map re-pattern (:ns-regex opts))
         test-regexs   (map re-pattern (:test-ns-regex opts))
         exclude-regex (map re-pattern (:ns-exclude-regex opts))
-        ns-path       (:src-ns-path opts)
-        test-ns-path  (:test-ns-path opts)
+        ns-paths      (:src-ns-path opts)
+        test-ns-paths (:test-ns-path opts)
         start         (System/currentTimeMillis)
         namespaces    (set/difference
                         (into #{}
                               (concat add-nses
-                                      (find-nses ns-path ns-regexs)))
-                        (into #{} (find-nses ns-path exclude-regex)))
-        test-nses     (concat add-test-nses (find-nses test-ns-path test-regexs))]
+                                      (find-nses ns-paths ns-regexs)))
+                        (into #{} (find-nses ns-paths exclude-regex)))
+        test-nses     (concat add-test-nses (find-nses test-ns-paths test-regexs))]
     (if help?
       (println help)
       (binding [*ns*      (find-ns 'cloverage.coverage)
