@@ -1,7 +1,7 @@
 (ns cloverage.source
-  (:import java.io.InputStreamReader
-           java.lang.IllegalArgumentException
-           clojure.lang.LineNumberingPushbackReader)
+  (:import java.lang.IllegalArgumentException)
+  (:require [clojure.tools.reader.reader-types :as rt]
+            [clojure.tools.reader :as r])
   (:use    [cloverage.debug]))
 
 (defn resource-path
@@ -16,21 +16,23 @@
   (if-let [resource (.getResourceAsStream
                       (clojure.lang.RT/baseLoader)
                       resource)]
-    (InputStreamReader. resource)
+    resource
     (throw (IllegalArgumentException. (str "Cannot find resource " resource)))))
 
 (defn form-reader [ns-symbol]
-  (LineNumberingPushbackReader. (resource-reader (resource-path ns-symbol))))
+  (rt/indexing-push-back-reader
+   (rt/input-stream-push-back-reader
+    (resource-reader (resource-path ns-symbol)))))
 
 (defn forms [ns-symbol]
-  (with-open [src (form-reader ns-symbol)]
+  (let [src (form-reader ns-symbol)]
     (loop [forms nil]
-      (if-let [form (read src false nil true)]
+      (if-let [form (r/read src false nil)]
         (recur (conj forms form))
         (reverse forms)))))
 
 (defn ns-form [ns-symbol]
-  (with-open [src (form-reader ns-symbol)]
+  (let [src (form-reader ns-symbol)]
     (first (drop-while #(not= 'ns (first %))
                        (take-while (comp not nil?)
-                                   (repeatedly #(read src false nil true)))))))
+                                   (repeatedly #(r/read src false nil)))))))

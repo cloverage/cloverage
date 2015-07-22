@@ -6,6 +6,7 @@
   (:require [clojure.set :as set]
             [clojure.test :as test]
             [clojure.tools.logging :as log]
+            [clojure.tools.reader :as r]
             [riddley.walk :refer [macroexpand-all]]))
 
 (defn iobj? [form]
@@ -25,7 +26,8 @@
                    (seq (map (partial propagate-line-numbers line) form))
                    (meta form))
                  form)
-          ret  (if line
+          ret  (if (and line
+                        (not (number? (:line (meta form)))))
                  (vary-meta recs assoc :line line)
                  recs)]
       ret)
@@ -397,12 +399,13 @@
   "Instruments and evaluates a list of forms."
   ([f-var lib]
     (let [filename (resource-path lib)]
-      (with-open [src (form-reader lib)]
+      (let [src (form-reader lib)]
         (loop [instrumented-forms nil]
           (if-let [form (binding [*read-eval* false]
-                          (read src false nil true))]
+                          (r/read src false nil))]
             (let [line-hint (:line (meta form))
-                  form      (if (iobj? form)
+                  form      (if (and (iobj? form)
+                                     (nil? (:file (meta form))))
                               (vary-meta form assoc :file filename)
                               form)
                   wrapped   (try
