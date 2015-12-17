@@ -23,14 +23,15 @@
      ~@body
      (gather-stats @*covered*)))
 
-(defn cover [idx]
+(defn cover
   "Mark the given file and line in as having been covered."
-  (if (contains? @*covered* idx)
-    (swap! *covered* #(-> %
-                          (assoc-in [idx :covered] true)
-                          (update-in [idx :hits] (fnil inc 1))))
-    (log/warn (str "Couldn't track coverage for form with index " idx
-                   " covered has " (count @*covered*) "."))))
+  [idx]
+  (let [covered (swap! *covered* #(if-let [{:keys [hits] :as data} (nth % idx nil)]
+                                    (assoc % idx (assoc data :covered true :hits (inc (or hits 0))))
+                                    %))]
+    (when-not (nth covered idx nil)
+      (log/warn (str "Couldn't track coverage for form with index " idx
+                     " covered has " (count covered) ".")))))
 
 (defmacro capture
   "Eval the given form and record that the given line on the given
