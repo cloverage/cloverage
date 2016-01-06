@@ -402,7 +402,8 @@
       (let [src (form-reader lib)]
         (loop [instrumented-forms nil]
           (if-let [form (binding [*read-eval* false]
-                          (r/read src false nil))]
+                                 (r/read {:eof nil
+                                          :read-cond :allow} src))]
             (let [line-hint (:line (meta form))
                   form      (if (and (iobj? form)
                                      (nil? (:file (meta form))))
