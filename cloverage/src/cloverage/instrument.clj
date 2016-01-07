@@ -403,6 +403,7 @@
         (loop [instrumented-forms nil]
           (if-let [form (binding [*read-eval* false]
                                  (r/read {:eof nil
+                                          :features #{:clj}
                                           :read-cond :allow} src))]
             (let [line-hint (:line (meta form))
                   form      (if (and (iobj? form)

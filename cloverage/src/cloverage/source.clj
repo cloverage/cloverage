@@ -38,4 +38,5 @@
     (first (drop-while #(not= 'ns (first %))
                        (take-while (comp not nil?)
                                    (repeatedly #(r/read {:eof nil
+                                                         :features #{:clj}
                                                          :read-cond :allow} src)))))))
