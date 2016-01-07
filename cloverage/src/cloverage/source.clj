@@ -4,27 +4,39 @@
             [clojure.tools.reader :as r])
   (:use    [cloverage.debug]))
 
-(defn resource-path
-  "Given a symbol representing a lib, return a classpath-relative path.  Borrowed from core.clj."
-  ([lib] (resource-path lib "clj"))
-  ([lib extension]
-    (str (.. (name lib)
-             (replace \- \_)
-             (replace \. \/))
-         extension)))
-
 (defn resource-reader [resource]
   (when-let [resource (.getResourceAsStream
-                        (clojure.lang.RT/baseLoader)
-                        resource)]
+                        (clojure.lang.RT/baseLoader) resource)]
             resource))
+
+(defn concat-path
+  [lib extension]
+  (str (.. (name lib)
+           (replace \- \_)
+           (replace \. \/))
+       extension))
+
+(defn resource-path*
+  "Given a symbol representing a lib, return a classpath-relative path (clj or cljc). Borrowed from core.clj."
+  [lib]
+  (let [clj-path (concat-path lib ".clj")
+        clj-file (resource-reader clj-path)]
+       (if clj-file
+         clj-path
+         (let [cljc-path (concat-path lib ".cljc")
+               cljc-file (resource-reader cljc-path)]
+              (if cljc-file
+                cljc-path
+            (throw (IllegalArgumentException.
+                     (str "Cannot find resource " lib " (.clj or .cljc)"))))))))
+
+(def resource-path (memoize resource-path*))
+
 
 (defn form-reader [ns-symbol]
   (rt/indexing-push-back-reader
     (rt/input-stream-push-back-reader
-      (or (resource-reader (resource-path ns-symbol ".clj"))
-          (resource-reader (resource-path ns-symbol ".cljc"))
-          (throw (IllegalArgumentException. (str "Cannot find resource " ns-symbol " (.clj or .cljc)")))))))
+      (resource-reader (resource-path ns-symbol)))))
 
 (defn forms [ns-symbol]
   (let [src (form-reader ns-symbol)]
