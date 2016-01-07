@@ -17,7 +17,12 @@
                       (clojure.lang.RT/baseLoader)
                       resource)]
     resource
-    (throw (IllegalArgumentException. (str "Cannot find resource " resource)))))
+    ;; try cljc if clj not found
+    (if-let [resource (.getResourceAsStream
+                        (clojure.lang.RT/baseLoader)
+                        (str resource "c"))]
+      resource
+      (throw (IllegalArgumentException. (str "Cannot find resource " resource))))))
 
 (defn form-reader [ns-symbol]
   (rt/indexing-push-back-reader
@@ -35,4 +40,7 @@
   (let [src (form-reader ns-symbol)]
     (first (drop-while #(not= 'ns (first %))
                        (take-while (comp not nil?)
-                                   (repeatedly #(r/read src false nil)))))))
+                                   (repeatedly #(r/read {:eof nil
+                                                         :features #{:clj}
+                                                         :read-cond :allow}
+                                                        src)))))))
