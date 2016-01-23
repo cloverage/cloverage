@@ -138,6 +138,25 @@
           xml/sexp-as-element (xml/emit wr)))
     nil))
 
+(defn lcov-report
+  "Write LCOV report to '${out-dir}/lcov.info'."
+  [out-dir forms]
+  (let [file (File. out-dir "lcov.info")]
+    (.mkdirs (.getParentFile file))
+    (with-out-writer file
+      (doseq [[rel-file file-forms] (group-by :file forms)]
+        (let [lines (line-stats file-forms)
+              instrumented (filter :instrumented? lines)]
+          (println "TN:")
+          (printf "SF:%s%n" rel-file)
+          (doseq [line instrumented]
+            (printf "DA:%d,%d%n" (:line line) (:hit line)))
+          (printf "LF:%d%n" (count instrumented))
+          (printf "LH:%d%n" (count (filter (fn [line] (> (:hit line) 0)) lines)))
+          (println "end_of_record"))))
+    nil))
+
+
 (defn- html-spaces [s]
   (.replace s " " "&nbsp;"))
 
