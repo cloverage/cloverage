@@ -25,12 +25,12 @@
                          (.getResourceAsStream
                           (get-loader)
                           resource))]
-    resource
+    (java.io.InputStreamReader. resource) ; We assume the default charset is set correctly
     (throw (IllegalArgumentException. (str "Cannot find resource " resource)))))
 
 (defn form-reader [ns-symbol]
   (rt/indexing-push-back-reader
-   (rt/input-stream-push-back-reader
+   (java.io.PushbackReader.
     (resource-reader (resource-path ns-symbol)))))
 
 (defn forms [ns-symbol]
