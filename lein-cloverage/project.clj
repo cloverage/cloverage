@@ -5,6 +5,7 @@
         :dir  ".."
         :url  "https://www.github.com/lshift/cloverage"
         :tag  "HEAD"}
+  :vcs :git
   :license {:name "Eclipse Public License - v 1.0"
             :url "http://www.eclipse.org/legal/epl-v10.html"
             :distribution :repo
