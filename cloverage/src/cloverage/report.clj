@@ -178,6 +178,7 @@
       (with-out-writer file
         (println "<html>")
         (println " <head>")
+        (println "   <meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\">")
         (printf "  <link rel=\"stylesheet\" href=\"%scoverage.css\"/>" rootpath)
         (println "  <title>" rel-file "</title>")
         (println " </head>")
@@ -232,6 +233,7 @@
     (with-out-writer index
       (println "<html>")
       (println " <head>")
+      (println "   <meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\">")
       (println "  <link rel=\"stylesheet\" href=\"./coverage.css\"/>")
       (println "  <title>Coverage Summary</title>")
       (println " </head>")
