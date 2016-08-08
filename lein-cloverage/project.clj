@@ -9,12 +9,12 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"
             :distribution :repo
             :comments "same as Clojure"}
-  :plugins [[lein-release "1.0.6"]]
+  :plugins [[lein-release "1.0.9"]]
   :lein-release {
     :scm :git ; Because we're not in the top-level directory, so it doesn't auto-detect
     :deploy-via :clojars
   }
   :deploy-repositories [["clojars" {:username :env/clojars_username :password :env/clojars_password :sign-releases false}]]
   :min-lein-version "2.0.0"
-  :dependencies [[bultitude "0.2.0"]]
+  :dependencies [[bultitude "0.2.8"]]
   :eval-in-leiningen true)
