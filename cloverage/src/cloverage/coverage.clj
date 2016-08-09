@@ -26,7 +26,9 @@
 (defn cover [idx]
   "Mark the given file and line in as having been covered."
   (if (contains? @*covered* idx)
-    (swap! *covered* assoc-in [idx :covered] true)
+    (swap! *covered* #(-> %
+                          (assoc-in [idx :covered] true)
+                          (update-in [idx :hits] (fnil inc 1))))
     (log/warn (str "Couldn't track coverage for form with index " idx
                    " covered has " (count @*covered*) "."))))
 
@@ -82,6 +84,8 @@
         "Produce an HTML report." :default true]
        ["--[no-]emma-xml"
         "Produce an EMMA XML report. [emma.sourceforge.net]" :default false]
+       ["--[no-]codecov"
+        "Generate a JSON report for Codecov.io" :default false]
        ["--[no-]coveralls"
         "Send a JSON report to Coveralls if on a CI server" :default false]
        ["--[no-]raw"
@@ -93,6 +97,10 @@
        ["--[no-]nop" "Instrument with noops." :default false]
        ["-n" "--ns-regex"
         "Regex for instrumented namespaces (can be repeated)."
+        :default  []
+        :parse-fn (collecting-args-parser)]
+       ["-e" "--ns-exclude-regex"
+        "Regex for namespaces not to be instrumented (can be repeated)."
         :default  []
         :parse-fn (collecting-args-parser)]
        ["-t" "--test-ns-regex"
@@ -140,6 +148,7 @@
         html?         (:html opts)
         raw?          (:raw opts)
         emma-xml?     (:emma-xml opts)
+        codecov?      (:codecov opts)
         coveralls?    (:coveralls opts)
         summary?      (:summary opts)
         debug?        (:debug opts)
@@ -148,16 +157,21 @@
         add-test-nses (:extra-test-ns opts)
         ns-regexs     (map re-pattern (:ns-regex opts))
         test-regexs   (map re-pattern (:test-ns-regex opts))
+        exclude-regex (map re-pattern (:ns-exclude-regex opts))
         ns-path       (:src-ns-path opts)
         test-ns-path  (:test-ns-path opts)
         start         (System/currentTimeMillis)
-        namespaces    (concat add-nses      (find-nses ns-path ns-regexs))
+        namespaces    (set/difference
+                        (into #{}
+                              (concat add-nses
+                                      (find-nses ns-path ns-regexs)))
+                        (into #{} (find-nses ns-path exclude-regex)))
         test-nses     (concat add-test-nses (find-nses test-ns-path test-regexs))]
     (if help?
       (println help)
       (binding [*ns*      (find-ns 'cloverage.coverage)
                 *debug*   debug?]
-        (println "Loading namespaces: " namespaces)
+        (println "Loading namespaces: " (apply list namespaces))
         (println "Test namespaces: " test-nses)
         (doseq [namespace (in-dependency-order (map symbol namespaces))]
           (binding [*instrumented-ns* namespace]
@@ -188,6 +202,7 @@
                              (html-summary output stats))
                            (when emma-xml? (emma-xml-report output stats))
                            (when raw? (raw-report output stats @*covered*))
+                           (when codecov? (codecov-report output stats))
                            (when coveralls? (coveralls-report output stats))
                            (when summary? (summary stats))]]
 

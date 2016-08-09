@@ -62,10 +62,14 @@ e.g. `CLOJARS_USERNAME=lshift CLOJARS_PASSWORD=<LShift Clojars password> lein re
 ## Changelog
 1.0.6
 - Features
+  - Option to exclude namespaces (#57/#73)
+  - Improved records fixes for Compojure (#66/#69)
+  - Option to specify a path to src/test namespaces (#70)
   - Automatic push out of snapshot releases (#65)
   - Handle records correctly (#59)
   - Text summary of results (#50)
 - Bugfixes
+  - Correct test namespaces regex usage (#67)
   - Cope with zero-namespace situations correctly (#62)
 
 1.0.5:

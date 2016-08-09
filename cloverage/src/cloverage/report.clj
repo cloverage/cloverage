@@ -41,11 +41,16 @@
 (defn line-stats [forms]
   (for [[line line-forms] (group-by-line forms)]
     (let [total (count (filter :tracked line-forms))
-          hit   (count (filter :covered line-forms))]
+          hit   (count (filter :covered line-forms))
+          times-hit (if (zero? hit)
+                      hit
+                      (apply max (filter number?
+                                         (map :hits line-forms))))]
       {:line     line
        :text     (:text (first line-forms))
        :total    total
        :hit      hit
+       :times-hit times-hit
        :blank?   (empty? (:text (first line-forms)))
        :covered? (and (> total 0) (= total hit))
        :partial? (and (> hit 0) (< hit total))
@@ -173,6 +178,7 @@
       (with-out-writer file
         (println "<html>")
         (println " <head>")
+        (println "   <meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\">")
         (printf "  <link rel=\"stylesheet\" href=\"%scoverage.css\"/>" rootpath)
         (println "  <title>" rel-file "</title>")
         (println " </head>")
@@ -227,6 +233,7 @@
     (with-out-writer index
       (println "<html>")
       (println " <head>")
+      (println "   <meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\">")
       (println "  <link rel=\"stylesheet\" href=\"./coverage.css\"/>")
       (println "  <title>Coverage Summary</title>")
       (println " </head>")
@@ -317,6 +324,32 @@
             (print (json/generate-string {:service_job_id job-id
                                           :service_name service
                                           :source_files covdata}))))))
+
+
+(defn codecov-report [out-dir forms]
+  (println "codecov start")
+  (let [data (filter (fn [[file _]] file) (group-by :file forms))
+        covdata
+        (into {}
+              (map
+               (fn [[file file-forms]]
+                 ;; https://codecov.io/api#post-json-report
+                 ;; > 0: covered (number of times hit)
+                 ;; true: partially covered
+                 ;; 0: not covered
+                 ;; null: skipped/ignored/empty
+                 ;; the first item in the list must be a null
+                 (vector file
+                         (cons nil
+                               (mapv (fn [line]
+                                       (cond (:blank?   line) nil
+                                             (:covered? line) (:times-hit line)
+                                             (:partial? line) true
+                                             (:instrumented? line) 0
+                                             :else nil)) (line-stats file-forms)))))
+               data))]
+    (with-out-writer (File. out-dir "codecov.json")
+      (print (json/generate-string {:coverage covdata})))))
 
 (defn raw-report [out-dir stats covered]
   (with-out-writer (File. (File. out-dir) "raw-data.clj")
