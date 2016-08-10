@@ -12,17 +12,17 @@
             :distribution :repo
             :comments "same as Clojure"}
   :deploy-repositories [["clojars" {:username :env/clojars_username :password :env/clojars_password :sign-releases false}]]
-  :plugins [[lein-release "1.0.6"]]
+  :plugins [[lein-release "1.0.9"]]
   :lein-release {
     :scm :git ; Because we're not in the top-level directory, so it doesn't auto-detect
     :deploy-via :clojars
   }
-  :dependencies [[org.clojure/clojure "1.4.0"]
-                 [org.clojure/tools.reader "0.9.2"]
-                 [org.clojure/tools.cli "0.3.1"]
+  :dependencies [[org.clojure/clojure "1.8.0"]
+                 [org.clojure/tools.reader "0.10.0"]
+                 [org.clojure/tools.cli "0.3.5"]
                  [org.clojure/tools.logging "0.3.1"]
                  [org.clojure/data.xml "0.0.8"]
-                 [bultitude "0.2.7"]
-                 [riddley "0.1.10"]
+                 [bultitude "0.2.8"]
+                 [riddley "0.1.12"]
                  [slingshot "0.12.2"]
-                 [cheshire "5.5.0"]])
+                 [cheshire "5.6.3"]])
