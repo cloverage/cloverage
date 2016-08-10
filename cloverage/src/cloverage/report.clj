@@ -7,6 +7,15 @@
             [clojure.data.xml :as xml]
             [cheshire.core :as json]))
 
+(def html-escapes
+  { \space "&nbsp;"
+    \& "&amp;"
+    \< "&lt;"
+    \> "&gt;"
+    \" "&quot;"
+    \' "&#x27;"
+    \/ "&#x2F;"})
+
 ;; borrowed from duck-streams
 (defmacro with-out-writer
   "Opens a writer on f, binds it to *out*, and evalutes body.
@@ -138,9 +147,6 @@
           xml/sexp-as-element (xml/emit wr)))
     nil))
 
-(defn- html-spaces [s]
-  (.replace s " " "&nbsp;"))
-
 ;; Java 7 has a much nicer API, but this supports Java 6.
 (defn relative-path [target-dir base-dir]
   ^{:doc "Return the path to target-dir relative to base-dir.
@@ -195,7 +201,7 @@
                 </span><br/>%n"
                 cls (:hit line) (:total line)
                 (:line line)
-                (html-spaces (:text line " ")))))
+                (cs/escape (:text line " ") html-escapes))))
         (println " </body>")
         (println "</html>")))))
 
