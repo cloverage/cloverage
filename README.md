@@ -1,7 +1,7 @@
 cloverage
 =========
 
-Simple clojure coverage tool. Currently requires clojure 1.4.
+Simple clojure coverage tool.
 
 [![Build Status](https://secure.travis-ci.org/lshift/cloverage.png?branch=master)](http://travis-ci.org/lshift/cloverage)
 
