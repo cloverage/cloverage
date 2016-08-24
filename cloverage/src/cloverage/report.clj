@@ -1,11 +1,30 @@
 (ns cloverage.report
-  (:import [java.io File])
+  (:import [java.io File]
+	   [java.security MessageDigest]
+	   [java.math BigInteger])
   (:use [clojure.java.io :only [writer reader copy]]
         [cloverage.source :only [resource-reader]])
   (:require clojure.pprint
             [clojure.string :as cs]
             [clojure.data.xml :as xml]
             [cheshire.core :as json]))
+
+(def html-escapes
+  { \space "&nbsp;"
+    \& "&amp;"
+    \< "&lt;"
+    \> "&gt;"
+    \" "&quot;"
+    \' "&#x27;"
+    \/ "&#x2F;"})
+
+(defn md5 [s]
+  (let [algorithm (MessageDigest/getInstance "MD5")
+	size (* 2 (.getDigestLength algorithm))
+	raw (.digest algorithm (.getBytes s))
+	sig (.toString (BigInteger. 1 raw) 16)
+	padding (apply str (repeat (- size (count sig)) "0"))]
+    (str padding sig)))
 
 ;; borrowed from duck-streams
 (defmacro with-out-writer
@@ -138,8 +157,28 @@
           xml/sexp-as-element (xml/emit wr)))
     nil))
 
-(defn- html-spaces [s]
-  (.replace s " " "&nbsp;"))
+(defn- write-lcov-report
+  "Write out lcov report to *out*"
+  [forms]
+  (doseq [[rel-file file-forms] (group-by :file forms)]
+        (let [lines (line-stats file-forms)
+              instrumented (filter :instrumented? lines)]
+          (println "TN:")
+          (printf "SF:%s%n" rel-file)
+          (doseq [line instrumented]
+            (printf "DA:%d,%d%n" (:line line) (:hit line)))
+          (printf "LF:%d%n" (count instrumented))
+          (printf "LH:%d%n" (count (filter (fn [line] (> (:hit line) 0)) lines)))
+          (println "end_of_record"))))
+
+(defn lcov-report
+  "Write LCOV report to '${out-dir}/lcov.info'."
+  [out-dir forms]
+  (let [file (File. out-dir "lcov.info")]
+    (.mkdirs (.getParentFile file))
+    (with-out-writer file (write-lcov-report forms))
+    nil))
+
 
 ;; Java 7 has a much nicer API, but this supports Java 6.
 (defn relative-path [target-dir base-dir]
@@ -195,7 +234,7 @@
                 </span><br/>%n"
                 cls (:hit line) (:total line)
                 (:line line)
-                (html-spaces (:text line " ")))))
+                (cs/escape (:text line " ") html-escapes))))
         (println " </body>")
         (println "</html>")))))
 
@@ -308,16 +347,11 @@
                     (fn [[file file-forms]]
                       (let [lines (line-stats file-forms)]
                         {:name file
-                         :source (cs/join "\n" (map :text lines))
-                         ;; 2: covered
-                         ;; 1: partially covered
+			 :source_digest (md5 (cs/join "\n" (map :text lines)))
+			 ;; >0: covered (number of times hit)
                          ;; 0: not covered
-                         :coverage (map (fn [line]
-                                          (cond (:blank?   line) nil
-                                                (:covered? line) 2
-                                                (:partial? line) 1
-                                                (:instrumented? line) 0
-                                                :else nil)) lines)}))
+			 ;; null: blank
+			 :coverage (map #(if (:instrumented? %) (:hit %)) lines)}))
                       (filter (fn [[file _]] file)
                               (group-by :file forms)))]
           (with-out-writer (File. out-dir "coveralls.json")

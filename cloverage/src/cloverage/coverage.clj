@@ -23,14 +23,15 @@
      ~@body
      (gather-stats @*covered*)))
 
-(defn cover [idx]
+(defn cover
   "Mark the given file and line in as having been covered."
-  (if (contains? @*covered* idx)
-    (swap! *covered* #(-> %
-                          (assoc-in [idx :covered] true)
-                          (update-in [idx :hits] (fnil inc 1))))
-    (log/warn (str "Couldn't track coverage for form with index " idx
-                   " covered has " (count @*covered*) "."))))
+  [idx]
+  (let [covered (swap! *covered* #(if-let [{:keys [hits] :as data} (nth % idx nil)]
+                                    (assoc % idx (assoc data :covered true :hits (inc (or hits 0))))
+                                    %))]
+    (when-not (nth covered idx nil)
+      (log/warn (str "Couldn't track coverage for form with index " idx
+                     " covered has " (count covered) ".")))))
 
 (defmacro capture
   "Eval the given form and record that the given line on the given
@@ -84,6 +85,8 @@
         "Produce an HTML report." :default true]
        ["--[no-]emma-xml"
         "Produce an EMMA XML report. [emma.sourceforge.net]" :default false]
+       ["--[no-]lcov"
+        "Produce a lcov/gcov report." :default false]
        ["--[no-]codecov"
         "Generate a JSON report for Codecov.io" :default false]
        ["--[no-]coveralls"
@@ -148,6 +151,7 @@
         html?         (:html opts)
         raw?          (:raw opts)
         emma-xml?     (:emma-xml opts)
+        lcov?         (:lcov opts)
         codecov?      (:codecov opts)
         coveralls?    (:coveralls opts)
         summary?      (:summary opts)
@@ -201,6 +205,7 @@
                            (when html? (html-report output stats)
                              (html-summary output stats))
                            (when emma-xml? (emma-xml-report output stats))
+                           (when lcov? (lcov-report output stats))
                            (when raw? (raw-report output stats @*covered*))
                            (when codecov? (codecov-report output stats))
                            (when coveralls? (coveralls-report output stats))

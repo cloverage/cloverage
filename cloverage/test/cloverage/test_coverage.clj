@@ -58,8 +58,8 @@
                (wrap #'track-coverage 0 '[1 "foo" bar]))))
 
 (deftest test-wrap-map
-  (is (expand= `(capture 0 {(capture 3 :a) (capture 4 ~'apple)
-                            (capture 1 :b)  (capture 2 ~'banana)})
+  (is (expand= `(capture 0 {(capture 1 :a) (capture 2 ~'apple)
+                            (capture 3 :b) (capture 4 ~'banana)})
                (wrap #'track-coverage 0 '{:a apple :b banana}))))
 
 (deftest test-wrap-list
@@ -203,7 +203,8 @@
   (testing "all namespaces in a directory get returned when only path is provided"
     (is (compare-colls (find-nses "test/cloverage/sample" [])
                        ["cloverage.sample.dummy-sample"
-                        "cloverage.sample.read-eval-sample"])))
+                        "cloverage.sample.read-eval-sample"
+                        "cloverage.sample.multibyte-sample"])))
   (testing "only matching namespaces (from classpath) are returned when only
            regex patterns are provided:"
     (testing "single pattern case"
@@ -225,7 +226,7 @@
     (is (=
          (cloverage.coverage/-main
           "-o" "out"
-          "--text" "--html" "--raw" "--emma-xml" "--coveralls"
+          "--text" "--html" "--raw" "--emma-xml" "--lcov" "--coveralls"
           "-x" "cloverage.sample"
           "cloverage.sample")
          0))))
