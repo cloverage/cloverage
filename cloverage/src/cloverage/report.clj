@@ -157,6 +157,29 @@
           xml/sexp-as-element (xml/emit wr)))
     nil))
 
+(defn- write-lcov-report
+  "Write out lcov report to *out*"
+  [forms]
+  (doseq [[rel-file file-forms] (group-by :file forms)]
+        (let [lines (line-stats file-forms)
+              instrumented (filter :instrumented? lines)]
+          (println "TN:")
+          (printf "SF:%s%n" rel-file)
+          (doseq [line instrumented]
+            (printf "DA:%d,%d%n" (:line line) (:hit line)))
+          (printf "LF:%d%n" (count instrumented))
+          (printf "LH:%d%n" (count (filter (fn [line] (> (:hit line) 0)) lines)))
+          (println "end_of_record"))))
+
+(defn lcov-report
+  "Write LCOV report to '${out-dir}/lcov.info'."
+  [out-dir forms]
+  (let [file (File. out-dir "lcov.info")]
+    (.mkdirs (.getParentFile file))
+    (with-out-writer file (write-lcov-report forms))
+    nil))
+
+
 ;; Java 7 has a much nicer API, but this supports Java 6.
 (defn relative-path [target-dir base-dir]
   ^{:doc "Return the path to target-dir relative to base-dir.
