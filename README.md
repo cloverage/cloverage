@@ -36,6 +36,8 @@ Where *args-to-coverage* will usually be something like "-n 'ns.regex.*' -t 'tex
 
 ## Troubleshooting
 
+### IllegalArgumentException No matching field found: foo for class user.Bar
+
     IllegalArgumentException No matching field found: foo for class user.Bar  clojure.lang.Reflector.getInstanceField (Reflector.java:271)
 
 This is usually caused by protocols with methods starting with -. Before clojure 1.6:
@@ -52,6 +54,17 @@ IllegalArgumentException No matching field found: foo for class user.Bar  clojur
 ```
 
 Since cloverage *will* wrap the -foo symbol to track whether it's accessed, you will get this error. Upgrade to clojure 1.6.
+
+### Coverage reports 0% coverage after running tests
+
+This happens if there is a namespace in your project that requires itself, for example:
+
+```clojure
+(ns foo.bar
+  (:require [foo.bar :as bar]))
+```
+
+Remove the self-reference and the test coverage report should report correctly again.
 
 ## Releases
 
