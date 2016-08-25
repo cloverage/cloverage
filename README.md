@@ -63,11 +63,11 @@ e.g. `CLOJARS_USERNAME=lshift CLOJARS_PASSWORD=<LShift Clojars password> lein re
 
 1.0.7 (WIP)
 - Features
-  - Add codecov.io support with the `--codecov` flag (*78)
+  - Add codecov.io support with the `--codecov` flag (#78)
   - Add lcov (e.g. coverlay) support with the `--lcov` flag (#114)
 - Improvements
   - Coverage fn (internal hot loop) optimization (#90)
-  - Dependency upgrades, including running tests on OpenJDK 8 (#105)
+  - Dependency upgrades, including running tests on Oracle JDK 8 (#105)
 - Bugfixes
   - Fix Unicode (UTF-8) support for HTML output (#100)
   - Fix handling of multibyte characters (#108)
