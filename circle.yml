@@ -1,7 +1,7 @@
 dependencies:
   pre:
     # Install Leiningen as lein2
-    - wget -O example.html lein2 https://raw.githubusercontent.com/technomancy/leiningen/stable/bin/lein
+    - wget -O lein2 https://raw.githubusercontent.com/technomancy/leiningen/stable/bin/lein
     - chmod +x lein2
     - sudo mv lein2 /usr/local/bin
   override:
