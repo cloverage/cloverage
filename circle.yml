@@ -1,0 +1,12 @@
+dependency:
+  override:
+    - lein2 deps:
+        pwd: cloverage
+    - lein2 deps:
+        pwd: lein-cloverage
+test:
+  override:
+    - lein2 test:
+        pwd: cloverage
+    - lein2 test:
+        pwd: lein-cloverage
