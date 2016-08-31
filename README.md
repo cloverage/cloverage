@@ -73,6 +73,20 @@ In order to release to Clojars, you'll need to set `CLOJARS_USERNAME` and `CLOJA
 e.g. `CLOJARS_USERNAME=lshift CLOJARS_PASSWORD=<LShift Clojars password> lein release` in each of the cloverage and lein-cloverage folders.
 
 ## Changelog
+
+1.0.7 (WIP)
+- Features
+  - Add codecov.io support with the `--codecov` flag (#78)
+  - Add lcov (e.g. coverlay) support with the `--lcov` flag (#114)
+- Improvements
+  - Coverage fn (internal hot loop) optimization (#90)
+  - Dependency upgrades, including running tests on Oracle JDK 8 (#105)
+- Bugfixes
+  - Fix Unicode (UTF-8) support for HTML output (#100)
+  - Fix handling of multibyte characters (#108)
+  - Fix HTML entity encoding bug (#55)
+  - Coveralls report: fix source digest, line hit numbers (#96)
+
 1.0.6
 - Features
   - Option to exclude namespaces (#57/#73)
