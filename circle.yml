@@ -1,4 +1,4 @@
-dependency:
+dependencies:
   override:
     - lein2 deps:
         pwd: cloverage
