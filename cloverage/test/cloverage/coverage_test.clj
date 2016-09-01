@@ -209,19 +209,21 @@
   (t/testing "all namespaces in a directory get returned when only path is provided"
     (t/is (compare-colls (cov/find-nses "test/cloverage/sample" [])
                          ["cloverage.sample.dummy-sample"
-                          "cloverage.sample.read-eval-sample"])))
+                          "cloverage.sample.read-eval-sample"
+                          "cloverage.sample.multibyte-sample"])))
   (t/testing "only matching namespaces (from classpath) are returned when only
-           regex patterns are provided:"
+             regex patterns are provided:"
     (t/testing "single pattern case"
       (t/is (= (cov/find-nses nil [#"^cloverage\.sample\.read.*$"])
                ["cloverage.sample.read-eval-sample"])))
     (t/testing "multiple patterns case"
       (t/is (compare-colls (cov/find-nses nil [#"^cloverage\.sample\.read.*$"
-                                               #"^cloverage\..*coverage$"])
+                                               #"^cloverage\..*coverage.*$"])
                            ["cloverage.sample.read-eval-sample"
+                            "cloverage.coverage-test"
                             "cloverage.coverage"]))))
   (t/testing "only matching namespaces from a directory are returned when both path
-           and patterns are provided"
+             and patterns are provided"
     (t/is (= (cov/find-nses "test/cloverage/sample" [#".*dummy.*"])
              ["cloverage.sample.dummy-sample"]))))
 
