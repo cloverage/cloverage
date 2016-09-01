@@ -84,7 +84,7 @@
     (keyword s)))
 
 (defn parse-args [args]
-  (cli args
+  (cli/cli args
        ["-o" "--output" "Output directory." :default "target/coverage"]
        ["--[no-]text"
         "Produce a text report." :default false]
