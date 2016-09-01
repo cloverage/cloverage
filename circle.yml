@@ -1,0 +1,17 @@
+dependencies:
+  pre:
+    # Install Leiningen as lein2
+    - wget -O lein2 https://raw.githubusercontent.com/technomancy/leiningen/stable/bin/lein
+    - chmod +x lein2
+    - sudo mv lein2 /usr/local/bin
+  override:
+    - lein2 deps:
+        pwd: cloverage
+    - lein2 deps:
+        pwd: lein-cloverage
+test:
+  override:
+    - lein2 test:
+        pwd: cloverage
+    - lein2 test:
+        pwd: lein-cloverage
