@@ -17,11 +17,11 @@
     :scm :git ; Because we're not in the top-level directory, so it doesn't auto-detect
     :deploy-via :clojars
   }
-  :dependencies [[org.clojure/tools.reader "1.0.0-alpha3"]
-		 [org.clojure/tools.cli "0.3.3"]
-                 [org.clojure/tools.logging "0.3.1"]
-                 [org.clojure/data.xml "0.0.8"]
-                 [bultitude "0.2.8"]
+  :dependencies [[org.clojure/tools.reader "1.0.0-beta3"]
+		 [org.clojure/tools.cli "0.3.5"]
+		 [org.clojure/tools.logging "0.3.1"]
+		 [org.clojure/data.xml "0.0.8"]
+		 [bultitude "0.2.8"]
                  [riddley "0.1.12"]
                  [slingshot "0.12.2"]
 		 [cheshire "5.6.3"]]
