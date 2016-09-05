@@ -1,17 +1,17 @@
 (ns cloverage.coverage
   (:gen-class)
   (:require [bultitude.core :as blt]
-	    [clojure.set :as set]
+            [clojure.set :as set]
             [clojure.test :as test]
-	    [clojure.tools.cli :as cli]
+            [clojure.tools.cli :as cli]
             [clojure.tools.logging :as log]
-	    [cloverage.debug :as debug]
-	    [cloverage.dependency :as dep]
-	    [cloverage.instrument :as inst]
-	    [cloverage.report :as rep]
-	    [cloverage.source :as src])
+            [cloverage.debug :as debug]
+            [cloverage.dependency :as dep]
+            [cloverage.instrument :as inst]
+            [cloverage.report :as rep]
+            [cloverage.source :as src])
   (:import clojure.lang.IObj
-	   java.io.File))
+           java.io.File))
 
 (def ^:dynamic *instrumented-ns*) ;; currently instrumented ns
 (def ^:dynamic *covered* (atom []))
@@ -48,7 +48,7 @@
   [form line-hint]
   (debug/tprnl "Adding form" form "at line" (:line (meta form)) "hint" line-hint)
   (let [lib  *instrumented-ns*
-	file (src/resource-path lib)
+        file (src/resource-path lib)
         line (or (:line (meta form)) line-hint)
         form-info {:form (or (:original (meta form))
                              form)
@@ -80,7 +80,7 @@
 
 (defn- parse-kw-str [s]
   (let [s (name s)
-	s (if (and s (.startsWith s ":")) (subs s 1) s)]
+        s (if (and s (.startsWith s ":")) (subs s 1) s)]
     (keyword s)))
 
 (defn parse-args [args]
@@ -105,9 +105,9 @@
        ["-d" "--[no-]debug"
         "Output debugging information to stdout." :default false]
        ["-r" "--runner"
-	"Specify which test runner to use. Currently supported runners are `clojure.test` and `midje`."
-	:default :clojure.test
-	:parse-fn parse-kw-str]
+        "Specify which test runner to use. Currently supported runners are `clojure.test` and `midje`."
+        :default :clojure.test
+        :parse-fn parse-kw-str]
        ["--[no-]nop" "Instrument with noops." :default false]
        ["-n" "--ns-regex"
         "Regex for instrumented namespaces (can be repeated)."
@@ -144,9 +144,9 @@
   * all namespaces on the classpath that match any of the regex-patterns (if ns-path is nil)
   * namespaces on ns-path that match any of the regex-patterns"
   (let [namespaces (->> (cond
-			  (and (nil? ns-path) (empty? regex-patterns)) '()
-			  (nil? ns-path) (blt/namespaces-on-classpath)
-			  :else (blt/namespaces-on-classpath :classpath ns-path))
+                          (and (nil? ns-path) (empty? regex-patterns)) '()
+                          (nil? ns-path) (blt/namespaces-on-classpath)
+                          :else (blt/namespaces-on-classpath :classpath ns-path))
                         (map name))]
     (if (seq regex-patterns)
       (filter (fn [namespace] (some #(re-matches % namespace) regex-patterns))
@@ -155,11 +155,11 @@
 
 (defn- resolve-var [sym]
   (let [ns (namespace (symbol sym))
-	ns (when ns (symbol ns))]
+        ns (when ns (symbol ns))]
     (when ns
       (require ns))
     (ns-resolve (or ns *ns*)
-		(symbol (name sym)))))
+                (symbol (name sym)))))
 
 (defmulti runner-fn identity)
 
@@ -173,11 +173,11 @@
   (fn [nses]
     (apply require (map symbol nses))
     {:errors (reduce + ((juxt :error :fail)
-			(apply test/run-tests nses)))}))
+                        (apply test/run-tests nses)))}))
 
 (defmethod runner-fn :default [_]
   (throw (IllegalArgumentException.
-	  "Currently supported runners are only `clojure.test` and `midje`.")))
+          "Currently supported runners are only `clojure.test` and `midje`.")))
 
 (defn -main
   "Produce test coverage report for some namespaces"
@@ -201,7 +201,7 @@
         exclude-regex (map re-pattern (:ns-exclude-regex opts))
         ns-path       (:src-ns-path opts)
         test-ns-path  (:test-ns-path opts)
-	runner        (runner-fn (:runner opts))
+        runner        (runner-fn (:runner opts))
         start         (System/currentTimeMillis)
         namespaces    (set/difference
                         (into #{}
@@ -212,24 +212,24 @@
     (if help?
       (println help)
       (binding [*ns*      (find-ns 'cloverage.coverage)
-		debug/*debug*   debug?]
+                debug/*debug*   debug?]
         (println "Loading namespaces: " (apply list namespaces))
         (println "Test namespaces: " test-nses)
-	(doseq [namespace (dep/in-dependency-order (map symbol namespaces))]
+        (doseq [namespace (dep/in-dependency-order (map symbol namespaces))]
           (binding [*instrumented-ns* namespace]
             (if nops?
-	      (inst/instrument #'inst/nop namespace)
-	      (inst/instrument #'track-coverage namespace)))
+              (inst/instrument #'inst/nop namespace)
+              (inst/instrument #'track-coverage namespace)))
           (println "Loaded " namespace " .")
           ;; mark the ns as loaded
           (mark-loaded namespace))
         (println "Instrumented namespaces.")
         (let [test-result (when-not (empty? test-nses)
                             (let [test-syms (map symbol test-nses)]
-			      (runner test-syms)))
+                              (runner test-syms)))
               ;; sum up errors as in lein test
               errors      (when test-result
-			    (:errors test-result))
+                            (:errors test-result))
               exit-code   (cond
                             (not test-result) -1
                             (> errors 128)    -2
@@ -237,16 +237,16 @@
           (println "Ran tests.")
           (when output
             (.mkdir (File. output))
-	    (let [stats (rep/gather-stats @*covered*)
-		  results [(when text? (rep/text-report output stats))
-			   (when html? (rep/html-report output stats)
-			     (rep/html-summary output stats))
-			   (when emma-xml? (rep/emma-xml-report output stats))
-			   (when lcov? (rep/lcov-report output stats))
-			   (when raw? (rep/raw-report output stats @*covered*))
-			   (when codecov? (rep/codecov-report output stats))
-			   (when coveralls? (rep/coveralls-report output stats))
-			   (when summary? (rep/summary stats))]]
+            (let [stats (rep/gather-stats @*covered*)
+                  results [(when text? (rep/text-report output stats))
+                           (when html? (rep/html-report output stats)
+                             (rep/html-summary output stats))
+                           (when emma-xml? (rep/emma-xml-report output stats))
+                           (when lcov? (rep/lcov-report output stats))
+                           (when raw? (rep/raw-report output stats @*covered*))
+                           (when codecov? (rep/codecov-report output stats))
+                           (when coveralls? (rep/coveralls-report output stats))
+                           (when summary? (rep/summary stats))]]
 
               (println "Produced output in" (.getAbsolutePath (File. output)) ".")
               (doseq [r results] (when r (println r)))))
