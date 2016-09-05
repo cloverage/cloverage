@@ -7,7 +7,7 @@ classes
 .*.swp
 target
 */.lein-failures
-pom.xml
+pom.xml*
 *#
 .#*
 */.lein-repl-history
