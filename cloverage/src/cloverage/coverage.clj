@@ -86,54 +86,55 @@
 
 (defn parse-args [args]
   (cli/cli args
-           ["-o" "--output" "Output directory." :default "target/coverage"]
-           ["-j" "--junit-output" "Output test results as junit xml file"]
-           ["--[no-]text"
-            "Produce a text report." :default false]
-           ["--[no-]html"
-            "Produce an HTML report." :default true]
-           ["--[no-]emma-xml"
-            "Produce an EMMA XML report. [emma.sourceforge.net]" :default false]
-           ["--[no-]lcov"
-            "Produce a lcov/gcov report." :default false]
-           ["--[no-]codecov"
-            "Generate a JSON report for Codecov.io" :default false]
-           ["--[no-]coveralls"
-            "Send a JSON report to Coveralls if on a CI server" :default false]
-           ["--[no-]raw"
-            "Output raw coverage data (for debugging)." :default false]
-           ["--[no-]summary"
-            "Prints a summary" :default true]
-           ["-d" "--[no-]debug"
-            "Output debugging information to stdout." :default false]
-           ["-r" "--runner"
-            "Specify which test runner to use. Currently supported runners are `clojure.test` and `midje`."
-            :default :clojure.test
-            :parse-fn parse-kw-str]
-           ["--[no-]nop" "Instrument with noops." :default false]
-           ["-n" "--ns-regex"
-            "Regex for instrumented namespaces (can be repeated)."
-            :default  []
-            :parse-fn (collecting-args-parser)]
-           ["-e" "--ns-exclude-regex"
-            "Regex for namespaces not to be instrumented (can be repeated)."
-            :default  []
-            :parse-fn (collecting-args-parser)]
-           ["-t" "--test-ns-regex"
-            "Regex for test namespaces (can be repeated)."
-            :default []
-            :parse-fn (collecting-args-parser)]
-           ["-p" "--src-ns-path"
-            "Path (string) to directory containing source code namespaces."
-            :default nil]
-           ["-s" "--test-ns-path"
-            "Path (string) to directory containing test namespaces."
-            :default nil]
-           ["-x" "--extra-test-ns"
-            "Additional test namespace (string) to add (can be repeated)."
-            :default  []
-            :parse-fn (collecting-args-parser)]
-           ["-h" "--help" "Show help." :default false :flag true]))
+       ["-o" "--output" "Output directory." :default "target/coverage"]
+       ["--[no-]text"
+        "Produce a text report." :default false]
+       ["--[no-]html"
+        "Produce an HTML report." :default true]
+       ["--[no-]emma-xml"
+        "Produce an EMMA XML report. [emma.sourceforge.net]" :default false]
+       ["--[no-]lcov"
+        "Produce a lcov/gcov report." :default false]
+       ["--[no-]codecov"
+        "Generate a JSON report for Codecov.io" :default false]
+       ["--[no-]coveralls"
+        "Send a JSON report to Coveralls if on a CI server" :default false]
+       ["--[no-]junit"
+        "Output test results as junit xml file" :default false]
+       ["--[no-]raw"
+        "Output raw coverage data (for debugging)." :default false]
+       ["--[no-]summary"
+        "Prints a summary" :default true]
+       ["-d" "--[no-]debug"
+        "Output debugging information to stdout." :default false]
+       ["-r" "--runner"
+        "Specify which test runner to use. Currently supported runners are `clojure.test` and `midje`."
+        :default :clojure.test
+        :parse-fn parse-kw-str]
+       ["--[no-]nop" "Instrument with noops." :default false]
+       ["-n" "--ns-regex"
+        "Regex for instrumented namespaces (can be repeated)."
+        :default  []
+        :parse-fn (collecting-args-parser)]
+       ["-e" "--ns-exclude-regex"
+        "Regex for namespaces not to be instrumented (can be repeated)."
+        :default  []
+        :parse-fn (collecting-args-parser)]
+       ["-t" "--test-ns-regex"
+        "Regex for test namespaces (can be repeated)."
+        :default []
+        :parse-fn (collecting-args-parser)]
+       ["-p" "--src-ns-path"
+        "Path (string) to directory containing source code namespaces."
+        :default nil]
+       ["-s" "--test-ns-path"
+        "Path (string) to directory containing test namespaces."
+        :default nil]
+       ["-x" "--extra-test-ns"
+        "Additional test namespace (string) to add (can be repeated)."
+        :default  []
+        :parse-fn (collecting-args-parser)]
+       ["-h" "--help" "Show help." :default false :flag true]))
 
 (defn mark-loaded [namespace]
   (binding [*ns* (find-ns 'clojure.core)]
@@ -163,7 +164,7 @@
     (ns-resolve (or ns *ns*)
                 (symbol (name sym)))))
 
-(defmulti runner-fn identity)
+(defmulti runner-fn :runner)
 
 (defmethod runner-fn :midje [_]
   (if-let [f (resolve-var 'midje.repl/load-facts)]
@@ -171,11 +172,18 @@
       {:errors (:failures (apply f nses))})
     (throw (RuntimeException. "Failed to load Midje."))))
 
-(defmethod runner-fn :clojure.test [_]
+(defmethod runner-fn :clojure.test [opts]
   (fn [nses]
-    (apply require (map symbol nses))
-    {:errors (reduce + ((juxt :error :fail)
-                        (apply test/run-tests nses)))}))
+    (let [run-tests (fn []
+                      (apply require (map symbol nses))
+                      {:errors (reduce + ((juxt :error :fail)
+                                          (apply test/run-tests nses)))})]
+      (if (:junit opts)
+        (binding [test/*test-out* (-> (File. (:output opts) "junit.xml")
+                                      clojure.java.io/writer)]
+          (junit/with-junit-output
+            (run-tests)))
+        (run-tests)))))
 
 (defmethod runner-fn :default [_]
   (throw (IllegalArgumentException.
@@ -186,11 +194,11 @@
   [& args]
   (let [[opts add-nses help] (parse-args args)
         output        (:output opts)
-        junit-output  (:junit-output opts)
         text?         (:text opts)
         html?         (:html opts)
         raw?          (:raw opts)
         emma-xml?     (:emma-xml opts)
+        junit?        (:junit opts)
         lcov?         (:lcov opts)
         codecov?      (:codecov opts)
         coveralls?    (:coveralls opts)
@@ -203,8 +211,8 @@
         test-regexs   (map re-pattern (:test-ns-regex opts))
         exclude-regex (map re-pattern (:ns-exclude-regex opts))
         ns-path       (:src-ns-path opts)
+        runner        (:runner opts)
         test-ns-path  (:test-ns-path opts)
-        runner        (runner-fn (:runner opts))
         start         (System/currentTimeMillis)
         namespaces    (set/difference
                        (into #{}
@@ -227,16 +235,11 @@
           ;; mark the ns as loaded
           (mark-loaded namespace))
         (println "Instrumented namespaces.")
-        (when output
-          (.mkdir (File. output)))
         (let [test-result (when-not (empty? test-nses)
-                            (let [test-syms (map symbol test-nses)]
-                              (apply require (map symbol test-nses))
-                              (if junit-output
-                                (binding [test/*test-out* (clojure.java.io/writer junit-output)]
-                                  (junit/with-junit-output
-                                   (apply test/run-tests (map symbol test-nses))))
-                                (apply test/run-tests (map symbol test-nses)))))
+                            (if (and junit?
+                                     (not (= runner :clojure.test)))
+                              (throw (RuntimeException. "Junit output only supported for clojure.test at present"))
+                              ((runner-fn opts) (map symbol test-nses))))
               ;; sum up errors as in lein test
               errors      (when test-result
                             (:errors test-result))
@@ -257,6 +260,7 @@
                            (when codecov? (rep/codecov-report output stats))
                            (when coveralls? (rep/coveralls-report output stats))
                            (when summary? (rep/summary stats))]]
+
               (println "Produced output in" (.getAbsolutePath (File. output)) ".")
               (doseq [r results] (when r (println r)))))
           (if *exit-after-test*
