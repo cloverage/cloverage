@@ -100,7 +100,7 @@
        ["--[no-]coveralls"
         "Send a JSON report to Coveralls if on a CI server" :default false]
        ["--[no-]junit"
-        "Output test results as junit xml file" :default false]
+        "Output test results as junit xml file. Supported in :clojure.test runner" :default false]
        ["--[no-]raw"
         "Output raw coverage data (for debugging)." :default false]
        ["--[no-]summary"
