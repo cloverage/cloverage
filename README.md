@@ -68,7 +68,10 @@ Remove the self-reference and the test coverage report should report correctly a
 
 ## Changelog
 
-1.0.7 (WIP)
+1.0.8 (WIP)
+Nothing yet!
+
+1.0.7
 - Features
   - Add codecov.io support with the `--codecov` flag (#78)
   - Add lcov (e.g. coverlay) support with the `--lcov` flag (#114)
