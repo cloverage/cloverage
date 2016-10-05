@@ -66,12 +66,6 @@ This happens if there is a namespace in your project that requires itself, for e
 
 Remove the self-reference and the test coverage report should report correctly again.
 
-## Releases
-
-In order to release to Clojars, you'll need to set `CLOJARS_USERNAME` and `CLOJARS_PASSWORD` in your environment variables.
-
-e.g. `CLOJARS_USERNAME=lshift CLOJARS_PASSWORD=<LShift Clojars password> lein release` in each of the cloverage and lein-cloverage folders.
-
 ## Changelog
 
 1.0.7 (WIP)
