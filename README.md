@@ -76,6 +76,8 @@ Remove the self-reference and the test coverage report should report correctly a
 - Features
   - Add codecov.io support with the `--codecov` flag (#78)
   - Add lcov (e.g. coverlay) support with the `--lcov` flag (#114)
+  - Support for midje as a test runner with `--runner :midje` (#64)
+  - Support for cljc files (#93/#94)
 - Improvements
   - Coverage fn (internal hot loop) optimization (#90)
   - Dependency upgrades, including running tests on Oracle JDK 8 (#105)
