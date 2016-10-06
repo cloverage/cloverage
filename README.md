@@ -11,8 +11,7 @@ Add [![Clojars Project](http://clojars.org/lein-cloverage/latest-version.svg)](h
 
 ## Testing frameworks support
 
-This library currently only supports clojure.test. You can get midje to work
-by wrapping facts in `deftest` declarations.
+Cloverage uses clojure.test by default. If you prefer use midje, pass the `--runner :midje` flag. (In older versions of Cloverage, you had to wrap your midje tests in clojure.test's deftest. This is no longer necessary.)
 
 ## Usage
 
