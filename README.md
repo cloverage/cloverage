@@ -69,7 +69,8 @@ Remove the self-reference and the test coverage report should report correctly a
 ## Changelog
 
 1.0.8 (WIP)
-Nothing yet!
+- Features
+  - Add [Code of Conduct](https://github.com/cloverage/cloverage/blob/master/CODE_OF_CONDUCT.md) (#128)
 
 1.0.7
 - Features
