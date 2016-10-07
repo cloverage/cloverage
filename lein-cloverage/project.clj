@@ -1,9 +1,9 @@
 (defproject lein-cloverage "1.0.8-SNAPSHOT"
   :description "Lein plugin for cloverage"
-  :url "https://github.com/lshift/cloverage"
+  :url "https://github.com/cloverage/cloverage"
   :scm {:name "git"
         :dir  ".."
-        :url  "https://www.github.com/lshift/cloverage"
+        :url  "https://www.github.com/cloverage/cloverage"
         :tag  "HEAD"}
   :vcs :git
   :license {:name "Eclipse Public License - v 1.0"
