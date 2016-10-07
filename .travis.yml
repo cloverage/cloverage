@@ -9,7 +9,7 @@ cache:
 
 before_script:
   - npm install -g eclint
-  - eclint check *
+  - eclint check .* **
 
 jdk:
   - oraclejdk8
