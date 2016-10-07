@@ -1,9 +1,9 @@
 (defproject cloverage "1.0.8-SNAPSHOT"
   :description "Form-level test coverage for clojure."
-  :url "https://www.github.com/lshift/cloverage"
+  :url "https://www.github.com/cloverage/cloverage"
   :scm {:name "git"
         :dir  ".."
-        :url  "https://www.github.com/lshift/cloverage"
+        :url  "https://www.github.com/cloverage/cloverage"
         :tag  "HEAD"}
   :vcs :git
   :main ^:skip-aot cloverage.coverage
