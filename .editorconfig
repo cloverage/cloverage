@@ -8,14 +8,6 @@ trim_trailing_whitespace = true
 end_of_line = lf
 insert_final_newline = true
 
-[*.clj]
-indent_style = space
-indent_size = 2
-
-[*.cljs]
-indent_style = space
-indent_size = 2
-
-[*.cljc]
+[*.{clj,cljs,cljc}]
 indent_style = space
 indent_size = 2
