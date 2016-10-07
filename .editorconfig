@@ -10,4 +10,3 @@ insert_final_newline = true
 
 [*.{clj,cljs,cljc}]
 indent_style = space
-indent_size = 2
