@@ -25,7 +25,7 @@
 ;;   '[clojure.set :as set]
 ;;   nil
 ;;clojure.core> '[clojure.test :as test]
-;;   '[clojure.tools.logging :as log])) 
+;;   '[clojure.tools.logging :as log]))
 
 
 ;; snipped from clojure.core
@@ -40,8 +40,8 @@
 
 (defn- spec-dependencies [libspec]
   (cond
-    (symbol?  libspec) [libspec] 
-    (libspec? libspec) [(first (filter (complement keyword?) libspec))] 
+    (symbol?  libspec) [libspec]
+    (libspec? libspec) [(first (filter (complement keyword?) libspec))]
     (vector?  libspec) (let [[prefix & args] libspec]
                          (map #(symbol (str prefix \. (if (seq? %) (first %) %))) args))))
 
@@ -49,7 +49,7 @@
   (when (#{:use :require :load} (first reference))
     (mapcat spec-dependencies (rest reference))))
 
-(defn dependency-libs 
+(defn dependency-libs
   "Given a (ns ...) form, return the ns name and a list of namespaces
    it depends on."
   [[ns-sym ns-nam & refs]]

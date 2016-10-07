@@ -1,0 +1,12 @@
+# Learn more about EditorConfig at http://editorconfig.org
+
+root = true
+
+[*]
+charset = utf-8
+trim_trailing_whitespace = true
+end_of_line = lf
+insert_final_newline = true
+
+[*.{clj,cljs,cljc}]
+indent_style = space

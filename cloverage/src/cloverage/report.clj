@@ -1,7 +1,7 @@
 (ns cloverage.report
   (:import [java.io File]
-	   [java.security MessageDigest]
-	   [java.math BigInteger])
+           [java.security MessageDigest]
+           [java.math BigInteger])
   (:use [clojure.java.io :only [writer reader copy]]
         [cloverage.source :only [resource-reader]])
   (:require clojure.pprint
@@ -20,10 +20,10 @@
 
 (defn md5 [s]
   (let [algorithm (MessageDigest/getInstance "MD5")
-	size (* 2 (.getDigestLength algorithm))
-	raw (.digest algorithm (.getBytes s))
-	sig (.toString (BigInteger. 1 raw) 16)
-	padding (apply str (repeat (- size (count sig)) "0"))]
+        size (* 2 (.getDigestLength algorithm))
+        raw (.digest algorithm (.getBytes s))
+        sig (.toString (BigInteger. 1 raw) 16)
+        padding (apply str (repeat (- size (count sig)) "0"))]
     (str padding sig)))
 
 ;; borrowed from duck-streams
@@ -347,11 +347,11 @@
                     (fn [[file file-forms]]
                       (let [lines (line-stats file-forms)]
                         {:name file
-			 :source_digest (md5 (cs/join "\n" (map :text lines)))
-			 ;; >0: covered (number of times hit)
+                         :source_digest (md5 (cs/join "\n" (map :text lines)))
+                         ;; >0: covered (number of times hit)
                          ;; 0: not covered
-			 ;; null: blank
-			 :coverage (map #(if (:instrumented? %) (:hit %)) lines)}))
+                         ;; null: blank
+                         :coverage (map #(if (:instrumented? %) (:hit %)) lines)}))
                       (filter (fn [[file _]] file)
                               (group-by :file forms)))]
           (with-out-writer (File. out-dir "coveralls.json")
