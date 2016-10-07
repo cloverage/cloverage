@@ -7,6 +7,10 @@ cache:
   directories:
     - $HOME/.m2
 
+before_script:
+  - npm install -g eclint
+  - eclint check *
+
 jdk:
   - oraclejdk8
   - oraclejdk7
