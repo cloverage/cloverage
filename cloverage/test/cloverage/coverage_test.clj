@@ -70,7 +70,7 @@
 
 (t/deftest test-wrap-list
   (t/is (expand= `(cov/capture 0 ((cov/capture 1 +) (cov/capture 2 1)
-                                  (cov/capture 3 2)))
+                                                    (cov/capture 3 2)))
                  (inst/wrap #'cov/track-coverage 0 `(+ 1 2)))))
 
 ;; XXX: the order that forms are registered is now from outside in. Bad?
@@ -86,13 +86,13 @@
                  (inst/wrap #'cov/track-coverage 0 '(fn ([a] a) ([a b] b))))
         "Unnamed fn with multiple overloads")
   (t/is (expand= `(cov/capture 5 (~(symbol "fn") ~'foo
-                                  [~'a] (cov/capture 6 ~'a)))
+                                                 [~'a] (cov/capture 6 ~'a)))
                  (inst/wrap #'cov/track-coverage 0
                             '(fn foo [a] a)))
         "Named fn with single overload")
   (t/is (expand= `(cov/capture 7 (~(symbol "fn") ~'foo
-                                  ([~'a] (cov/capture 8 ~'a))
-                                  ([~'a ~'b] (cov/capture 9 ~'b))))
+                                                 ([~'a] (cov/capture 8 ~'a))
+                                                 ([~'a ~'b] (cov/capture 9 ~'b))))
                  (inst/wrap #'cov/track-coverage 0 '(fn foo ([a] a) ([a b] b))))
         "Named fn with multiple overloads"))
 
@@ -112,7 +112,7 @@
                  (inst/wrap #'cov/track-coverage 0 '(let [a 1 b 2]))))
   (t/is (expand= `(cov/capture 6 (~(symbol "let") [~'a (cov/capture 7 1)
                                                    ~'b (cov/capture 8 2)]
-                                  (cov/capture 9 ~'a)))
+                                                  (cov/capture 9 ~'a)))
                  (inst/wrap #'cov/track-coverage 0 '(let [a 1 b 2] a)))))
 
 (t/deftest test-wrap-cond
@@ -189,7 +189,7 @@
     #_(with-out-writer "out/foo"
         (doseq [form-info cov]
           (println form-info)))
-    #_(println "Form is" )
+    #_(println "Form is")
     (t/is found)
     (t/is (:line found))
     (t/is (find-form cov '(inc (m c 0))))))

@@ -32,14 +32,14 @@
    algorithm, where g is a map of nodes to sets of nodes. If g is
    cyclic, returns nil."
   ([g]
-     (kahn-sort (normalize g) [] (no-incoming g)))
+   (kahn-sort (normalize g) [] (no-incoming g)))
   ([g l s]
-     (if (empty? s)
-       (when (every? empty? (vals g)) l)
-       (let [[n s'] (take-1 s)
-             m (g n)
-             g' (reduce #(update-in % [n] without %2) g m)]
-         (recur g' (conj l n) (union s' (intersection (no-incoming g') m)))))))
+   (if (empty? s)
+     (when (every? empty? (vals g)) l)
+     (let [[n s'] (take-1 s)
+           m (g n)
+           g' (reduce #(update-in % [n] without %2) g m)]
+       (recur g' (conj l n) (union s' (intersection (no-incoming g') m)))))))
 
 (comment
   (def acyclic-g
@@ -59,5 +59,4 @@
 
   (kahn-sort acyclic-g) ;=> [3 5 7 8 10 11 2 9]
   (kahn-sort cyclic-g) ;=> nil
-
-  )
+)

@@ -10,13 +10,13 @@
             [cheshire.core :as json]))
 
 (def html-escapes
-  { \space "&nbsp;"
-    \& "&amp;"
-    \< "&lt;"
-    \> "&gt;"
-    \" "&quot;"
-    \' "&#x27;"
-    \/ "&#x2F;"})
+  {\space "&nbsp;"
+   \& "&amp;"
+   \< "&lt;"
+   \> "&gt;"
+   \" "&quot;"
+   \' "&#x27;"
+   \/ "&#x2F;"})
 
 (defn md5 [s]
   (let [algorithm (MessageDigest/getInstance "MD5")
@@ -88,8 +88,7 @@
      :blank-lines   (count (filter :blank? lines))
      :instrd-lines  (count (filter :instrumented? lines))
      :covered-lines (count (filter :covered? lines))
-     :partial-lines (count (filter :partial? lines))
-     }))
+     :partial-lines (count (filter :partial? lines))}))
 
 (defn stats-report [file cov]
   (.mkdirs (.getParentFile file))
@@ -161,15 +160,15 @@
   "Write out lcov report to *out*"
   [forms]
   (doseq [[rel-file file-forms] (group-by :file forms)]
-        (let [lines (line-stats file-forms)
-              instrumented (filter :instrumented? lines)]
-          (println "TN:")
-          (printf "SF:%s%n" rel-file)
-          (doseq [line instrumented]
-            (printf "DA:%d,%d%n" (:line line) (:hit line)))
-          (printf "LF:%d%n" (count instrumented))
-          (printf "LH:%d%n" (count (filter (fn [line] (> (:hit line) 0)) lines)))
-          (println "end_of_record"))))
+    (let [lines (line-stats file-forms)
+          instrumented (filter :instrumented? lines)]
+      (println "TN:")
+      (printf "SF:%s%n" rel-file)
+      (doseq [line instrumented]
+        (printf "DA:%d,%d%n" (:line line) (:hit line)))
+      (printf "LF:%d%n" (count instrumented))
+      (printf "LH:%d%n" (count (filter (fn [line] (> (:hit line) 0)) lines)))
+      (println "end_of_record"))))
 
 (defn lcov-report
   "Write LCOV report to '${out-dir}/lcov.info'."
@@ -178,7 +177,6 @@
     (.mkdirs (.getParentFile file))
     (with-out-writer file (write-lcov-report forms))
     nil))
-
 
 ;; Java 7 has a much nicer API, but this supports Java 6.
 (defn relative-path [target-dir base-dir]
@@ -211,8 +209,7 @@
   (stats-report (File. out-dir "coverage.txt") forms)
   (doseq [[rel-file file-forms] (group-by :file forms)]
     (let [file     (File. out-dir (str rel-file ".html"))
-          rootpath (relative-path (File. out-dir) (.getParentFile file))
-          ]
+          rootpath (relative-path (File. out-dir) (.getParentFile file))]
       (.mkdirs (.getParentFile file))
       (with-out-writer file
         (println "<html>")
@@ -229,26 +226,26 @@
                           (:instrumented? line) "not-covered"
                           :else            "not-tracked")]
             (printf
-               "<span class=\"%s\" title=\"%d out of %d forms covered\">
+             "<span class=\"%s\" title=\"%d out of %d forms covered\">
                  %03d&nbsp;&nbsp;%s
                 </span><br/>%n"
-                cls (:hit line) (:total line)
-                (:line line)
-                (cs/escape (:text line " ") html-escapes))))
+             cls (:hit line) (:total line)
+             (:line line)
+             (cs/escape (:text line " ") html-escapes))))
         (println " </body>")
         (println "</html>")))))
 
 (defn- td-bar [total & parts]
   (str "<td class=\"with-bar\">"
        (apply str
-         (map (fn [[key cnt]]
-                (if (> cnt 0)
-                  (format "<div class=\"%s\"
+              (map (fn [[key cnt]]
+                     (if (> cnt 0)
+                       (format "<div class=\"%s\"
                                 style=\"width:%s%%;
                                         float:left;\"> %d </div>"
-                    (name key) (/ (* 100.0 cnt) total) cnt)
-                  ""))
-              parts))
+                               (name key) (/ (* 100.0 cnt) total) cnt)
+                       ""))
+                   parts))
        "</td>"))
 
 (defn- td-num [content]
@@ -303,17 +300,16 @@
           (println "<tr>")
           (printf  " <td><a href=\"%s.html\">%s</a></td>" filepath libname)
           (println (td-bar forms [:covered cov-forms]
-                                 [:not-covered mis-forms]))
+                           [:not-covered mis-forms]))
           (println (td-num (format "%.2f %%" (/ (* 100.0 cov-forms) forms))))
           (println (td-bar instrd [:covered covered]
-                                  [:partial partial]
-                                  [:not-covered missed]))
+                           [:partial partial]
+                           [:not-covered missed]))
           (println (td-num (format "%.2f %%" (/ (* 100.0 (+ covered partial))
                                                 instrd))))
           (println
-            (apply str (map td-num [lines blank instrd])))
-          (println "</tr>")
-          ))
+           (apply str (map td-num [lines blank instrd])))
+          (println "</tr>")))
       (println "<tr><td>Totals:</td>")
       (println (td-bar nil))
       (println (td-num (format "%.2f %%" (:percent-forms-covered totalled-stats))))
@@ -329,36 +325,35 @@
   (letfn [(has-env [s] (= (System/getenv s) "true"))
           (service-info [sname job-id-var] [sname (System/getenv job-id-var)])]
     (let [[service job-id]
-             (cond
+          (cond
                ;; docs.travis-ci.com/user/ci-environment/
-               (has-env "TRAVIS") (service-info "travis-ci" "TRAVIS_JOB_ID")
+            (has-env "TRAVIS") (service-info "travis-ci" "TRAVIS_JOB_ID")
                ;; circleci.com/docs/environment-variables
-               (has-env "CIRCLECI")
-                 (service-info "circleci" "CIRCLE_BUILD_NUM")
+            (has-env "CIRCLECI")
+            (service-info "circleci" "CIRCLE_BUILD_NUM")
                ;; bit.ly/semaphoreapp-env-vars
-               (has-env "SEMAPHORE") (service-info "semaphore" "REVISION")
+            (has-env "SEMAPHORE") (service-info "semaphore" "REVISION")
                ;; bit.ly/jenkins-env-vars
-               (System/getenv "JENKINS_URL")
-                 (service-info "jenkins" "BUILD_ID")
+            (System/getenv "JENKINS_URL")
+            (service-info "jenkins" "BUILD_ID")
                ;; bit.ly/codeship-env-vars
-               (= (System/getenv "CI_NAME") "codeship")
-                 (service-info "codeship" "CI_BUILD_NUMBER"))
+            (= (System/getenv "CI_NAME") "codeship")
+            (service-info "codeship" "CI_BUILD_NUMBER"))
           covdata (map
-                    (fn [[file file-forms]]
-                      (let [lines (line-stats file-forms)]
-                        {:name file
-                         :source_digest (md5 (cs/join "\n" (map :text lines)))
+                   (fn [[file file-forms]]
+                     (let [lines (line-stats file-forms)]
+                       {:name file
+                        :source_digest (md5 (cs/join "\n" (map :text lines)))
                          ;; >0: covered (number of times hit)
                          ;; 0: not covered
                          ;; null: blank
-                         :coverage (map #(if (:instrumented? %) (:hit %)) lines)}))
-                      (filter (fn [[file _]] file)
-                              (group-by :file forms)))]
-          (with-out-writer (File. out-dir "coveralls.json")
-            (print (json/generate-string {:service_job_id job-id
-                                          :service_name service
-                                          :source_files covdata}))))))
-
+                        :coverage (map #(if (:instrumented? %) (:hit %)) lines)}))
+                   (filter (fn [[file _]] file)
+                           (group-by :file forms)))]
+      (with-out-writer (File. out-dir "coveralls.json")
+        (print (json/generate-string {:service_job_id job-id
+                                      :service_name service
+                                      :source_files covdata}))))))
 
 (defn codecov-report [out-dir forms]
   (println "codecov start")
@@ -389,7 +384,7 @@
   (with-out-writer (File. (File. out-dir) "raw-data.clj")
     (clojure.pprint/pprint (zipmap (range) covered)))
   (with-out-writer (File. (File. out-dir) "raw-stats.clj")
-                   (clojure.pprint/pprint stats)))
+    (clojure.pprint/pprint stats)))
 
 (defn summary
   "Create a text summary for output on the command line"
@@ -412,14 +407,14 @@
         bad-namespaces (filter #(or (not= 100.0 (:forms %)) (not= 100.0 (:lines %))) namespaces)]
 
     (str
-      (when (< 0 (count bad-namespaces))
-        (str
-          (with-out-str (clojure.pprint/print-table [:name :forms_percent :lines_percent] bad-namespaces))
-          "Files with 100% coverage: "
-          (- (count namespaces) (count bad-namespaces))
-          "\n"))
-      "\nForms covered: "
-      (format "%.2f %%" (:percent-forms-covered totalled-stats))
-      "\nLines covered: "
-      (format "%.2f %%" (:percent-lines-covered totalled-stats))
-      "\n")))
+     (when (< 0 (count bad-namespaces))
+       (str
+        (with-out-str (clojure.pprint/print-table [:name :forms_percent :lines_percent] bad-namespaces))
+        "Files with 100% coverage: "
+        (- (count namespaces) (count bad-namespaces))
+        "\n"))
+     "\nForms covered: "
+     (format "%.2f %%" (:percent-forms-covered totalled-stats))
+     "\nLines covered: "
+     (format "%.2f %%" (:percent-lines-covered totalled-stats))
+     "\n")))

@@ -21,6 +21,6 @@
 (defn dump-instrumented [forms name]
   (when *debug*
     (with-open [ou (writer (str "debug-" name))]
-        (binding [*out* ou
-                  *print-meta* true]
-          (doall (map prn forms))))))
+      (binding [*out* ou
+                *print-meta* true]
+        (doall (map prn forms))))))
