@@ -27,7 +27,8 @@
                  [slingshot "0.12.2"]
                  [cheshire "5.6.3"]]
   :profiles {:dev    {:aot          ^:replace []
-                      :dependencies [[org.clojure/clojure "1.8.0"]]}
+                      :dependencies [[org.clojure/clojure "1.8.0"]]
+                      :plugins [[lein-cljfmt "0.5.6"]] }
              :1.4    {:dependencies [[org.clojure/clojure "1.4.0"]]}
              :1.5    {:dependencies [[org.clojure/clojure "1.5.1"]]}
              :1.6    {:dependencies [[org.clojure/clojure "1.6.0"]]}

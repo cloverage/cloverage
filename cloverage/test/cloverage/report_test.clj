@@ -41,8 +41,6 @@
 (deftest total-stats-zero
   (is (= {:percent-lines-covered 0.0, :percent-forms-covered 0.0} (total-stats {}))))
 
-
-
 (deftest gather-starts-works-on-empty-forms
   (is (= [] (gather-stats []))))
 

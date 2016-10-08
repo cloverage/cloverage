@@ -5,11 +5,11 @@
   :form
   (ns
    cloverage.sample.dummy-sample
-   "This namespace is necessary for redundancy.\n  It allows us to check whether regexs in combination with path parameters work."),
+    "This namespace is necessary for redundancy.\n  It allows us to check whether regexs in combination with path parameters work."),
   :full-form
   (ns
    cloverage.sample.dummy-sample
-   "This namespace is necessary for redundancy.\n  It allows us to check whether regexs in combination with path parameters work."),
+    "This namespace is necessary for redundancy.\n  It allows us to check whether regexs in combination with path parameters work."),
   :tracked true,
   :covered true,
   :hits 1}
@@ -32,22 +32,22 @@
   :file "cloverage/sample/dummy_sample.clj",
   :form
   (def
-   dummy-function
-   (clojure.core/fn
-    ([& args]
-     (cloverage.instrument/wrapm
-      cloverage.coverage/track-coverage
-      5
-      (println "Hello, World!"))))),
+    dummy-function
+    (clojure.core/fn
+      ([& args]
+       (cloverage.instrument/wrapm
+        cloverage.coverage/track-coverage
+        5
+        (println "Hello, World!"))))),
   :full-form
   (def
-   dummy-function
-   (clojure.core/fn
-    ([& args]
-     (cloverage.instrument/wrapm
-      cloverage.coverage/track-coverage
-      5
-      (println "Hello, World!"))))),
+    dummy-function
+    (clojure.core/fn
+      ([& args]
+       (cloverage.instrument/wrapm
+        cloverage.coverage/track-coverage
+        5
+        (println "Hello, World!"))))),
   :tracked true,
   :covered true,
   :hits 1}

@@ -85,53 +85,53 @@
 
 (defn parse-args [args]
   (cli/cli args
-       ["-o" "--output" "Output directory." :default "target/coverage"]
-       ["--[no-]text"
-        "Produce a text report." :default false]
-       ["--[no-]html"
-        "Produce an HTML report." :default true]
-       ["--[no-]emma-xml"
-        "Produce an EMMA XML report. [emma.sourceforge.net]" :default false]
-       ["--[no-]lcov"
-        "Produce a lcov/gcov report." :default false]
-       ["--[no-]codecov"
-        "Generate a JSON report for Codecov.io" :default false]
-       ["--[no-]coveralls"
-        "Send a JSON report to Coveralls if on a CI server" :default false]
-       ["--[no-]raw"
-        "Output raw coverage data (for debugging)." :default false]
-       ["--[no-]summary"
-        "Prints a summary" :default true]
-       ["-d" "--[no-]debug"
-        "Output debugging information to stdout." :default false]
-       ["-r" "--runner"
-        "Specify which test runner to use. Currently supported runners are `clojure.test` and `midje`."
-        :default :clojure.test
-        :parse-fn parse-kw-str]
-       ["--[no-]nop" "Instrument with noops." :default false]
-       ["-n" "--ns-regex"
-        "Regex for instrumented namespaces (can be repeated)."
-        :default  []
-        :parse-fn (collecting-args-parser)]
-       ["-e" "--ns-exclude-regex"
-        "Regex for namespaces not to be instrumented (can be repeated)."
-        :default  []
-        :parse-fn (collecting-args-parser)]
-       ["-t" "--test-ns-regex"
-        "Regex for test namespaces (can be repeated)."
-        :default []
-        :parse-fn (collecting-args-parser)]
-       ["-p" "--src-ns-path"
-        "Path (string) to directory containing source code namespaces."
-        :default nil]
-       ["-s" "--test-ns-path"
-        "Path (string) to directory containing test namespaces."
-        :default nil]
-       ["-x" "--extra-test-ns"
-        "Additional test namespace (string) to add (can be repeated)."
-        :default  []
-        :parse-fn (collecting-args-parser)]
-       ["-h" "--help" "Show help." :default false :flag true]))
+           ["-o" "--output" "Output directory." :default "target/coverage"]
+           ["--[no-]text"
+            "Produce a text report." :default false]
+           ["--[no-]html"
+            "Produce an HTML report." :default true]
+           ["--[no-]emma-xml"
+            "Produce an EMMA XML report. [emma.sourceforge.net]" :default false]
+           ["--[no-]lcov"
+            "Produce a lcov/gcov report." :default false]
+           ["--[no-]codecov"
+            "Generate a JSON report for Codecov.io" :default false]
+           ["--[no-]coveralls"
+            "Send a JSON report to Coveralls if on a CI server" :default false]
+           ["--[no-]raw"
+            "Output raw coverage data (for debugging)." :default false]
+           ["--[no-]summary"
+            "Prints a summary" :default true]
+           ["-d" "--[no-]debug"
+            "Output debugging information to stdout." :default false]
+           ["-r" "--runner"
+            "Specify which test runner to use. Currently supported runners are `clojure.test` and `midje`."
+            :default :clojure.test
+            :parse-fn parse-kw-str]
+           ["--[no-]nop" "Instrument with noops." :default false]
+           ["-n" "--ns-regex"
+            "Regex for instrumented namespaces (can be repeated)."
+            :default  []
+            :parse-fn (collecting-args-parser)]
+           ["-e" "--ns-exclude-regex"
+            "Regex for namespaces not to be instrumented (can be repeated)."
+            :default  []
+            :parse-fn (collecting-args-parser)]
+           ["-t" "--test-ns-regex"
+            "Regex for test namespaces (can be repeated)."
+            :default []
+            :parse-fn (collecting-args-parser)]
+           ["-p" "--src-ns-path"
+            "Path (string) to directory containing source code namespaces."
+            :default nil]
+           ["-s" "--test-ns-path"
+            "Path (string) to directory containing test namespaces."
+            :default nil]
+           ["-x" "--extra-test-ns"
+            "Additional test namespace (string) to add (can be repeated)."
+            :default  []
+            :parse-fn (collecting-args-parser)]
+           ["-h" "--help" "Show help." :default false :flag true]))
 
 (defn mark-loaded [namespace]
   (binding [*ns* (find-ns 'clojure.core)]
@@ -204,10 +204,10 @@
         runner        (runner-fn (:runner opts))
         start         (System/currentTimeMillis)
         namespaces    (set/difference
-                        (into #{}
-                              (concat add-nses
-                                      (find-nses ns-path ns-regexs)))
-                        (into #{} (find-nses ns-path exclude-regex)))
+                       (into #{}
+                             (concat add-nses
+                                     (find-nses ns-path ns-regexs)))
+                       (into #{} (find-nses ns-path exclude-regex)))
         test-nses     (concat add-test-nses (find-nses test-ns-path test-regexs))]
     (if help?
       (println help)
@@ -240,7 +240,7 @@
             (let [stats (rep/gather-stats @*covered*)
                   results [(when text? (rep/text-report output stats))
                            (when html? (rep/html-report output stats)
-                             (rep/html-summary output stats))
+                                 (rep/html-summary output stats))
                            (when emma-xml? (rep/emma-xml-report output stats))
                            (when lcov? (rep/lcov-report output stats))
                            (when raw? (rep/raw-report output stats @*covered*))

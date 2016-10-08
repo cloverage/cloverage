@@ -2,9 +2,7 @@
   (:require [cloverage.dependency :as cd]
             [clojure.test :as t]))
 
-
-(def ns-fixtures {
-                  ;; sources snipped from incanter : https://github.com/liebke/incanter
+(def ns-fixtures {;; sources snipped from incanter : https://github.com/liebke/incanter
                   :incanter-core
                   {:ns-source
                    '(ns ^{:doc "This is the core numerics library for Incanter.
@@ -19,7 +17,7 @@
               "
                           :author "David Edgar Liebke"}
 
-                        incanter.core
+                     incanter.core
 
                       (:use [incanter internal]
                             [incanter.infix :only (infix-to-prefix defop)]
@@ -49,7 +47,7 @@
                 basic Bayesian modeling and inference.
                 "
                           :author "David Edgar Liebke"}
-                        incanter.bayes
+                     incanter.bayes
                       (:use [incanter.core :only (matrix mmult mult div minus trans ncol nrow
                                                          plus to-list decomp-cholesky solve half-vectorize
                                                          vectorize symmetric-matrix identity-matrix kronecker
@@ -82,7 +80,7 @@
              (t/is (= expected result)
                    (str "Parsing " ns-name
                         " should give " expected
-                        " but got " result ))))))
+                        " but got " result))))))
 
 (t/deftest test-dependency-sort
   (let [dep-lists [['first #{'fourth}]
@@ -91,8 +89,7 @@
                    ['fourth #{'fifth}]
                    ['fifth #{}]]
         result    (cd/dependency-sort dep-lists)
-        index-map (zipmap result (range))
-        ]
+        index-map (zipmap result (range))]
     (t/is (not (nil? result)) "Dependency sort should not be nil.")
     (doseq [[name deps] dep-lists]
       (let [my-index (get index-map name)]
