@@ -1,15 +1,24 @@
 language: clojure
 lein: lein2
-install: (cd cloverage && lein2 deps) && (cd lein-cloverage && lein2 deps)
-script: (cd cloverage && lein2 test) && (cd lein-cloverage && lein2 test)
-sudo: false
-cache:
-  directories:
-    - $HOME/.m2
+sudo: true
+
+before_install: yes | sudo lein upgrade
+install:
+  - (cd cloverage && lein2 deps)
+  - (cd lein-cloverage && lein2 deps)
 
 before_script:
   - npm install -g eclint
   - eclint check .* **
+  - (cd cloverage && lein2 cljfmt check)
+  - (cd lein-cloverage && lein2 cljfmt check)
+script:
+  - (cd cloverage && lein2 test)
+  - (cd lein-cloverage && lein2 test)
+
+cache:
+  directories:
+    - $HOME/.m2
 
 jdk:
   - oraclejdk8
