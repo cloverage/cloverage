@@ -1,20 +1,19 @@
 language: clojure
-lein: lein2
-sudo: true
+lein: 2.7.1
+sudo: false
 
-before_install: yes | sudo lein upgrade
 install:
-  - (cd cloverage && lein2 deps)
-  - (cd lein-cloverage && lein2 deps)
+  - (cd cloverage && lein deps)
+  - (cd lein-cloverage && lein deps)
 
 before_script:
   - npm install -g eclint
   - eclint check .* **
-  - (cd cloverage && lein2 cljfmt check)
-  - (cd lein-cloverage && lein2 cljfmt check)
+  - (cd cloverage && lein cljfmt check)
+  - (cd lein-cloverage && lein cljfmt check)
 script:
-  - (cd cloverage && lein2 test)
-  - (cd lein-cloverage && lein2 test)
+  - (cd cloverage && lein test)
+  - (cd lein-cloverage && lein test)
 
 cache:
   directories:
