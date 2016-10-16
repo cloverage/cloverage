@@ -6,6 +6,7 @@
   (:require [clojure.set :as set]
             [clojure.test :as test]
             [clojure.tools.logging :as log]
+            [cloverage.rewrite :refer [unchunk]]
             [clojure.tools.reader :as r]
             [riddley.walk :refer [macroexpand-all]]))
 
@@ -92,6 +93,7 @@
     `#{cond}        :cond    ; special case cond to avoid false partial
     `#{loop let}    :let
     `#{letfn}       :letfn
+    `#{for doseq}   :for
     `#{fn}          :fn
     `#{defn}        :defn    ; don't expand defn to preserve stack traces
     `#{defmulti}    :defmulti ; special case defmulti to avoid boilerplate
@@ -359,6 +361,9 @@
                            (= head 'catch)   (wrap-catch f line elem)
                            :else             (wrap f line elem)))))
                    body))))
+
+(defmethod do-wrap :for [f line form env]
+  (do-wrap f line (unchunk form) env))
 
 (defmethod do-wrap :list [f line form env]
   (tprnl "Wrapping " (class form) form)
