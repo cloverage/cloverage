@@ -30,25 +30,24 @@
   [f form]
   (walk (partial prewalk f) identity (f form)))
 
-
 (defn do-walk [pred f forms]
   (prewalk
-    (fn [x] (if (pred x) (f x) x))
-    forms))
+   (fn [x] (if (pred x) (f x) x))
+   forms))
 
 (defn cs? [s]
   (chunked-seq? s))
 
 (defn chunked-if? [form]
   (and
-    (seq? form)
-    (= (first form) 'if)
-    (seq? (second form))
-    (= (first (second form)) `chunked-seq?)))
+   (seq? form)
+   (= (first form) 'if)
+   (seq? (second form))
+   (= (first (second form)) `chunked-seq?)))
 
 (defn unchunk [forms]
   (->>
-    forms
-    (do-walk `#{chunked-seq?} (constantly `cs?))
-    macroexpand
-    (do-walk chunked-if? #(nth % 3))))
+   forms
+   (do-walk `#{chunked-seq?} (constantly `cs?))
+   macroexpand
+   (do-walk chunked-if? #(nth % 3))))
