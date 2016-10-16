@@ -11,10 +11,11 @@ in github. Commentary on the change should appear as a nested, unordered list.
 
 - Improvements
   - No more reflection warnings! (#158)
+  - Colorized summary report & ability to fail build on coverage &lt; threshold (#99)
 - Bugfixes
   - Passthrough _-h_ / _--help_ flag to properly show help options (#156)
 
-## 1.0.8 
+## 1.0.8
 - Features
   - Add [Code of Conduct](https://github.com/cloverage/cloverage/blob/master/CODE_OF_CONDUCT.md) (#128)
   - Add junit support with the `--junit` flag (#127)
