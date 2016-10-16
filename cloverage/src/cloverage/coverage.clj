@@ -4,6 +4,7 @@
             [clojure.set :as set]
             [clojure.test :as test]
             [clojure.tools.cli :as cli]
+            [clojure.test.junit :as junit]
             [clojure.tools.logging :as log]
             [cloverage.debug :as debug]
             [cloverage.dependency :as dep]
@@ -98,6 +99,8 @@
             "Generate a JSON report for Codecov.io" :default false]
            ["--[no-]coveralls"
             "Send a JSON report to Coveralls if on a CI server" :default false]
+           ["--[no-]junit"
+            "Output test results as junit xml file. Supported in :clojure.test runner" :default false]
            ["--[no-]raw"
             "Output raw coverage data (for debugging)." :default false]
            ["--[no-]summary"
@@ -161,7 +164,7 @@
     (ns-resolve (or ns *ns*)
                 (symbol (name sym)))))
 
-(defmulti runner-fn identity)
+(defmulti runner-fn :runner)
 
 (defmethod runner-fn :midje [_]
   (if-let [f (resolve-var 'midje.repl/load-facts)]
@@ -169,11 +172,18 @@
       {:errors (:failures (apply f nses))})
     (throw (RuntimeException. "Failed to load Midje."))))
 
-(defmethod runner-fn :clojure.test [_]
+(defmethod runner-fn :clojure.test [opts]
   (fn [nses]
-    (apply require (map symbol nses))
-    {:errors (reduce + ((juxt :error :fail)
-                        (apply test/run-tests nses)))}))
+    (let [run-tests (fn []
+                      (apply require (map symbol nses))
+                      {:errors (reduce + ((juxt :error :fail)
+                                          (apply test/run-tests nses)))})]
+      (if (:junit opts)
+        (binding [test/*test-out* (-> (File. (:output opts) "junit.xml")
+                                      clojure.java.io/writer)]
+          (junit/with-junit-output
+            (run-tests)))
+        (run-tests)))))
 
 (defmethod runner-fn :default [_]
   (throw (IllegalArgumentException.
@@ -188,6 +198,7 @@
         html?         (:html opts)
         raw?          (:raw opts)
         emma-xml?     (:emma-xml opts)
+        junit?        (:junit opts)
         lcov?         (:lcov opts)
         codecov?      (:codecov opts)
         coveralls?    (:coveralls opts)
@@ -200,8 +211,8 @@
         test-regexs   (map re-pattern (:test-ns-regex opts))
         exclude-regex (map re-pattern (:ns-exclude-regex opts))
         ns-path       (:src-ns-path opts)
+        runner        (:runner opts)
         test-ns-path  (:test-ns-path opts)
-        runner        (runner-fn (:runner opts))
         start         (System/currentTimeMillis)
         namespaces    (set/difference
                        (into #{}
@@ -225,8 +236,10 @@
           (mark-loaded namespace))
         (println "Instrumented namespaces.")
         (let [test-result (when-not (empty? test-nses)
-                            (let [test-syms (map symbol test-nses)]
-                              (runner test-syms)))
+                            (if (and junit?
+                                     (not (= runner :clojure.test)))
+                              (throw (RuntimeException. "Junit output only supported for clojure.test at present"))
+                              ((runner-fn opts) (map symbol test-nses))))
               ;; sum up errors as in lein test
               errors      (when test-result
                             (:errors test-result))
