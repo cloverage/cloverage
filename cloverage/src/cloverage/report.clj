@@ -18,7 +18,7 @@
    \' "&#x27;"
    \/ "&#x2F;"})
 
-(defn md5 [s]
+(defn md5 [^String s]
   (let [algorithm (MessageDigest/getInstance "MD5")
         size (* 2 (.getDigestLength algorithm))
         raw (.digest algorithm (.getBytes s))
@@ -30,7 +30,7 @@
 (defmacro with-out-writer
   "Opens a writer on f, binds it to *out*, and evalutes body.
   Anything printed within body will be written to f."
-  [f & body]
+  [^File f & body]
   `(with-open [stream# (writer ~f)]
      (binding [*out* stream#]
        ~@body)))
@@ -90,23 +90,22 @@
      :covered-lines (count (filter :covered? lines))
      :partial-lines (count (filter :partial? lines))}))
 
-(defn stats-report [file cov]
+(defn stats-report [^File file cov]
   (.mkdirs (.getParentFile file))
-  (with-open [outf (writer file)]
-    (binding [*out* outf]
-      (printf "Lines Non-Blank Instrumented Covered Partial%n")
-      (doseq [file-info (file-stats cov)]
-        (printf "%5d %9d %7d %10d %10d %s%n"
-                (:lines file-info)
-                (- (:lines file-info) (:blank-lines file-info))
-                (:instrd-lines  file-info)
-                (:covered-lines file-info)
-                (:partial-lines file-info)
-                (:file          file-info))))))
+  (with-out-writer file
+    (printf "Lines Non-Blank Instrumented Covered Partial%n")
+    (doseq [file-info (file-stats cov)]
+      (printf "%5d %9d %7d %10d %10d %s%n"
+              (:lines file-info)
+              (- (:lines file-info) (:blank-lines file-info))
+              (:instrd-lines  file-info)
+              (:covered-lines file-info)
+              (:partial-lines file-info)
+              (:file          file-info)))))
 
-(defn text-report [out-dir forms]
+(defn text-report [^String out-dir forms]
   (stats-report (File. out-dir "coverage.txt") forms)
-  (doseq [[file file-forms] (group-by :file forms)
+  (doseq [[^String file file-forms] (group-by :file forms)
           :when file]
     (let [file (File. out-dir file)]
       (.mkdirs (.getParentFile file))
@@ -138,7 +137,7 @@
 
 (defn emma-xml-report
   "Create '${out-dir}/coverage.xml' in EMMA format (emma.sourceforge.net)."
-  [out-dir forms]
+  [^String out-dir forms]
   (let [output-file (File. out-dir "coverage.xml")
         stats      (doall (file-stats forms))
         file-count (count (distinct (map :file stats)))
@@ -172,14 +171,14 @@
 
 (defn lcov-report
   "Write LCOV report to '${out-dir}/lcov.info'."
-  [out-dir forms]
+  [^String out-dir forms]
   (let [file (File. out-dir "lcov.info")]
     (.mkdirs (.getParentFile file))
     (with-out-writer file (write-lcov-report forms))
     nil))
 
 ;; Java 7 has a much nicer API, but this supports Java 6.
-(defn relative-path [target-dir base-dir]
+(defn relative-path [^File target-dir ^File base-dir]
   ^{:doc "Return the path to target-dir relative to base-dir.
           Both arguments are java.io.File"}
   (loop [target-file (.getAbsoluteFile target-dir)
@@ -204,7 +203,7 @@
                  (str (subs suffix 1) "/" postpend)
                  prepend))))))
 
-(defn html-report [out-dir forms]
+(defn html-report [^String out-dir forms]
   (copy (resource-reader "coverage.css") (File. out-dir "coverage.css"))
   (stats-report (File. out-dir "coverage.txt") forms)
   (doseq [[rel-file file-forms] (group-by :file forms)]
@@ -262,7 +261,7 @@
     {:percent-lines-covered (if (= lines 0) 0. (* (/ (+ covered partial) lines) 100.0))
      :percent-forms-covered (if (= forms 0) 0. (* (/ cov-forms forms) 100.0))}))
 
-(defn html-summary [out-dir forms]
+(defn html-summary [^String out-dir forms]
   (let [index (File. out-dir "index.html")
         totalled-stats (total-stats forms)]
     (.mkdirs (File. out-dir))
@@ -321,7 +320,7 @@
       (println "</html>"))
     (format "HTML: file://%s" (.getAbsolutePath index))))
 
-(defn coveralls-report [out-dir forms]
+(defn coveralls-report [^String out-dir forms]
   (letfn [(has-env [s] (= (System/getenv s) "true"))
           (service-info [sname job-id-var] [sname (System/getenv job-id-var)])]
     (let [[service job-id]
@@ -355,7 +354,7 @@
                                       :service_name service
                                       :source_files covdata}))))))
 
-(defn codecov-report [out-dir forms]
+(defn codecov-report [^String out-dir forms]
   (println "codecov start")
   (let [data (filter (fn [[file _]] file) (group-by :file forms))
         covdata
@@ -380,10 +379,10 @@
     (with-out-writer (File. out-dir "codecov.json")
       (print (json/generate-string {:coverage covdata})))))
 
-(defn raw-report [out-dir stats covered]
-  (with-out-writer (File. (File. out-dir) "raw-data.clj")
+(defn raw-report [^String out-dir stats covered]
+  (with-out-writer (File. out-dir "raw-data.clj")
     (clojure.pprint/pprint (zipmap (range) covered)))
-  (with-out-writer (File. (File. out-dir) "raw-stats.clj")
+  (with-out-writer (File. out-dir "raw-stats.clj")
     (clojure.pprint/pprint stats)))
 
 (defn summary
