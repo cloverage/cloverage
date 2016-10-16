@@ -37,9 +37,10 @@ issue.
 
 ### Change Log
 
-Pull requests are required to update the changelog. Changelog entries should
-mention and link to any issues or tickets involved in the change, and should
-provide a short summary description of the particular changes of the patch.
+Pull requests are required to update the [changelog](CHANGELOG.md).
+Changelog entries should mention and link to any issues or tickets
+involved in the change, and should provide a short summary description
+of the particular changes of the patch.
 
 Include the issue number (#xxx) which will link back to the originating issue
 in github. Commentary on the change should appear as a nested, unordered list.
