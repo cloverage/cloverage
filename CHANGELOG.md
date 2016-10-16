@@ -14,6 +14,8 @@ in github. Commentary on the change should appear as a nested, unordered list.
 - Improvements
   - Coverage within `for` comprehensions is always partial (#23)
   - Move Changelog to separate file (#144)
+- Bugfixes
+  - Passthrough _-h_ / _--help_ flag to properly show help options (#156)
 
 ## 1.0.7
 - Features

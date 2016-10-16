@@ -8,7 +8,7 @@
 (defn get-lib-version []
   (or (System/getenv "CLOVERAGE_VERSION") "RELEASE"))
 
-(defn cloverage
+(defn ^:pass-through-help cloverage
   "Run code coverage on the project.
 
   To specify cloverage version, set the CLOVERAGE_VERSION environment variable.
