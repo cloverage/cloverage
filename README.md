@@ -3,7 +3,7 @@ cloverage
 
 Simple clojure coverage tool.
 
-Travis: [![Build Status](https://secure.travis-ci.org/cloverage/cloverage.png?branch=master)](https://travis-ci.org/cloverage/cloverage)
+Travis: [![Build Status](https://secure.travis-ci.org/cloverage/cloverage.png?branch=master)](https://travis-ci.org/cloverage/cloverage), CircleCi: [![CircleCI](https://circleci.com/gh/cloverage/cloverage.svg?style=svg)](https://circleci.com/gh/cloverage/cloverage)
 
 ## Installation
 
