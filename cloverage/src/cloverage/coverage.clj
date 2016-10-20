@@ -179,7 +179,7 @@
                       {:errors (reduce + ((juxt :error :fail)
                                           (apply test/run-tests nses)))})]
       (if (:junit opts)
-        (binding [test/*test-out* (-> (File. (:output opts) "junit.xml")
+        (binding [test/*test-out* (-> (File. ^String (:output opts) "junit.xml")
                                       clojure.java.io/writer)]
           (junit/with-junit-output
             (run-tests)))
@@ -193,7 +193,7 @@
   "Produce test coverage report for some namespaces"
   [& args]
   (let [[opts add-nses help] (parse-args args)
-        output        (:output opts)
+        ^String output (:output opts)
         text?         (:text opts)
         html?         (:html opts)
         raw?          (:raw opts)
