@@ -7,15 +7,20 @@ provide a short summary description of the particular changes of the patch.
 Include the issue number (#xxx) which will link back to the originating issue
 in github. Commentary on the change should appear as a nested, unordered list.
 
-## 1.0.8 (WIP)
+## 1.0.9 (WIP)
+
+- Improvements
+  - No more reflection warnings! (#158)
+- Bugfixes
+  - Passthrough _-h_ / _--help_ flag to properly show help options (#156)
+
+## 1.0.8 
 - Features
   - Add [Code of Conduct](https://github.com/cloverage/cloverage/blob/master/CODE_OF_CONDUCT.md) (#128)
   - Add junit support with the `--junit` flag (#127)
 - Improvements
   - Coverage within `for` comprehensions is always partial (#23)
   - Move Changelog to separate file (#144)
-- Bugfixes
-  - Passthrough _-h_ / _--help_ flag to properly show help options (#156)
 
 ## 1.0.7
 - Features
