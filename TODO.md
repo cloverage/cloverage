@@ -10,7 +10,3 @@ In no particular order, things that should be done:
   - Instrument deftype, reify.
   - Better html output (form-level output rather than colouring lines)
   - TESTS! Oh my god, tests.
-  - Automated snapshot builds [#18]
-  - ignore destructuring partial coverage? (how?) [#15]
-  - figure out partial for coverage [#23]
-  - release script [#6]
