@@ -11,6 +11,7 @@ in github. Commentary on the change should appear as a nested, unordered list.
 
 - Improvements
   - No more reflection warnings! (#158)
+  - Colorized summary report & ability to fail build on coverage &lt; threshold (#99)
 - Bugfixes
   - Passthrough _-h_ / _--help_ flag to properly show help options (#156)
 

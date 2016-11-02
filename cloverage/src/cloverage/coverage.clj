@@ -10,6 +10,7 @@
             [cloverage.dependency :as dep]
             [cloverage.instrument :as inst]
             [cloverage.report :as rep]
+            [cloverage.report.console :as console]
             [cloverage.source :as src])
   (:import clojure.lang.IObj
            java.io.File))
@@ -105,6 +106,18 @@
             "Output raw coverage data (for debugging)." :default false]
            ["--[no-]summary"
             "Prints a summary" :default true]
+           ["--fail-threshold"
+            "Sets the percentage threshold at which cloverage will abort the build. Default: 0%"
+            :default 0
+            :parse-fn #(Integer/parseInt %)]
+           ["--low-watermark"
+            "Sets the low watermark percentage (valid values 0..100). Default: 50%"
+            :default 50
+            :parse-fn #(Integer/parseInt %)]
+           ["--high-watermark"
+            "Sets the high watermark percentage (valid values 0..100). Default: 80%"
+            :default 80
+            :parse-fn #(Integer/parseInt %)]
            ["-d" "--[no-]debug"
             "Output debugging information to stdout." :default false]
            ["-r" "--runner"
@@ -189,37 +202,45 @@
   (throw (IllegalArgumentException.
           "Currently supported runners are only `clojure.test` and `midje`.")))
 
+(defn- coverage-under? [failure-threshold]
+  (when (pos? failure-threshold)
+    (let [pct-covered (apply min (vals (rep/total-stats (rep/gather-stats @*covered*))))
+          failed? (< pct-covered failure-threshold)]
+      (when failed?
+        (println "Failing build as coverage is below threshold of" failure-threshold "%"))
+      failed?)))
+
 (defn -main
   "Produce test coverage report for some namespaces"
   [& args]
   (let [[opts add-nses help] (parse-args args)
-        ^String output (:output opts)
-        text?         (:text opts)
-        html?         (:html opts)
-        raw?          (:raw opts)
-        emma-xml?     (:emma-xml opts)
-        junit?        (:junit opts)
-        lcov?         (:lcov opts)
-        codecov?      (:codecov opts)
-        coveralls?    (:coveralls opts)
-        summary?      (:summary opts)
-        debug?        (:debug opts)
-        nops?         (:nop opts)
-        help?         (:help opts)
-        add-test-nses (:extra-test-ns opts)
-        ns-regexs     (map re-pattern (:ns-regex opts))
-        test-regexs   (map re-pattern (:test-ns-regex opts))
-        exclude-regex (map re-pattern (:ns-exclude-regex opts))
-        ns-path       (:src-ns-path opts)
-        runner        (:runner opts)
-        test-ns-path  (:test-ns-path opts)
-        start         (System/currentTimeMillis)
-        namespaces    (set/difference
-                       (into #{}
-                             (concat add-nses
-                                     (find-nses ns-path ns-regexs)))
-                       (into #{} (find-nses ns-path exclude-regex)))
-        test-nses     (concat add-test-nses (find-nses test-ns-path test-regexs))]
+        ^String output  (:output opts)
+        text?           (:text opts)
+        html?           (:html opts)
+        raw?            (:raw opts)
+        emma-xml?       (:emma-xml opts)
+        junit?          (:junit opts)
+        lcov?           (:lcov opts)
+        codecov?        (:codecov opts)
+        coveralls?      (:coveralls opts)
+        summary?        (:summary opts)
+        fail-threshold  (:fail-threshold opts)
+        low-watermark   (:low-watermark opts)
+        high-watermark  (:high-watermark opts)
+        debug?          (:debug opts)
+        nops?           (:nop opts)
+        help?           (:help opts)
+        extra-test-nses (:extra-test-ns opts)
+        ns-regexs       (map re-pattern (:ns-regex opts))
+        test-regexs     (map re-pattern (:test-ns-regex opts))
+        exclude-regex   (map re-pattern (:ns-exclude-regex opts))
+        ns-path         (:src-ns-path opts)
+        runner          (:runner opts)
+        test-ns-path    (:test-ns-path opts)
+        namespaces      (set/difference
+                         (set (concat add-nses (find-nses ns-path ns-regexs)))
+                         (set (find-nses ns-path exclude-regex)))
+        test-nses       (concat extra-test-nses (find-nses test-ns-path test-regexs))]
     (if help?
       (println help)
       (binding [*ns*      (find-ns 'cloverage.coverage)
@@ -246,20 +267,21 @@
               exit-code   (cond
                             (not test-result) -1
                             (> errors 128)    -2
+                            (coverage-under? fail-threshold) -3
                             :else             errors)]
           (println "Ran tests.")
           (when output
             (.mkdir (File. output))
-            (let [stats (rep/gather-stats @*covered*)
-                  results [(when text? (rep/text-report output stats))
-                           (when html? (rep/html-report output stats)
-                                 (rep/html-summary output stats))
-                           (when emma-xml? (rep/emma-xml-report output stats))
-                           (when lcov? (rep/lcov-report output stats))
-                           (when raw? (rep/raw-report output stats @*covered*))
-                           (when codecov? (rep/codecov-report output stats))
-                           (when coveralls? (rep/coveralls-report output stats))
-                           (when summary? (rep/summary stats))]]
+            (let [forms (rep/gather-stats @*covered*)
+                  results [(when text? (rep/text-report output forms))
+                           (when html? (rep/html-report output forms)
+                                 (rep/html-summary output forms))
+                           (when emma-xml? (rep/emma-xml-report output forms))
+                           (when lcov? (rep/lcov-report output forms))
+                           (when raw? (rep/raw-report output forms @*covered*))
+                           (when codecov? (rep/codecov-report output forms))
+                           (when coveralls? (rep/coveralls-report output forms))
+                           (when summary? (console/summary forms low-watermark high-watermark))]]
 
               (println "Produced output in" (.getAbsolutePath (File. output)) ".")
               (doseq [r results] (when r (println r)))))
