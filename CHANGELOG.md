@@ -7,7 +7,11 @@ provide a short summary description of the particular changes of the patch.
 Include the issue number (#xxx) which will link back to the originating issue
 in github. Commentary on the change should appear as a nested, unordered list.
 
-## 1.0.9 (WIP)
+## 1.0.10 (WIP)
+
+Nothing yet!
+
+## 1.0.9
 
 - Improvements
   - No more reflection warnings! (#158)
