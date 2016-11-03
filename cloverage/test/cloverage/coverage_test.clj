@@ -232,7 +232,7 @@
     (t/is (=
            (cloverage.coverage/-main
             "-o" "out"
-            "--text" "--html" "--raw" "--emma-xml" "--coveralls"
+            "--text" "--html" "--raw" "--emma-xml" "--coveralls" "--codecov" "--lcov"
             "-x" "cloverage.sample"
             "cloverage.sample")
            0))))

@@ -100,6 +100,4 @@
         totals [(colorizer (min all-forms-pct all-lines-pct) "ALL FILES")
                 (colorizer all-forms-pct)
                 (colorizer all-lines-pct)]]
-    (str
-     (with-out-str
-       (print-table ["Namespace" "% Forms" "% Lines"] namespaces totals)))))
+    (print-table ["Namespace" "% Forms" "% Lines"] namespaces totals)))

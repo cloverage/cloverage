@@ -20,13 +20,14 @@
                  [org.clojure/tools.cli "0.3.5"]
                  [org.clojure/tools.logging "0.3.1"]
                  [org.clojure/data.xml "0.0.8"]
+                 [org.clojure/data.json "0.2.6"]
                  [bultitude "0.2.8"]
                  [riddley "0.1.12"]
-                 [slingshot "0.12.2"]
-                 [cheshire "5.6.3"]]
+                 [slingshot "0.12.2"]]
   :profiles {:dev    {:aot          ^:replace []
                       :dependencies [[org.clojure/clojure "1.8.0"]]
-                      :plugins [[lein-cljfmt "0.5.6"]]}
+                      :plugins [[lein-cljfmt "0.5.6"]]
+                      :global-vars {*warn-on-reflection* true}}
              :1.4    {:dependencies [[org.clojure/clojure "1.4.0"]]}
              :1.5    {:dependencies [[org.clojure/clojure "1.5.1"]]}
              :1.6    {:dependencies [[org.clojure/clojure "1.6.0"]]}
