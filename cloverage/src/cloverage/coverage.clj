@@ -209,9 +209,9 @@
   (throw (IllegalArgumentException.
           "Currently supported runners are only `clojure.test` and `midje`.")))
 
-(defn- coverage-under? [failure-threshold]
+(defn- coverage-under? [forms failure-threshold]
   (when (pos? failure-threshold)
-    (let [pct-covered (apply min (vals (rep/total-stats (rep/gather-stats @*covered*))))
+    (let [pct-covered (apply min (vals (rep/total-stats forms)))
           failed? (< pct-covered failure-threshold)]
       (when failed?
         (println "Failing build as coverage is below threshold of" failure-threshold "%"))
@@ -268,26 +268,26 @@
                                      (not (= runner :clojure.test)))
                               (throw (RuntimeException. "Junit output only supported for clojure.test at present"))
                               ((runner-fn opts) (map symbol test-nses))))
+              forms       (rep/gather-stats @*covered*)
               ;; sum up errors as in lein test
               errors      (when test-result
                             (:errors test-result))
               exit-code   (cond
                             (not test-result) -1
                             (> errors 128)    -2
-                            (coverage-under? fail-threshold) -3
+                            (coverage-under? forms fail-threshold) -3
                             :else             errors)]
           (println "Ran tests.")
           (when output
             (.mkdirs (io/file output))
-            (let [forms (rep/gather-stats @*covered*)]
-              (when text? (text/report output forms))
-              (when html? (html/report output forms))
-              (when emma-xml? (emma-xml/report output forms))
-              (when lcov? (lcov/report output forms))
-              (when raw? (raw/report output forms @*covered*))
-              (when codecov? (codecov/report output forms))
-              (when coveralls? (coveralls/report output forms))
-              (when summary? (console/summary forms low-watermark high-watermark))))
+            (when text? (text/report output forms))
+            (when html? (html/report output forms))
+            (when emma-xml? (emma-xml/report output forms))
+            (when lcov? (lcov/report output forms))
+            (when raw? (raw/report output forms @*covered*))
+            (when codecov? (codecov/report output forms))
+            (when coveralls? (coveralls/report output forms))
+            (when summary? (console/summary forms low-watermark high-watermark)))
           (if *exit-after-test*
             (do (shutdown-agents)
                 (System/exit exit-code))
