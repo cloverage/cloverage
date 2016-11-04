@@ -1,6 +1,7 @@
 (ns cloverage.coverage
   (:gen-class)
   (:require [bultitude.core :as blt]
+            [clojure.java.io :as io]
             [clojure.set :as set]
             [clojure.test :as test]
             [clojure.tools.cli :as cli]
@@ -11,9 +12,15 @@
             [cloverage.instrument :as inst]
             [cloverage.report :as rep]
             [cloverage.report.console :as console]
+            [cloverage.report.coveralls :as coveralls]
+            [cloverage.report.codecov :as codecov]
+            [cloverage.report.emma-xml :as emma-xml]
+            [cloverage.report.html :as html]
+            [cloverage.report.lcov :as lcov]
+            [cloverage.report.raw :as raw]
+            [cloverage.report.text :as text]
             [cloverage.source :as src])
-  (:import clojure.lang.IObj
-           java.io.File))
+  (:import clojure.lang.IObj))
 
 (def ^:dynamic *instrumented-ns*) ;; currently instrumented ns
 (def ^:dynamic *covered* (atom []))
@@ -192,8 +199,8 @@
                       {:errors (reduce + ((juxt :error :fail)
                                           (apply test/run-tests nses)))})]
       (if (:junit opts)
-        (binding [test/*test-out* (-> (File. ^String (:output opts) "junit.xml")
-                                      clojure.java.io/writer)]
+        (binding [test/*test-out* (-> (io/file (:output opts) "junit.xml")
+                                      io/writer)]
           (junit/with-junit-output
             (run-tests)))
         (run-tests)))))
@@ -271,20 +278,16 @@
                             :else             errors)]
           (println "Ran tests.")
           (when output
-            (.mkdir (File. output))
-            (let [forms (rep/gather-stats @*covered*)
-                  results [(when text? (rep/text-report output forms))
-                           (when html? (rep/html-report output forms)
-                                 (rep/html-summary output forms))
-                           (when emma-xml? (rep/emma-xml-report output forms))
-                           (when lcov? (rep/lcov-report output forms))
-                           (when raw? (rep/raw-report output forms @*covered*))
-                           (when codecov? (rep/codecov-report output forms))
-                           (when coveralls? (rep/coveralls-report output forms))
-                           (when summary? (console/summary forms low-watermark high-watermark))]]
-
-              (println "Produced output in" (.getAbsolutePath (File. output)) ".")
-              (doseq [r results] (when r (println r)))))
+            (.mkdirs (io/file output))
+            (let [forms (rep/gather-stats @*covered*)]
+              (when text? (text/report output forms))
+              (when html? (html/report output forms))
+              (when emma-xml? (emma-xml/report output forms))
+              (when lcov? (lcov/report output forms))
+              (when raw? (raw/report output forms @*covered*))
+              (when codecov? (codecov/report output forms))
+              (when coveralls? (coveralls/report output forms))
+              (when summary? (console/summary forms low-watermark high-watermark))))
           (if *exit-after-test*
             (do (shutdown-agents)
                 (System/exit exit-code))
