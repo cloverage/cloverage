@@ -8,11 +8,14 @@ Include the issue number (#xxx) which will link back to the originating issue
 in github. Commentary on the change should appear as a nested, unordered list.
 
 ## 1.0.10 (WIP)
-
-Nothing yet!
+- Improvements
+  - Split out reporting into separate namespaces (#165)
+  - Stop using Cheshire for JSON output (fewer transitive dependencies) (#165)
+- Bugfixes
+  - Fix performance regression: Only call `gather-stats` once (#166)
+  - Abort if cyclic dependency in namespaces detected (#122)
 
 ## 1.0.9
-
 - Improvements
   - No more reflection warnings! (#158)
   - Colorized summary report & ability to fail build on coverage &lt; threshold (#99)

@@ -40,23 +40,3 @@
            m (g n)
            g' (reduce #(update-in % [n] without %2) g m)]
        (recur g' (conj l n) (union s' (intersection (no-incoming g') m)))))))
-
-(comment
-  (def acyclic-g
-    {7 #{11 8}
-     5 #{11}
-     3 #{8 10}
-     11 #{2 9}
-     8 #{9}})
-
-  (def cyclic-g
-    {7 #{11 8}
-     5 #{11}
-     3 #{8 10}
-     11 #{2 9}
-     8 #{9}
-     2 #{11}}) ;oops, a cycle!
-
-  (kahn-sort acyclic-g) ;=> [3 5 7 8 10 11 2 9]
-  (kahn-sort cyclic-g) ;=> nil
-)
