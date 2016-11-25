@@ -1,4 +1,4 @@
-(ns cloverage.sample
+(ns cloverage.sample.exercise-instrumentation
   (:refer-clojure :exclude [loop])
   (:import java.lang.RuntimeException)
   (:use [clojure test]))

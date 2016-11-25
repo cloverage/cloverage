@@ -11,9 +11,6 @@
         (symbol? tree) (symbol (name tree))
         :else tree))
 
-(def sample-file
-  "cloverage/sample.clj")
-
 (defn coverage-fixture [f]
   (binding [cov/*covered*         (atom [])
             cov/*instrumented-ns* "NO_SUCH_NAMESPACE"]
@@ -183,7 +180,7 @@
 
 (t/deftest test-instrument-gets-lines
   (inst/instrument #'cov/track-coverage
-                   'cloverage.sample)
+                   'cloverage.sample.exercise-instrumentation)
   (let [cov @cov/*covered*
         found (find-form cov '(+ 1 2))]
     #_(with-out-writer "out/foo"
@@ -233,6 +230,18 @@
            (cloverage.coverage/-main
             "-o" "out"
             "--text" "--html" "--raw" "--emma-xml" "--coveralls" "--codecov" "--lcov"
-            "-x" "cloverage.sample"
-            "cloverage.sample")
+            "-x" "cloverage.sample.exercise-instrumentation"
+            "cloverage.sample.exercise-instrumentation")
            0))))
+
+(t/deftest test-cyclic-dependency
+  (binding [cloverage.coverage/*exit-after-test* false]
+    (t/is
+     (thrown-with-msg?
+      RuntimeException #"Cannot instrument namespaces; there is a cyclic depdendency"
+      (cloverage.coverage/-main
+       "-o" "out"
+       "--emma-xml"
+       "-x" "cloverage.sample.cyclic-dependency"
+       "cloverage.sample.cyclic-dependency")))))
+

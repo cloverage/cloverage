@@ -247,21 +247,27 @@
         namespaces      (set/difference
                          (set (concat add-nses (find-nses ns-path ns-regexs)))
                          (set (find-nses ns-path exclude-regex)))
-        test-nses       (concat extra-test-nses (find-nses test-ns-path test-regexs))]
+        test-nses       (concat extra-test-nses (find-nses test-ns-path test-regexs))
+        ordered-nses    (dep/in-dependency-order (map symbol namespaces))]
     (if help?
       (println help)
       (binding [*ns*      (find-ns 'cloverage.coverage)
                 debug/*debug*   debug?]
+
         (println "Loading namespaces: " (apply list namespaces))
         (println "Test namespaces: " test-nses)
-        (doseq [namespace (dep/in-dependency-order (map symbol namespaces))]
-          (binding [*instrumented-ns* namespace]
-            (if nops?
-              (inst/instrument #'inst/nop namespace)
-              (inst/instrument #'track-coverage namespace)))
-          (println "Loaded " namespace " .")
-          ;; mark the ns as loaded
-          (mark-loaded namespace))
+
+        (if (empty? ordered-nses)
+          (throw (RuntimeException. "Cannot instrument namespaces; there is a cyclic depdendency"))
+          (doseq [namespace ordered-nses]
+            (binding [*instrumented-ns* namespace]
+              (if nops?
+                (inst/instrument #'inst/nop namespace)
+                (inst/instrument #'track-coverage namespace)))
+            (println "Loaded " namespace " .")
+            ;; mark the ns as loaded
+            (mark-loaded namespace)))
+
         (println "Instrumented namespaces.")
         (let [test-result (when-not (empty? test-nses)
                             (if (and junit?
