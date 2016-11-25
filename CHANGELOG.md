@@ -14,6 +14,7 @@ in github. Commentary on the change should appear as a nested, unordered list.
 - Bugfixes
   - Fix performance regression: Only call `gather-stats` once (#166)
   - Abort if cyclic dependency in namespaces detected (#122)
+  - Attempt creation of output dir ahead of running with --junit flag (#167)
 
 ## 1.0.9
 - Improvements
