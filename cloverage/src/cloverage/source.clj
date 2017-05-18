@@ -29,9 +29,12 @@
     (throw (IllegalArgumentException. (str "Cannot find resource " resource)))))
 
 (defn form-reader [ns-symbol]
-  (rt/indexing-push-back-reader
-   (java.io.PushbackReader.
-    (resource-reader (resource-path ns-symbol)))))
+  (if-let [res-path (resource-path ns-symbol)]
+    (rt/indexing-push-back-reader
+     (java.io.PushbackReader.
+      (resource-reader res-path)))
+    (throw (ex-info (format "Resource path not found for namespace: %s" (name ns-symbol))
+                    {:ns-symbol ns-symbol}))))
 
 (defn forms [ns-symbol]
   (let [src (form-reader ns-symbol)]
