@@ -5,6 +5,11 @@ sudo: false
 install:
   - (cd cloverage && lein deps)
   - (cd lein-cloverage && lein deps)
+  # Get recent node:
+  - . $HOME/.nvm/nvm.sh 
+  - nvm install stable
+  - nvm use stable
+  - npm install
 
 before_script:
   - npm install -g eclint
