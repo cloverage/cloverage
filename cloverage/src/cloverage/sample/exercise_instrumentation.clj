@@ -58,7 +58,7 @@
 (defmethod mixed-coverage-multi Character
   ;; not covered
   [x]
-  (.toString x))
+  (str x))
 
 (deftest test-mixed-multi
   (is "String" (mixed-coverage-multi "String"))

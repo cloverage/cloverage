@@ -59,12 +59,13 @@
         (if (or (nil? ns)
                 (= (name (ns-name ns)) ns-str)) ;; not an alias
           s
-          (symbol (name (.name ns)) (name s))))
+          (symbol (name (ns-name ns)) (name s))))
       (if-let [o ((ns-map *ns*) s)]
         (if (class? o)
           (symbol (.getName ^Class o))
           (if (var? o)
-            (symbol (-> o .ns .name name) (-> o .sym name))))
+            (let [^clojure.lang.Var o o]
+              (symbol (-> o .ns .name name) (-> o .sym name)))))
         ;; changed to returned unnamespaced symbol if it fails to resolve
         s))))
 
@@ -125,7 +126,7 @@
      (tprnl "Meta of" form "is" (meta form))
      res)))
 
-(defn- var->sym [fvar]
+(defn- var->sym [^clojure.lang.Var fvar]
   (let [it (name (.sym fvar))
         nsn (name (ns-name (.ns fvar)))]
     (symbol nsn it)))
