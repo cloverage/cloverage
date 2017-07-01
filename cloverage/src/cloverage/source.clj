@@ -3,7 +3,7 @@
             [clojure.tools.reader.reader-types :as rt]
             [clojure.java.io :as io]))
 
-(defn- get-loader []
+(defn- get-loader ^ClassLoader []
   (clojure.lang.RT/baseLoader))
 
 (defn- resource-exists? [path]
