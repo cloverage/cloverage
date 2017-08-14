@@ -1,17 +1,31 @@
-dependencies:
-  pre:
-    # Install Leiningen as lein2
-    - wget -O lein2 https://raw.githubusercontent.com/technomancy/leiningen/stable/bin/lein
-    - chmod +x lein2
-    - sudo mv lein2 /usr/local/bin
-  override:
-    - lein2 deps:
-        pwd: cloverage
-    - lein2 deps:
-        pwd: lein-cloverage
-test:
-  override:
-    - lein2 test:
-        pwd: cloverage
-    - lein2 test:
-        pwd: lein-cloverage
+version: 2.0
+jobs:
+  build:
+    docker:
+      - image: clojure:lein-2.7.1
+    working_directory: /root/cloverage
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-jars-{{ checksum "cloverage/project.clj" }}-{{ checksum "lein-cloverage/project.clj" }}
+      - run:
+          name: Install cloverage dependencies
+          command: lein deps
+          working_directory: /root/cloverage/cloverage
+      - run:
+          name: Install lein-cloverage dependencies
+          command: lein deps
+          working_directory: /root/cloverage/lein-cloverage
+      - save_cache:
+          key: v1-jars-{{ checksum "cloverage/project.clj" }}-{{ checksum "lein-cloverage/project.clj" }}
+          paths:
+            - /root/.m2
+      - run:
+          name: Run cloverage tests
+          command: lein test
+          working_directory: /root/cloverage/cloverage
+      - run:
+          name: Run lein-cloverage tests
+          command: lein test
+          working_directory: /root/cloverage/lein-cloverage
