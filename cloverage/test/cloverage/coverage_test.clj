@@ -238,7 +238,7 @@
   (binding [cloverage.coverage/*exit-after-test* false]
     (t/is
      (thrown-with-msg?
-      RuntimeException #"Cannot instrument namespaces; there is a cyclic depdendency"
+      RuntimeException #"Cannot instrument namespaces; there is a cyclic dependency"
       (cloverage.coverage/-main
        "-o" "out"
        "--emma-xml"
