@@ -258,7 +258,7 @@
         (println "Test namespaces: " test-nses)
 
         (if (empty? ordered-nses)
-          (throw (RuntimeException. "Cannot instrument namespaces; there is a cyclic depdendency"))
+          (throw (RuntimeException. "Cannot instrument namespaces; there is a cyclic dependency"))
           (doseq [namespace ordered-nses]
             (binding [*instrumented-ns* namespace]
               (if nops?
