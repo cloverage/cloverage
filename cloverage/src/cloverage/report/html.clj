@@ -122,6 +122,7 @@
   (doseq [[rel-file file-forms] (group-by :file forms)]
     (let [file     (io/file out-dir (str rel-file ".html"))
           rootpath (relative-path (io/file out-dir) (.getParentFile file))]
+      (io/make-parents file)
       (with-out-writer file
         (println "<html>")
         (println " <head>")
