@@ -13,7 +13,7 @@ Add [![Clojars Project](http://clojars.org/lein-cloverage/latest-version.svg)](h
 
 ## Testing frameworks support
 
-Cloverage uses clojure.test by default. If you prefer use midje, pass the `--runner :midje` flag. (In older versions of Cloverage, you had to wrap your midje tests in clojure.test's deftest. This is no longer necessary.)
+Cloverage uses `clojure.test` by default. If you prefer use `midje`, pass the `--runner :midje` flag. (In older versions of Cloverage, you had to wrap your midje tests in clojure.test's deftest. This is no longer necessary.) Other test libraries may ship with their own support for Cloverage external to this library; see their documentation for details.
 
 ## Usage
 
