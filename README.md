@@ -5,7 +5,7 @@ Simple clojure coverage tool.
 
 Travis: [![Build Status](https://travis-ci.org/cloverage/cloverage.svg?branch=master)](https://travis-ci.org/cloverage/cloverage)
 
-CircleCI: [![CircleCI](https://circleci.com/gh/cloverage/cloverage.svg?style=svg)](https://circleci.com/gh/cloverage/cloverage)
+CircleCI: [![CircleCI](https://circleci.com/gh/cloverage/cloverage.svg?style=shield)](https://circleci.com/gh/cloverage/cloverage)
 
 ## Installation
 
