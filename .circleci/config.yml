@@ -3,29 +3,29 @@ jobs:
   build:
     docker:
       - image: clojure:lein-2.7.1
-    working_directory: /root/cloverage
     steps:
       - checkout
       - restore_cache:
           keys:
             - v1-jars-{{ checksum "cloverage/project.clj" }}-{{ checksum "lein-cloverage/project.clj" }}
+            - v1-jars-
       - run:
           name: Install cloverage dependencies
           command: lein deps
-          working_directory: /root/cloverage/cloverage
+          working_directory: ./cloverage
       - run:
           name: Install lein-cloverage dependencies
           command: lein deps
-          working_directory: /root/cloverage/lein-cloverage
+          working_directory: ./lein-cloverage
       - save_cache:
           key: v1-jars-{{ checksum "cloverage/project.clj" }}-{{ checksum "lein-cloverage/project.clj" }}
           paths:
-            - /root/.m2
+            - ~/.m2
       - run:
           name: Run cloverage tests
           command: lein test
-          working_directory: /root/cloverage/cloverage
+          working_directory: ./cloverage
       - run:
           name: Run lein-cloverage tests
           command: lein test
-          working_directory: /root/cloverage/lein-cloverage
+          working_directory: ./lein-cloverage
