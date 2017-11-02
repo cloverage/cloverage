@@ -128,7 +128,7 @@
            ["-d" "--[no-]debug"
             "Output debugging information to stdout." :default false]
            ["-r" "--runner"
-            "Specify which test runner to use. Currently supported runners are `clojure.test` and `midje`."
+            "Specify which test runner to use. Built-in runners are `clojure.test` and `midje`."
             :default :clojure.test
             :parse-fn parse-kw-str]
            ["--[no-]nop" "Instrument with noops." :default false]
@@ -207,7 +207,7 @@
 
 (defmethod runner-fn :default [_]
   (throw (IllegalArgumentException.
-          "Currently supported runners are only `clojure.test` and `midje`.")))
+          "Runner not found. Built-in runners are `clojure.test` and `midje`.")))
 
 (defn- coverage-under? [forms failure-threshold]
   (when (pos? failure-threshold)
@@ -269,6 +269,10 @@
             (mark-loaded namespace)))
 
         (println "Instrumented namespaces.")
+        ;; load runner multimethod definition from other dependencies
+        (when-not (#{:clojure.test :midje} runner)
+          (try (require (symbol (format "%s.cloverage" (name runner))))
+               (catch java.io.FileNotFoundException _)))
         (let [test-result (when-not (empty? test-nses)
                             (if (and junit?
                                      (not (= runner :clojure.test)))
