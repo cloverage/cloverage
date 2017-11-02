@@ -7,15 +7,22 @@ provide a short summary description of the particular changes of the patch.
 Include the issue number (#xxx) which will link back to the originating issue
 in github. Commentary on the change should appear as a nested, unordered list.
 
-## 1.0.10 (WIP)
+## 1.0.11 (WIP)
+
+Nothing yet :-)
+
+## 1.0.10
 - Improvements
   - Split out reporting into separate namespaces (#165)
   - Stop using Cheshire for JSON output (fewer transitive dependencies) (#165)
   - No more reflection warnings (again)! (#180)
+  - Automatidcally try to create directory tree necessary for reports (#192)
+  - External runner support: after midje and clojure.test, you can now write your own (#193)
 - Bugfixes
   - Fix performance regression: Only call `gather-stats` once (#166)
   - Abort if cyclic dependency in namespaces detected (#122)
   - Attempt creation of output dir ahead of running with --junit flag (#167)
+  - Only auto-add cloverage to dependencies when you haven't set it manually already (#195)
 
 ## 1.0.9
 - Improvements
