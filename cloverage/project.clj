@@ -18,7 +18,7 @@
                  :deploy-via :clojars}
   :dependencies [[org.clojure/tools.reader "1.0.0-beta3"]
                  [org.clojure/tools.cli "0.3.5"]
-                 [org.clojure/tools.logging "0.3.1"]
+                 [org.clojure/tools.logging "0.4.0"]
                  [org.clojure/data.xml "0.0.8"]
                  [org.clojure/data.json "0.2.6"]
                  [bultitude "0.2.8"]
