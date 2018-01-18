@@ -3,19 +3,17 @@ lein: 2.7.1
 sudo: false
 
 install:
-  - (cd cloverage && lein deps)
-  - (cd lein-cloverage && lein deps)
   # Get recent node:
   - . $HOME/.nvm/nvm.sh
   - nvm install stable
   - nvm use stable
-  - npm install
+  - npm install -g eclint
 
 before_script:
-  - npm install -g eclint
   - eclint check .* **
   - (cd cloverage && lein cljfmt check)
   - (cd lein-cloverage && lein cljfmt check)
+
 script:
   - (cd cloverage && lein test)
   - (cd lein-cloverage && lein test)
