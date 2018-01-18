@@ -11,8 +11,8 @@ install:
 
 before_script:
   - eclint check .* **
-  - (cd cloverage && lein cljfmt check)
-  - (cd lein-cloverage && lein cljfmt check)
+  - (cd cloverage && lein do cljfmt check, eastwood, kibit)
+  - (cd lein-cloverage && lein do cljfmt check, eastwood, kibit)
 
 script:
   - (cd cloverage && lein test)
