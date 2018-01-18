@@ -9,7 +9,8 @@ in github. Commentary on the change should appear as a nested, unordered list.
 
 ## 1.0.11 (WIP)
 
-Nothing yet :-)
+- Bugfixes
+  - Fix the handling of --ns-regex and --test-ns-regex (#183)
 
 ## 1.0.10
 - Improvements

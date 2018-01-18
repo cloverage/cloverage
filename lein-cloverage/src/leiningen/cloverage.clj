@@ -1,9 +1,5 @@
 (ns leiningen.cloverage
-  (:require [leiningen.run :as run]
-            [bultitude.core :as blt]))
-
-(defn ns-names-for-dirs [dirs]
-  (map name (mapcat blt/namespaces-in-dir dirs)))
+  (:require [leiningen.run :as run]))
 
 (defn get-lib-version []
   (or (System/getenv "CLOVERAGE_VERSION") "RELEASE"))
@@ -22,14 +18,12 @@
   Specify -o OUTPUTDIR for output directory, for other options run
   `lein cloverage --help`."
   [project & args]
-  (let [source-namespaces (ns-names-for-dirs (:source-paths project))
-        test-namespace    (ns-names-for-dirs (:test-paths project))
-        project (if (already-has-cloverage? project)
+  (let [project (if (already-has-cloverage? project)
                   project
                   (update-in project [:dependencies]
                              conj    ['cloverage (get-lib-version)]))]
     (apply run/run project
            "-m" "cloverage.coverage"
-           (concat (mapcat  #(list "-x" %) test-namespace)
-                   args
-                   source-namespaces))))
+           (concat (mapcat #(list "-p" %) (:source-paths project))
+                   (mapcat #(list "-s" %) (:test-paths project))
+                   args))))
