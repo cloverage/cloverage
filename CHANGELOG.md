@@ -8,8 +8,9 @@ Include the issue number (#xxx) which will link back to the originating issue
 in github. Commentary on the change should appear as a nested, unordered list.
 
 ## 1.0.11 (WIP)
+- Improvements
+  - Replace generating HTML by Hiccup library (#111)
 
-Nothing yet :-)
 
 ## 1.0.10
 - Improvements
