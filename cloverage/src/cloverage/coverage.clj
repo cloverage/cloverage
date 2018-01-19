@@ -163,17 +163,17 @@
     (eval `(dosync (alter clojure.core/*loaded-libs* conj '~namespace)))))
 
 (defn find-nses
-  "Given ns-path and regex-patterns returns:
-  * empty sequence when ns-path is nil and regex-patterns is empty
-  * all namespaces on ns-path (if regex-patterns is empty)
-  * all namespaces on the classpath that match any of the regex-patterns (if ns-path is nil)
-  * namespaces on ns-path that match any of the regex-patterns"
-  [ns-path regex-patterns]
+  "Given ns-paths and regex-patterns returns:
+  * empty sequence when ns-paths is empty and regex-patterns is empty
+  * all namespaces on all ns-paths (if regex-patterns is empty)
+  * all namespaces on the classpath that match any of the regex-patterns (if ns-paths is empty)
+  * namespaces on ns-paths that match any of the regex-patterns"
+  [ns-paths regex-patterns]
   (let [namespaces (map name
                         (cond
-                          (and (nil? ns-path) (empty? regex-patterns)) '()
-                          (nil? ns-path) (blt/namespaces-on-classpath)
-                          :else (blt/namespaces-on-classpath :classpath ns-path)))]
+                          (and (empty? ns-paths) (empty? regex-patterns)) '()
+                          (empty? ns-paths) (blt/namespaces-on-classpath)
+                          :else (mapcat #(blt/namespaces-on-classpath :classpath %) ns-paths)))]
     (if (seq regex-patterns)
       (filter (fn [ns] (some #(re-matches % ns) regex-patterns)) namespaces)
       namespaces)))
