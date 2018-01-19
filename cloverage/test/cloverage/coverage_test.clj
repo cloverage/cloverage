@@ -183,7 +183,7 @@
   (inst/instrument #'cov/track-coverage
                    'cloverage.sample.exercise-instrumentation)
   (let [cov @cov/*covered*
-        found (find-form cov '(+ 1 2))]
+        found (find-form cov '(+ 40 2))]
     #_(with-out-writer "out/foo"
         (doseq [form-info cov]
           (println form-info)))

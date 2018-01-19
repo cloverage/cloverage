@@ -45,15 +45,15 @@ Both arguments are java.io.File"
 
 (defn- td-bar [total & parts]
   (str "<td class=\"with-bar\">"
-       (apply str
-              (map (fn [[key cnt]]
-                     (if (> cnt 0)
-                       (format "<div class=\"%s\"
+       (cs/join
+        (map (fn [[key cnt]]
+               (if (pos? cnt)
+                 (format "<div class=\"%s\"
                                 style=\"width:%s%%;
                                         float:left;\"> %d </div>"
-                               (name key) (/ (* 100.0 cnt) total) cnt)
-                       ""))
-                   parts))
+                         (name key) (/ (* 100.0 cnt) total) cnt)
+                 ""))
+             parts))
        "</td>"))
 
 (defn- td-num [content]
@@ -78,7 +78,7 @@ Both arguments are java.io.File"
       (println (td-num "Forms %"))
       (println "    <td class=\"with-bar\"> Lines </td>")
       (println (td-num "Lines %"))
-      (println (apply str (map td-num ["Total" "Blank" "Instrumented"])))
+      (println (cs/join (map td-num ["Total" "Blank" "Instrumented"])))
       (println "   </tr></thead>")
       (doseq [file-stat (sort-by :lib (file-stats forms))]
         (let [filepath  (:file file-stat)
@@ -105,7 +105,7 @@ Both arguments are java.io.File"
           (println (td-num (format "%.2f %%" (/ (* 100.0 (+ covered partial))
                                                 instrd))))
           (println
-           (apply str (map td-num [lines blank instrd])))
+           (cs/join (map td-num [lines blank instrd])))
           (println "</tr>")))
       (println "<tr><td>Totals:</td>")
       (println (td-bar nil))

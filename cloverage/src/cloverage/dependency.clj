@@ -41,7 +41,7 @@
 (defn- spec-dependencies [libspec]
   (cond
     (symbol?  libspec) [libspec]
-    (libspec? libspec) [(first (filter (complement keyword?) libspec))]
+    (libspec? libspec) [(first (remove keyword? libspec))]
     (vector?  libspec) (let [[prefix & args] libspec]
                          (map #(symbol (str prefix \. (if (seq? %) (first %) %))) args))))
 

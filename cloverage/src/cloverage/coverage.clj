@@ -169,15 +169,13 @@
   * all namespaces on the classpath that match any of the regex-patterns (if ns-path is nil)
   * namespaces on ns-path that match any of the regex-patterns"
   [ns-path regex-patterns]
-  (let [namespaces (->> (cond
-                          (and (empty? ns-paths) (empty? regex-patterns)) '()
-                          (empty? ns-paths) (blt/namespaces-on-classpath)
-                          :else (mapcat #(blt/namespaces-on-classpath :classpath %)
-                                        ns-paths))
-                        (map name))]
+  (let [namespaces (map name
+                        (cond
+                          (and (nil? ns-path) (empty? regex-patterns)) '()
+                          (nil? ns-path) (blt/namespaces-on-classpath)
+                          :else (blt/namespaces-on-classpath :classpath ns-path)))]
     (if (seq regex-patterns)
-      (filter (fn [namespace] (some #(re-matches % namespace) regex-patterns))
-              namespaces)
+      (filter (fn [ns] (some #(re-matches % ns) regex-patterns)) namespaces)
       namespaces)))
 
 (defn- resolve-var [sym]
@@ -277,10 +275,10 @@
         (when-not (#{:clojure.test :midje} runner)
           (try (require (symbol (format "%s.cloverage" (name runner))))
                (catch java.io.FileNotFoundException _)))
-        (let [test-result (when-not (empty? test-nses)
-                            (if (and junit?
-                                     (not (= runner :clojure.test)))
-                              (throw (RuntimeException. "Junit output only supported for clojure.test at present"))
+        (let [test-result (when (seq test-nses)
+                            (if (and junit? (not= runner :clojure.test))
+                              (throw (RuntimeException.
+                                      "Junit output only supported for clojure.test at present"))
                               ((runner-fn opts) (map symbol test-nses))))
               forms       (rep/gather-stats @*covered*)
               ;; sum up errors as in lein test

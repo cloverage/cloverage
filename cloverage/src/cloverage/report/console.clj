@@ -60,12 +60,13 @@
                            (printable-count (str k))
                            (map #(printable-count (str (get % k))) rows)))
                   ks)
-          spacers (map #(apply str (repeat % "-")) widths)
+          spacers (map #(cs/join (repeat % "-")) widths)
           fmt-row (fn [leader divider trailer row]
                     (str leader
-                         (apply str (interpose divider
-                                               (for [[col w] (map vector (map #(get row %) ks) widths)]
-                                                 (pad-right w (str col)))))
+                         (cs/join
+                          divider
+                          (for [[col w] (map vector (map #(get row %) ks) widths)]
+                            (pad-right w (str col))))
                          trailer))]
       (println)
       (println (fmt-row "|-" "-+-" "-|" (zipmap ks spacers)))
