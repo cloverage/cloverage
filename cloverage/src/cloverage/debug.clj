@@ -7,7 +7,7 @@
 (defn tprn [& args]
   (when *debug*
     (do
-      (doall (map clojure.pprint/pprint args))
+      (dorun (map clojure.pprint/pprint args))
       (newline))))
 
 (defn tprnl [& args]

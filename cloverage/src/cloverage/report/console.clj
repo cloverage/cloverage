@@ -31,22 +31,22 @@
     (throw (IllegalArgumentException. "High-watermark cannot be more than 100%"))
 
     (> low-watermark high-watermark)
-    (throw (IllegalArgumentException. "Low-watermark must be under high-watermark")))
+    (throw (IllegalArgumentException. "Low-watermark must be under high-watermark"))
 
-  :else
-  (letfn [(f
-            ([pct] (f pct (format formatter pct)))
-            ([pct text]
-             (cond
-               (< pct low-watermark)
-               (ansi :red text)
+    :else
+    (letfn [(f
+              ([pct] (f pct (format formatter pct)))
+              ([pct text]
+               (cond
+                 (< pct low-watermark)
+                 (ansi :red text)
 
-               (>= pct high-watermark)
-               (ansi :green text)
+                 (>= pct high-watermark)
+                 (ansi :green text)
 
-               :else
-               (ansi :yellow text))))]
-    f))
+                 :else
+                 (ansi :yellow text))))]
+      f)))
 
 (defn pad-right [width text]
   (let [len (printable-count text)]

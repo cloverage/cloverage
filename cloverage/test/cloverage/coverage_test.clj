@@ -5,8 +5,9 @@
             [riddley.walk :as rw])
   (:import java.io.File))
 
-(defn- denamespace [tree]
+(defn- denamespace
   "Helper function to allow backticking w/o namespace interpolation."
+  [tree]
   (cond (seq? tree) (map denamespace tree)
         (symbol? tree) (symbol (name tree))
         :else tree))
@@ -173,7 +174,7 @@
                                     :caught)
                                   (finally
                                     (swap! cloverage.coverage-test/ran-finally (constantly true))))))))
-  (= true @ran-finally))
+  (t/is (= true @ran-finally)))
 
 (defn find-form [cov form]
   (some #(and (= form (:form %)) %) cov))
@@ -195,9 +196,10 @@
   (t/is (expand= `(cov/capture 0 (~'new java.io.File (cov/capture 1 "foo/bar")))
                  (inst/wrap #'cov/track-coverage 0 '(new java.io.File "foo/bar")))))
 
-(defn- compare-colls [& colls]
+(defn- compare-colls
   "Given N collections compares them. Returns true if collections have same
   elements (order does not matter)."
+  [& colls]
   (apply = (map frequencies colls)))
 
 (t/deftest test-find-nses

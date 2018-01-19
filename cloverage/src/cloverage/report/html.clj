@@ -17,9 +17,10 @@
    \/ "&#x2F;"})
 
 ;; Java 7 has a much nicer API, but this supports Java 6.
-(defn relative-path [^File target-dir ^File base-dir]
-  ^{:doc "Return the path to target-dir relative to base-dir.
-          Both arguments are java.io.File"}
+(defn relative-path
+  "Return the path to target-dir relative to base-dir.
+Both arguments are java.io.File"
+  [^File target-dir ^File base-dir]
   (loop [target-file (.getAbsoluteFile target-dir)
          base-file   (.getAbsoluteFile base-dir)
          postpend    ""

@@ -29,6 +29,7 @@
                       :plugins [[lein-cljfmt "0.5.7"]
                                 [jonase/eastwood "0.2.5"]
                                 [lein-kibit "0.1.6"]]
+                      :eastwood {:exclude-linters [:no-ns-form-found]}
                       :global-vars {*warn-on-reflection* true}}
              :1.4    {:dependencies [[org.clojure/clojure "1.4.0"]]}
              :1.5    {:dependencies [[org.clojure/clojure "1.5.1"]]}
