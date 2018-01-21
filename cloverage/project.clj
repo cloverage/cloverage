@@ -31,6 +31,7 @@
                                 [lein-kibit "0.1.6"]]
                       :eastwood {:exclude-linters [:no-ns-form-found]}
                       :global-vars {*warn-on-reflection* true}}
+             :sample {:source-paths ["sample"]}
              :1.4    {:dependencies [[org.clojure/clojure "1.4.0"]]}
              :1.5    {:dependencies [[org.clojure/clojure "1.5.1"]]}
              :1.6    {:dependencies [[org.clojure/clojure "1.6.0"]]}
