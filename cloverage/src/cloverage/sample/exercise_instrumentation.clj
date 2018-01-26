@@ -5,16 +5,16 @@
 
 '()
 
-(+ 40 2)
+(+ 1 2)
 
 (+ (* 2 3)
    (/ 12 3))
 
-(let [a (+ 40 2)
+(let [a (+ 1 2)
       b (+ 3 4)]
   (* a b))
 
-{:a (+ 40 2)
+{:a (+ 1 2)
  (/ 4 2) "two"}
 
 (defn function-with-empty-list []
@@ -46,8 +46,7 @@
 (defmethod mixed-coverage-multi String
   ;; fully covered
   [x]
-  (do (#()) ; no-op
-      x))
+  (do x))
 
 (defmethod mixed-coverage-multi Long
   ;; partially covered
@@ -141,7 +140,7 @@
    :ok))
 
 (defn locals-dont-crash []
-  (let [letfn #(+ % 42)]
+  (let [letfn #(+ % 1)]
     (letfn 2)))
 
 (defn inline-use []

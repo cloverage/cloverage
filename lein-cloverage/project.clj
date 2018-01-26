@@ -15,7 +15,5 @@
                  :deploy-via :clojars}
   :deploy-repositories [["clojars" {:username :env/clojars_username :password :env/clojars_password :sign-releases false}]]
   :min-lein-version "2.0.0"
-  :profiles {:dev {:plugins [[lein-cljfmt "0.5.7"]
-                             [jonase/eastwood "0.2.5"]
-                             [lein-kibit "0.1.6"]]}}
+  :profiles {:dev {:plugins [[lein-cljfmt "0.5.6"]]}}
   :eval-in-leiningen true)
