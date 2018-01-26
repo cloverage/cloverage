@@ -5,7 +5,7 @@
    [cloverage.report :refer [file-stats]]))
 
 (defn- cov [t left right]
-  (let [percent (if (> right 0) (float (* 100 (/ left right))) 0.0)]
+  (let [percent (if (pos? right) (float (* 100 (/ left right))) 0.0)]
     [:coverage {:type t :value (format "%.0f%% (%d/%d)" percent left right)}]))
 
 (defn- do-counters [stats]

@@ -1,5 +1,5 @@
 language: clojure
-lein: 2.7.1
+lein: 2.8.1
 sudo: false
 
 install:
@@ -11,11 +11,20 @@ install:
 
 before_script:
   - eclint check .* **
-  - (cd cloverage && lein cljfmt check)
-  - (cd lein-cloverage && lein cljfmt check)
+  - |
+    (cd cloverage && \
+        lein do cljfmt check, \
+                eastwood "{:exclude-namespaces [cloverage.sample.exercise-instrumentation]}", \
+                eastwood "{:namespaces [cloverage.sample.exercise-instrumentation] \
+                           :exclude-linters [:unused-ret-vals \
+                                             :suspicious-test \
+                                             :constant-test \
+                                             :wrong-pre-post]}", \
+                kibit)
+  - (cd lein-cloverage && lein do cljfmt check, eastwood, kibit)
 
 script:
-  - (cd cloverage && lein test)
+  - (cd cloverage && lein with-profile +sample test)
   - (cd lein-cloverage && lein test)
 
 cache:

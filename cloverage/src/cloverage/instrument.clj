@@ -1,14 +1,15 @@
 (ns cloverage.instrument
   (:use [slingshot.slingshot :only [throw+]]
         [clojure.java.io :only [writer]]
-        [clojure.string  :only [split]]
-        [cloverage debug source])
+        [clojure.string  :only [split]])
   (:require [clojure.set :as set]
             [clojure.test :as test]
             [clojure.tools.logging :as log]
             [cloverage.rewrite :refer [unchunk]]
             [clojure.tools.reader :as r]
-            [riddley.walk :refer [macroexpand-all]]))
+            [riddley.walk :refer [macroexpand-all]]
+            [cloverage.debug :refer :all]
+            [cloverage.source :refer :all]))
 
 (defn iobj? [form]
   (and
@@ -162,20 +163,22 @@
   [f line]
   (partial wrap f line))
 
-(defn wrap-binding [f line-hint [args & body :as form]]
+(defn wrap-binding
   "Wrap a let/loop binding
 
    e.g. - `a (+ a b)`       (let or loop)"
+  [f line-hint [args & body :as form]]
   (tprnl "Wrapping overload" args body)
   (let [line (or (:line (meta form)) line-hint)]
     (let [wrapped (doall (map (wrapper f line) body))]
       `(~args ~@wrapped))))
 
-(defn wrap-overload [f line-hint [args & body :as form]]
+(defn wrap-overload
   "Wrap a single function overload.
 
    e.g. - ([a b] (+ a b)) or
           ([n] {:pre [(> n 0)]} (/ 1 n))"
+  [f line-hint [args & body :as form]]
   (tprnl "Wrapping function overload" args body)
   (let [line  (or (:line (meta form)) line-hint)
         conds (when (and (next body) (map? (first body)))
@@ -391,9 +394,9 @@
 (defmethod do-wrap :defmulti [f line [defm-symbol name & other] _]
   ;; wrap defmulti to avoid partial coverage warnings due to internal
   ;; clojure code (stupid checks for wrong syntax)
-  (let [docstring     (if (string? (first other)) (first other) nil)
+  (let [docstring     (when (string? (first other)) (first other))
         other         (if docstring (next other) other)
-        attr-map      (if (map? (first other)) (first other) nil)
+        attr-map      (when (map? (first other)) (first other))
         other         (if (map? (first other)) (next other) other)
         dispatch-form (first other)
         other         (rest other)]
@@ -437,10 +440,9 @@
                               (with-out-str (prn form)))
                          e))))
              (recur (conj instrumented-forms wrapped)))
-           (do
-             (let [rforms (reverse instrumented-forms)]
-               (dump-instrumented rforms lib)
-               rforms))))))))
+           (let [rforms (reverse instrumented-forms)]
+             (dump-instrumented rforms lib)
+             rforms)))))))
 
 (defn nop
   "Instrument form with expressions that do nothing."

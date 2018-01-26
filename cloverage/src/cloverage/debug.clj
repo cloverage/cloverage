@@ -1,14 +1,13 @@
 (ns cloverage.debug
   (:use [clojure.java.io :only [writer]])
-  (:require clojure.pprint))
+  (:require [clojure.pprint]))
 
 (def ^:dynamic *debug* false)
 ;; debug output
 (defn tprn [& args]
   (when *debug*
-    (do
-      (doall (map clojure.pprint/pprint args))
-      (newline))))
+    (run! clojure.pprint/pprint args)
+    (newline)))
 
 (defn tprnl [& args]
   (when *debug*
@@ -23,4 +22,4 @@
     (with-open [ou (writer (str "debug-" name))]
       (binding [*out* ou
                 *print-meta* true]
-        (doall (map prn forms))))))
+        (run! prn forms)))))
