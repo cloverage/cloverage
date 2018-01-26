@@ -14,7 +14,7 @@
       (doseq [line instrumented]
         (printf "DA:%d,%d%n" (:line line) (:hit line)))
       (printf "LF:%d%n" (count instrumented))
-      (printf "LH:%d%n" (count (filter (fn [line] (pos? (:hit line))) lines)))
+      (printf "LH:%d%n" (count (filter (fn [line] (> (:hit line) 0)) lines)))
       (println "end_of_record"))))
 
 (defn report

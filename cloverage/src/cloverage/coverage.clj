@@ -162,20 +162,21 @@
   (binding [*ns* (find-ns 'clojure.core)]
     (eval `(dosync (alter clojure.core/*loaded-libs* conj '~namespace)))))
 
-(defn find-nses
+(defn find-nses [ns-paths regex-patterns]
   "Given ns-paths and regex-patterns returns:
   * empty sequence when ns-paths is empty and regex-patterns is empty
   * all namespaces on all ns-paths (if regex-patterns is empty)
   * all namespaces on the classpath that match any of the regex-patterns (if ns-paths is empty)
   * namespaces on ns-paths that match any of the regex-patterns"
-  [ns-paths regex-patterns]
-  (let [namespaces (map name
-                        (cond
+  (let [namespaces (->> (cond
                           (and (empty? ns-paths) (empty? regex-patterns)) '()
                           (empty? ns-paths) (blt/namespaces-on-classpath)
-                          :else (mapcat #(blt/namespaces-on-classpath :classpath %) ns-paths)))]
+                          :else (mapcat #(blt/namespaces-on-classpath :classpath %)
+                                        ns-paths))
+                        (map name))]
     (if (seq regex-patterns)
-      (filter (fn [ns] (some #(re-matches % ns) regex-patterns)) namespaces)
+      (filter (fn [namespace] (some #(re-matches % namespace) regex-patterns))
+              namespaces)
       namespaces)))
 
 (defn- resolve-var [sym]
@@ -275,10 +276,10 @@
         (when-not (#{:clojure.test :midje} runner)
           (try (require (symbol (format "%s.cloverage" (name runner))))
                (catch java.io.FileNotFoundException _)))
-        (let [test-result (when (seq test-nses)
-                            (if (and junit? (not= runner :clojure.test))
-                              (throw (RuntimeException.
-                                      "Junit output only supported for clojure.test at present"))
+        (let [test-result (when-not (empty? test-nses)
+                            (if (and junit?
+                                     (not (= runner :clojure.test)))
+                              (throw (RuntimeException. "Junit output only supported for clojure.test at present"))
                               ((runner-fn opts) (map symbol test-nses))))
               forms       (rep/gather-stats @*covered*)
               ;; sum up errors as in lein test

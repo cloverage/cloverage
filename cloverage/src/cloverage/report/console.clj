@@ -31,22 +31,22 @@
     (throw (IllegalArgumentException. "High-watermark cannot be more than 100%"))
 
     (> low-watermark high-watermark)
-    (throw (IllegalArgumentException. "Low-watermark must be under high-watermark"))
+    (throw (IllegalArgumentException. "Low-watermark must be under high-watermark")))
 
-    :else
-    (letfn [(f
-              ([pct] (f pct (format formatter pct)))
-              ([pct text]
-               (cond
-                 (< pct low-watermark)
-                 (ansi :red text)
+  :else
+  (letfn [(f
+            ([pct] (f pct (format formatter pct)))
+            ([pct text]
+             (cond
+               (< pct low-watermark)
+               (ansi :red text)
 
-                 (>= pct high-watermark)
-                 (ansi :green text)
+               (>= pct high-watermark)
+               (ansi :green text)
 
-                 :else
-                 (ansi :yellow text))))]
-      f)))
+               :else
+               (ansi :yellow text))))]
+    f))
 
 (defn pad-right [width text]
   (let [len (printable-count text)]
@@ -60,13 +60,12 @@
                            (printable-count (str k))
                            (map #(printable-count (str (get % k))) rows)))
                   ks)
-          spacers (map #(cs/join (repeat % "-")) widths)
+          spacers (map #(apply str (repeat % "-")) widths)
           fmt-row (fn [leader divider trailer row]
                     (str leader
-                         (cs/join
-                          divider
-                          (for [[col w] (map vector (map #(get row %) ks) widths)]
-                            (pad-right w (str col))))
+                         (apply str (interpose divider
+                                               (for [[col w] (map vector (map #(get row %) ks) widths)]
+                                                 (pad-right w (str col)))))
                          trailer))]
       (println)
       (println (fmt-row "|-" "-+-" "-|" (zipmap ks spacers)))
