@@ -12,7 +12,7 @@
         size (* 2 (.getDigestLength algorithm))
         raw (.digest algorithm (.getBytes s))
         sig (.toString (BigInteger. 1 raw) 16)
-        padding (apply str (repeat (- size (count sig)) "0"))]
+        padding (s/join (repeat (- size (count sig)) "0"))]
     (str padding sig)))
 
 (defn- env?
