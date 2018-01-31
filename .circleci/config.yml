@@ -2,30 +2,79 @@ version: 2.0
 jobs:
   build:
     docker:
-      - image: clojure:lein-2.7.1
+      - image: clojure:lein-2.8.1
     steps:
       - checkout
+
+      ################################################################################
+      # setup dependencies
+
       - restore_cache:
           keys:
             - v1-jars-{{ checksum "cloverage/project.clj" }}-{{ checksum "lein-cloverage/project.clj" }}
             - v1-jars-
       - run:
-          name: Install cloverage dependencies
+          name: (cloverage) install dependencies
           command: lein deps
           working_directory: ./cloverage
       - run:
-          name: Install lein-cloverage dependencies
+          name: (lein-cloverage) install dependencies
           command: lein deps
           working_directory: ./lein-cloverage
       - save_cache:
           key: v1-jars-{{ checksum "cloverage/project.clj" }}-{{ checksum "lein-cloverage/project.clj" }}
           paths:
             - ~/.m2
+
+      ################################################################################
+      # cloverage tests
+
       - run:
-          name: Run cloverage tests
-          command: lein test
+          name: (cloverage) tests
+          # "with-profile +sample" is needed to pull in a file with circular dependencies
+          # that the eastwood check (see below) isn't able to instrument.
+          command: lein with-profile +sample test
           working_directory: ./cloverage
       - run:
-          name: Run lein-cloverage tests
+          name: (cloverage) cljfmt
+          command: lein cljfmt check
+          working_directory: ./cloverage
+      - run:
+          name: (cloverage) eastwood 1
+          # excluding the "exercise-instrumentation" namespace because it intentionally does
+          # things that eastwood will also flag.
+          command: lein eastwood "{:exclude-namespaces [cloverage.sample.exercise-instrumentation]}"
+          working_directory: ./cloverage
+      - run:
+          # running just the "exercise-instrumentation" namespace with certain linters turned off
+          name: (cloverage) eastwood 2
+          command: lein eastwood "{:namespaces [cloverage.sample.exercise-instrumentation]
+                                   :exclude-linters [:unused-ret-vals
+                                                     :suspicious-test
+                                                     :constant-test
+                                                     :wrong-pre-post]}"
+          working_directory: ./cloverage
+      - run:
+          name: (cloverage) kibit
+          command: lein kibit
+          working_directory: ./cloverage
+
+      ################################################################################
+      # lein-cloverage tests
+
+      - run:
+          name: (lein-cloverage) tests
           command: lein test
+          working_directory: ./lein-cloverage
+      - run:
+          name: (lein-cloverage) cljfmt
+          command: lein cljfmt check
+          working_directory: ./lein-cloverage
+      - run:
+          name: (lein-cloverage) eastwood
+          command: lein eastwood
+          working_directory: ./lein-cloverage
+      - run:
+          name: (lein-cloverage) kibit
+          command: lein kibit
           working_directory: ./lein-cloverage
