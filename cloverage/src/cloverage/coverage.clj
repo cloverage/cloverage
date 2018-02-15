@@ -219,37 +219,56 @@
         (println "Failing build as coverage is below threshold of" failure-threshold "%"))
       failed?)))
 
+(def boolean-flags
+  (letfn [(add-? [k]
+            [k (keyword (str (name k) \?))])]
+    (->> [:text :html :raw :emma-xml :junit :lcov :codecov :coveralls :summary :debug :nop :help]
+         (map add-?)
+         (into {}))))
+
+(defn- fix-opts
+  "Clean the options map."
+  [opts]
+  (let [->regexes (partial map re-pattern)]
+    (-> opts
+        (update :ns-regex ->regexes)
+        (update :test-ns-regex ->regexes)
+        (update :ns-exclude-regex ->regexes)
+        (set/rename-keys boolean-flags))))
+
 (defn -main
   "Produce test coverage report for some namespaces"
   [& args]
   (let [[opts add-nses help] (parse-args args)
         ^String output  (:output opts)
-        text?           (:text opts)
-        html?           (:html opts)
-        raw?            (:raw opts)
-        emma-xml?       (:emma-xml opts)
-        junit?          (:junit opts)
-        lcov?           (:lcov opts)
-        codecov?        (:codecov opts)
-        coveralls?      (:coveralls opts)
-        summary?        (:summary opts)
-        fail-threshold  (:fail-threshold opts)
-        low-watermark   (:low-watermark opts)
-        high-watermark  (:high-watermark opts)
-        debug?          (:debug opts)
-        nops?           (:nop opts)
-        help?           (:help opts)
-        extra-test-nses (:extra-test-ns opts)
-        ns-regexs       (map re-pattern (:ns-regex opts))
-        test-regexs     (map re-pattern (:test-ns-regex opts))
-        exclude-regex   (map re-pattern (:ns-exclude-regex opts))
-        ns-paths        (:src-ns-path opts)
-        runner          (:runner opts)
-        test-ns-paths   (:test-ns-path opts)
+        opts (fix-opts opts)
+        {:keys [text?
+                html?
+                raw?
+                emma-xml?
+                junit?
+                lcov?
+                codecov?
+                coveralls?
+                summary?
+                fail-threshold
+                low-watermark
+                high-watermark
+                debug?
+                nop?
+                extra-test-ns
+                help?
+                ns-regex
+                test-ns-regex
+                ns-exclude-regex
+                ns-paths
+                src-ns-path
+                runner
+                test-ns-path]} opts
         namespaces      (set/difference
-                         (set (concat add-nses (find-nses ns-paths ns-regexs)))
-                         (set (find-nses ns-paths exclude-regex)))
-        test-nses       (concat extra-test-nses (find-nses test-ns-paths test-regexs))
+                         (set (concat add-nses (find-nses src-ns-path ns-regex)))
+                         (set (find-nses src-ns-path ns-exclude-regex)))
+        test-nses       (concat extra-test-ns (find-nses test-ns-path test-ns-regex))
         ordered-nses    (dep/in-dependency-order (map symbol namespaces))]
     (if help?
       (println help)
@@ -263,7 +282,7 @@
           (throw (RuntimeException. "Cannot instrument namespaces; there is a cyclic dependency"))
           (doseq [namespace ordered-nses]
             (binding [*instrumented-ns* namespace]
-              (if nops?
+              (if nop?
                 (inst/instrument #'inst/nop namespace)
                 (inst/instrument #'track-coverage namespace)))
             (println "Loaded " namespace " .")
