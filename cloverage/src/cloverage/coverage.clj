@@ -261,7 +261,6 @@
                 ns-regex
                 test-ns-regex
                 ns-exclude-regex
-                ns-paths
                 src-ns-path
                 runner
                 test-ns-path]} opts
