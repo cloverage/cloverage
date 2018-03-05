@@ -152,33 +152,3 @@
 (defn parse-args [args project-settings]
   (-> (apply cli/cli args arguments)
       (fix-opts project-settings)))
-
-(comment
-  "Functions copied from cli tools and modified to add in the project "
-  (defn- build-doc [{:keys [project switches docs default]}]
-    [project
-     (apply str (interpose ", " switches))
-     (or (str default) "")
-     (or docs "")])
-
-  (defn- banner-for [specs]
-    (let [docs     (into (map build-doc specs)
-                         [["-------" "--------" "-------" "----"]
-                          ["Project" "Switches" "Default" "Desc"]])
-          max-cols (->> (for [d docs] (map (comp count str) d))
-                        (apply map (fn [& c] (apply vector c)))
-                        (map #(apply max %)))
-          vs       (for [d docs]
-                     (mapcat (fn [& x] (apply vector x)) max-cols d))]
-      (doseq [v vs]
-        (clojure.pprint/cl-format true "~{ ~vA ~vA  ~vA  ~vA ~}" v)
-        (prn))))
-
-  ;; to generate the output for the README:
-
-  (->> arguments
-       (map #'cli/generate-spec)
-       (map (fn [{:keys [name] :as opt}]
-              (-> opt
-                  (assoc :project (get boolean-flags name name)))))
-       banner-for))
