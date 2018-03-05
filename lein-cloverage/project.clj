@@ -2,9 +2,9 @@
   :description "Lein plugin for cloverage"
   :url "https://github.com/cloverage/cloverage"
   :scm {:name "git"
-        :dir  ".."
-        :url  "https://www.github.com/cloverage/cloverage"
-        :tag  "HEAD"}
+      :dir  ".."
+      :url  "https://www.github.com/cloverage/cloverage"
+      :tag  "HEAD"}
   :vcs :git
   :license {:name "Eclipse Public License - v 1.0"
             :url "http://www.eclipse.org/legal/epl-v10.html"
@@ -12,10 +12,10 @@
             :comments "same as Clojure"}
   :plugins [[lein-release "1.0.9"]]
   :lein-release {:scm :git ; Because we're not in the top-level directory, so it doesn't auto-detect
-                 :deploy-via :clojars}
+                  :deploy-via :clojars}
   :deploy-repositories [["clojars" {:username :env/clojars_username :password :env/clojars_password :sign-releases false}]]
   :min-lein-version "2.0.0"
   :profiles {:dev {:plugins [[lein-cljfmt "0.5.7"]
-                             [jonase/eastwood "0.2.5"]
-                             [lein-kibit "0.1.6"]]}}
+                              [jonase/eastwood "0.2.5"]
+                              [lein-kibit "0.1.6"]]}}
   :eval-in-leiningen true)

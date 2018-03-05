@@ -41,4 +41,3 @@
                          (map #(counters->cov :package (% :lib) %) by-pkg))]]
           xml/sexp-as-element
           (xml/emit wr)))))
-

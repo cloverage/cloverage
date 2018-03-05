@@ -23,4 +23,3 @@
   (let [output-file (io/file out-dir "lcov.info")]
     (println "Writing LCOV report to:" (.getAbsolutePath output-file))
     (with-out-writer output-file (write-lcov-report forms))))
-

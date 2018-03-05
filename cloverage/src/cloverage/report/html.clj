@@ -140,11 +140,10 @@ Both arguments are java.io.File"
                           :else            "not-tracked")]
             (printf
              "<span class=\"%s\" title=\"%d out of %d forms covered\">
-                 %03d&nbsp;&nbsp;%s
+                %03d&nbsp;&nbsp;%s
                 </span><br/>%n"
              cls (:hit line) (:total line)
              (:line line)
              (cs/escape (:text line " ") html-escapes))))
         (println " </body>")
         (println "</html>")))))
-

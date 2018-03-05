@@ -8,8 +8,8 @@
 
 (defn already-has-cloverage? [project]
   (seq (for [[id _version] (:dependencies project)
-             :when (= id 'cloverage/cloverage)]
-         true)))
+            :when (= id 'cloverage/cloverage)]
+        true)))
 
 (defn ^:pass-through-help cloverage
   "Run code coverage on the project.
@@ -23,7 +23,7 @@
   (let [project (if (already-has-cloverage? project)
                   project
                   (update-in project [:dependencies]
-                             conj    ['cloverage (get-lib-version)]))
+                            conj    ['cloverage (get-lib-version)]))
         opts    (assoc (:cloverage project)
                   :src-ns-path (vec (:source-paths project))
                   :test-ns-path (vec (:test-paths project)))]
