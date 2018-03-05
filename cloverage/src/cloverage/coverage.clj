@@ -89,8 +89,7 @@
 (defn remove-nses
   [namespaces regex-patterns]
   (debug/tprn "Removing" regex-patterns)
-  (let [v (->> namespaces
-               (remove (fn [ns] (some #(re-matches % ns) regex-patterns))))]
+  (let [v (remove (fn [ns] (some #(re-matches % ns) regex-patterns)) namespaces)]
     (debug/tprn "Out: " v)
     v))
 

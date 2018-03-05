@@ -9,9 +9,8 @@
 
 (defn- regexes-or-strings?
   [coll]
-  (->> coll
-       (every? #(or (string? %)
-                    (instance? Pattern %)))))
+  (every? #(or (string? %)
+               (instance? Pattern %)) coll))
 
 (def valid
   {:text?            boolean?
@@ -150,5 +149,4 @@
    ["-h" "--help" "Show help." :default false :flag true]])
 
 (defn parse-args [args project-settings]
-  (-> (apply cli/cli args arguments)
-      (fix-opts project-settings)))
+  (fix-opts (apply cli/cli args arguments) project-settings))
