@@ -29,8 +29,8 @@
 
 (defn kahn-sort
   "Proposes a topological sort for directed graph g using Kahn's
-   algorithm, where g is a map of nodes to sets of nodes. If g is
-   cyclic, returns nil."
+  algorithm, where g is a map of nodes to sets of nodes. If g is
+  cyclic, returns nil."
   ([g]
    (kahn-sort (normalize g) [] (no-incoming g)))
   ([g l s]

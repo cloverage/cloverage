@@ -14,4 +14,3 @@
     (println "Writing raw stats to:" (.getAbsolutePath raw-stats-file))
     (with-out-writer raw-stats-file
       (clojure.pprint/pprint stats))))
-

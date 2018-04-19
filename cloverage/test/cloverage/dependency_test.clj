@@ -6,14 +6,14 @@
                   :incanter-core
                   {:ns-source
                    '(ns ^{:doc "This is the core numerics library for Incanter.
-               It provides functions for vector- and matrix-based
-               mathematical operations and the core data manipulation
-               functions for Incanter.
+              It provides functions for vector- and matrix-based
+              mathematical operations and the core data manipulation
+              functions for Incanter.
 
-               This library is built on Parallel Colt
-               (http://sites.google.com/site/piotrwendykier/software/parallelcolt)
-               an extension of the Colt numerics library
-               (http://acs.lbl.gov/~hoschek/colt/).
+              This library is built on Parallel Colt
+              (http://sites.google.com/site/piotrwendykier/software/parallelcolt)
+              an extension of the Colt numerics library
+              (http://acs.lbl.gov/~hoschek/colt/).
               "
                           :author "David Edgar Liebke"}
 
@@ -76,7 +76,7 @@
   (doall (for [[ns-name
                 {ns-form :ns-source expected :expected}] (seq ns-fixtures)]
            (let [result (cd/dependency-libs ns-form)]
-             ;; wrap in seq to work around lack of LazySeq.toString
+            ;; wrap in seq to work around lack of LazySeq.toString
              (t/is (= expected result)
                    (str "Parsing " ns-name
                         " should give " expected

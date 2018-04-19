@@ -32,4 +32,3 @@
     (println "Writing codecov.io report to:" (.getAbsolutePath output-file))
     (with-out-writer output-file
       (json/pprint {:coverage covdata} :escape-slash false))))
-

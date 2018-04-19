@@ -51,19 +51,19 @@
 
 (defn dependency-libs
   "Given a (ns ...) form, return the ns name and a list of namespaces
-   it depends on."
+  it depends on."
   [[ns-sym ns-nam & refs]]
   [ns-nam (set (mapcat ref-dependencies refs))])
 
 (defn dependency-sort
   "Given a list of [ns-name dependencies] pairs, return a topological
-   sort of the dependency graph."
+  sort of the dependency graph."
   [dep-lists]
   (let [dep-graph (into {} dep-lists)]
     (reverse (filter (set (keys dep-graph)) (kahn-sort dep-graph)))))
 
 (defn in-dependency-order
   "Sort a list of namespace symbols so that any namespace occurs after
-   its dependencies."
+  its dependencies."
   [nses]
   (dependency-sort (map #(-> % ns-form dependency-libs) nses)))

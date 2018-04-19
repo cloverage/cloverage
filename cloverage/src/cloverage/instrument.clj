@@ -18,12 +18,12 @@
 
 (defn propagate-line-numbers
   "Assign :line metadata to all possible elements in a form,
-   using start as default."
+  using start as default."
   [start form]
   (if (iobj? form)
     (let [line (or (:line (meta form)) start)
           recs (if (and (seq? form) (seq form))
-                 ;; (seq '()) gives nil which makes us NPE. Bad.
+                ;; (seq '()) gives nil which makes us NPE. Bad.
                  (with-meta
                    (seq (map (partial propagate-line-numbers line) form))
                    (meta form))
@@ -134,7 +134,7 @@
 
 (defmulti do-wrap
   "Traverse the given form and wrap all its sub-forms in a function that evals
-   the form and records that it was called."
+  the form and records that it was called."
   (fn [f line form env]
     (form-type form env)))
 
@@ -166,7 +166,7 @@
 (defn wrap-binding
   "Wrap a let/loop binding
 
-   e.g. - `a (+ a b)`       (let or loop)"
+  e.g. - `a (+ a b)`       (let or loop)"
   [f line-hint [args & body :as form]]
   (tprnl "Wrapping overload" args body)
   (let [line (or (:line (meta form)) line-hint)]
@@ -176,7 +176,7 @@
 (defn wrap-overload
   "Wrap a single function overload.
 
-   e.g. - ([a b] (+ a b)) or
+  e.g. - ([a b] (+ a b)) or
           ([n] {:pre [(> n 0)]} (/ 1 n))"
   [f line-hint [args & body :as form]]
   (tprnl "Wrapping function overload" args body)
@@ -187,8 +187,8 @@
                 (zipmap (keys conds)
                         (map (fn [exprs] (vec (map (wrapper f line) exprs)))
                              (vals conds)))) ; must not wrap the vector itself
-         ;; i.e. [(> n 1)] -> [(do (> n 1))], not (do [...])
-         ;; the message of AssertionErrors will be different, too bad.
+        ;; i.e. [(> n 1)] -> [(do (> n 1))], not (do [...])
+        ;; the message of AssertionErrors will be different, too bad.
         body  (if conds (next body) body)
         wrapped (doall (map (wrapper f line) body))]
     `(~args

@@ -30,7 +30,7 @@
 
 (t/deftest preserves-type-hint
   (t/is (= 'long
-           ;; top level type hint always worked, but ones nested in :list did not
+          ;; top level type hint always worked, but ones nested in :list did not
            (-> (inst/wrap #'cov/track-coverage 0 '(prn ^long (long 0)))
                rw/macroexpand-all
                (nth 2) ; (do (cloverage/cover 0) (...)
@@ -211,7 +211,7 @@
                           "cloverage.sample.read-eval-sample"
                           "cloverage.sample.multibyte-sample"])))
   (t/testing "only matching namespaces (from classpath) are returned when only
-             regex patterns are provided:"
+            regex patterns are provided:"
     (t/testing "single pattern case"
       (t/is (= (cov/find-nses [] [#"^cloverage\.sample\.read.*$"])
                ["cloverage.sample.read-eval-sample"])))
@@ -222,7 +222,7 @@
                             "cloverage.coverage-test"
                             "cloverage.coverage"]))))
   (t/testing "only matching namespaces from a directory are returned when both path
-             and patterns are provided"
+            and patterns are provided"
     (t/is (= (cov/find-nses ["test/cloverage/sample"] [#".*dummy.*"])
              ["cloverage.sample.dummy-sample"]))))
 
@@ -246,4 +246,3 @@
        "--emma-xml"
        "-x" "cloverage.sample.cyclic-dependency"
        "cloverage.sample.cyclic-dependency")))))
-

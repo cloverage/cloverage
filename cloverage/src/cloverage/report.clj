@@ -79,4 +79,3 @@
         forms      (total :forms)]
     {:percent-lines-covered (if (= lines 0) 0. (* (/ (+ covered partial) lines) 100.0))
      :percent-forms-covered (if (= forms 0) 0. (* (/ cov-forms forms) 100.0))}))
-
