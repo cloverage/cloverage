@@ -87,6 +87,7 @@
     '#{.}           :dotjava
     '#{case*}       :case*
     '#{new}         :new
+    '#{reify*}      :reify*
     ;; FIXME: monitor-enter monitor-exit
     ;; FIXME: import*?
     ;; FIXME: deftype*
@@ -403,6 +404,13 @@
     (f line `(~defm-symbol ~name ~@(if docstring (list docstring) (list))
                            ~@(if attr-map  (list attr-map)  (list))
                            ~(wrap f line dispatch-form) ~@other))))
+
+(defmethod do-wrap :reify* [f line [reify-symbol interfaces & methods] _]
+  (f line `(~reify-symbol
+            ~interfaces
+            ~@(map (fn wrap-reify-method [method]
+                     `(~(first method) ~@(wrap-overload f line (rest method))))
+                   methods))))
 
 (defn instrument
   "Instruments and evaluates a list of forms."

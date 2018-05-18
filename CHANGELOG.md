@@ -12,6 +12,7 @@ in github. Commentary on the change should appear as a nested, unordered list.
 - Bugfixes
   - Fix the handling of --ns-regex and --test-ns-regex (#183)
   - Read options from the Leiningen project file (#155)
+  - Fix instrumentation of reify forms (#185)
 
 ## 1.0.10
 - Improvements
