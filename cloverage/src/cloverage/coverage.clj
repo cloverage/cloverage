@@ -130,13 +130,13 @@
       {:errors (:failures (apply f nses))})
     (throw (RuntimeException. "Failed to load Midje."))))
 
-(defmethod runner-fn :clojure.test [{:keys [junit output] :as opts}]
+(defmethod runner-fn :clojure.test [{:keys [junit? output] :as opts}]
   (fn [nses]
     (let [run-tests (fn []
                       (apply require (map symbol nses))
                       {:errors (reduce + ((juxt :error :fail)
                                           (apply test/run-tests nses)))})]
-      (if junit
+      (if junit?
         (do
           (.mkdirs (io/file output))
           (binding [test/*test-out* (io/writer (io/file output "junit.xml"))]
