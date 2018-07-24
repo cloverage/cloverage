@@ -20,7 +20,7 @@
                     [org.clojure/tools.logging "0.4.0"]
                     [org.clojure/data.xml "0.0.8"]
                     [org.clojure/data.json "0.2.6"]
-                    [bultitude "0.2.8"]
+                    [timofreiberg/bultitude "0.2.10"]
                     [riddley "0.1.14"]
                     [slingshot "0.12.2"]]
   :profiles {:dev    {:aot          ^:replace []
