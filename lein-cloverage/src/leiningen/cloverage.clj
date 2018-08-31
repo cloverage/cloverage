@@ -29,7 +29,7 @@
                        :test-ns-path (vec (:test-paths project)))]
     (try
       (eval/eval-in-project project
-                            `(cloverage.coverage/run-project ~opts ~@args)
+                            `(cloverage.coverage/run-project '~opts ~@args)
                             '(require 'cloverage.coverage))
       (catch ExceptionInfo e
         (main/exit (:exit-code (ex-data e) 1))))))
