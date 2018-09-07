@@ -155,8 +155,14 @@
         (println "Failing build as coverage is below threshold of" failure-threshold "%"))
       failed?)))
 
+(defn launch-custom-report
+  [report-sym arg-map]
+  (when-let [f (resolve-var report-sym)]
+    (debug/tprnl "Custom Report: " report-sym)
+    (f arg-map)))
+
 (defn run-main
-  [[{:keys [debug?] :as opts} add-nses help]]
+  [[{:keys [debug?] :as opts} add-nses help] popts]
   (binding [*ns*          (find-ns 'cloverage.coverage)
             debug/*debug* debug?]
     (let [^String output (:output opts)
@@ -180,7 +186,8 @@
                   ns-exclude-regex
                   src-ns-path
                   runner
-                  test-ns-path]} opts
+                  test-ns-path
+                  custom-report]} opts
           include        (-> src-ns-path
                              (find-nses ns-regex)
                              (remove-nses ns-exclude-regex))
@@ -234,6 +241,10 @@
               (when codecov? (codecov/report output forms))
               (when coveralls? (coveralls/report output forms))
               (when summary? (console/summary forms low-watermark high-watermark)))
+            (when custom-report (launch-custom-report custom-report {:project popts
+                                                                     :args    opts
+                                                                     :output  output
+                                                                     :forms   forms}))
             (if *exit-after-test*
               (do (shutdown-agents)
                   (System/exit exit-code))
@@ -243,7 +254,7 @@
   (try
     (-> args
         (args/parse-args project-opts)
-        (run-main))
+        (run-main project-opts))
     (catch Exception e
       (.printStackTrace e)
       (throw e))))
@@ -251,6 +262,7 @@
 (defn -main
   "Produce test coverage report for some namespaces"
   [& args]
-  (-> args
-      (args/parse-args {})
-      (run-main)))
+  (let [project-opts {}]
+    (-> args
+        (args/parse-args project-opts)
+        (run-main project-opts))))

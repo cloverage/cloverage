@@ -1,7 +1,8 @@
 (ns cloverage.args
   (:refer-clojure :exclude [boolean?])
   (:require [clojure.tools.cli :as cli]
-            [clojure.set :as set])
+            [clojure.set :as set]
+            [clojure.string :as str])
   (:import (java.util.regex Pattern)))
 
 (defn- boolean? [x]
@@ -34,7 +35,8 @@
    :ns-exclude-regex regexes-or-strings?
    :src-ns-path      regexes-or-strings?
    :runner           keyword?
-   :test-ns-path     regexes-or-strings?})
+   :test-ns-path     regexes-or-strings?
+   :custom-report    symbol?})
 
 (defn valid? [[k v :as pair]]
   (let [f (get valid k (constantly true))]
@@ -46,6 +48,11 @@
   (let [col (atom [])]
     (fn [val]
       (swap! col conj val))))
+
+(defn- parse-sym-str [s]
+  (->> (str/split s #"/")
+       (take 2)
+       (apply symbol)))
 
 (defn- parse-kw-str [s]
   (let [s (name s)
@@ -146,6 +153,10 @@
     "Additional test namespace (string) to add (can be repeated)."
     :default []
     :parse-fn (collecting-args-parser)]
+   ["-c" "--custom-report"
+    "Load and run a custom report writer. Should be a namespaced symbol. The function is passed
+    project-options args-map output-directory forms"
+    :parse-fn parse-sym-str]
    ["-h" "--help" "Show help." :default false :flag true]])
 
 (defn parse-args [args project-settings]

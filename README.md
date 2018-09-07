@@ -58,6 +58,8 @@ Available options and command-line arguments:
  :src-ns-path      -p, --src-ns-path            []               Path (string) to directory containing source code namespaces (can be repeated).
  :test-ns-path     -s, --test-ns-path           []               Path (string) to directory containing test namespaces (can be repeated).
  :extra-test-ns    -x, --extra-test-ns          []               Additional test namespace (string) to add (can be repeated).
+ :custom-report    -c, --custom-report                           Load and run a custom report writer. Should be a namespaced symbol. The function is passed
+    project-options args-map output-directory forms
  :help?            -h, --no-help, --help        false            Show help.
 ```
 
