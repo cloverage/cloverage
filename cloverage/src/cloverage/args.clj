@@ -87,7 +87,8 @@
                       (update :test-ns-regex ->regexes)
                       (update :ns-exclude-regex ->regexes)
                       (set/rename-keys boolean-flags)
-                      (overwrite project-settings))]
+                      (overwrite project-settings)
+                      (update :test-selectors #(into {} %)))]
     [opts add-nses help]))
 
 (def arguments
@@ -153,6 +154,10 @@
     "Additional test namespace (string) to add (can be repeated)."
     :default []
     :parse-fn (collecting-args-parser)]
+   ["--selector"
+    "Apply test selector (can be repeated)"
+    :default []
+    :parse-fn (comp (collecting-args-parser) parse-kw-str)]
    ["-c" "--custom-report"
     "Load and run a custom report writer. Should be a namespaced symbol. The function is passed
     project-options args-map output-directory forms"
