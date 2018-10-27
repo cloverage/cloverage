@@ -9,8 +9,10 @@
   (:import
    [java.io File]))
 
+(def JQUERY-SORTING "jquery.tablesorter.min.js")
+(def JQUERY "jquery-3.3.1.min.js")
+(def START "start.js")
 (def STYLESHEET "coverage.css")
-
 (defn css [& args]
   (->> args
        (into {})
@@ -71,14 +73,22 @@ Both arguments are java.io.File"
     (td-num "Blank")
     (td-num "Instrumented")]])
 
-(defn- head [{:keys [title rootpath]}]
+(defn- head [{:keys [title
+                     main?
+                     rootpath]}]
   (letfn [(path [f] (format "%s%s" rootpath f))]
     [:head
      (concat
       [[:meta {:http-equiv "Content-Type"
                :content    "text/html; charset=utf-8"}]
        [:title title]]
-      (page/include-css (path STYLESHEET)))]))
+      (->> [STYLESHEET]
+           (map path)
+           (apply page/include-css))
+      (when main?
+        (->> [JQUERY JQUERY-SORTING]
+             (map path)
+             (apply page/include-js))))]))
 
 (defn- summary-line [file-stat]
   (let [filepath  (:file file-stat)
@@ -130,7 +140,8 @@ Both arguments are java.io.File"
        (h/html
         [:html
          (head {:title    "Coverage Summary"
-                :rootpath "./"})
+                :rootpath "./"
+                :main?    true})
          [:body
           [:table#summary
            (thead)
@@ -138,13 +149,17 @@ Both arguments are java.io.File"
             (for [file-stat (sort-by :lib (file-stats forms))]
               (summary-line file-stat))]
            [:tfoot
-            (total-line totalled-stats)]]]])))))
+            (total-line totalled-stats)]]
+          (page/include-js (str "./" START))]])))))
 
 (defn copy-resource [out-dir n]
   (io/copy (resource-reader n) (io/file out-dir n)))
 
 (defn report [^String out-dir forms]
-  (doseq [f [STYLESHEET]]
+  (doseq [f [STYLESHEET
+             START
+             JQUERY
+             JQUERY-SORTING]]
     (copy-resource out-dir f))
 
   (summary out-dir forms)

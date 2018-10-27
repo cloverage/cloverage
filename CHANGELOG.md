@@ -9,7 +9,8 @@ in github. Commentary on the change should appear as a nested, unordered list.
 
 ## 1.0.12 (WIP)
 - Improvements
-  - Building the HTML report using Hiccup
+  - Building the HTML report using Hiccup instead of strings (#111)
+  - The HTML report summary can be sorted with JS (#184)
 
 ## 1.0.11
 - Improvements
