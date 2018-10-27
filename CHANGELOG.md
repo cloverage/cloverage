@@ -7,7 +7,11 @@ provide a short summary description of the particular changes of the patch.
 Include the issue number (#xxx) which will link back to the originating issue
 in github. Commentary on the change should appear as a nested, unordered list.
 
-## 1.0.11 (WIP)
+## 1.0.12 (WIP)
+- Improvements
+  - Building the HTML report using Hiccup
+
+## 1.0.11
 - Improvements
   - Add the --custom-report option to build your own formatter
 - Bugfixes

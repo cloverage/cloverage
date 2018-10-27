@@ -3,18 +3,20 @@
    [clojure.string :as cs]
    [clojure.java.io :as io]
    [cloverage.source :refer [resource-reader]]
-   [cloverage.report :refer [line-stats total-stats file-stats with-out-writer]])
+   [cloverage.report :refer [line-stats total-stats file-stats with-out-writer]]
+   [hiccup.core :as h]
+   [hiccup.page :as page])
   (:import
    [java.io File]))
 
-(def html-escapes
-  {\space "&nbsp;"
-   \& "&amp;"
-   \< "&lt;"
-   \> "&gt;"
-   \" "&quot;"
-   \' "&#x27;"
-   \/ "&#x2F;"})
+(def STYLESHEET "coverage.css")
+
+(defn css [& args]
+  (->> args
+       (into {})
+       (map (fn [[k v]]
+              (str (name k) \: v)))
+       (cs/join \;)))
 
 ;; Java 7 has a much nicer API, but this supports Java 6.
 (defn relative-path
@@ -44,106 +46,128 @@ Both arguments are java.io.File"
                  prepend))))))
 
 (defn- td-bar [total & parts]
-  (str "<td class=\"with-bar\">"
-       (cs/join
+  [:td.with-bar
+   (->> parts
+        (filter (fn [[_ cnt]]
+                  (pos? cnt)))
         (map (fn [[key cnt]]
-               (if (pos? cnt)
-                 (format "<div class=\"%s\"
-                                style=\"width:%s%%;
-                                        float:left;\"> %d </div>"
-                         (name key) (/ (* 100.0 cnt) total) cnt)
-                 ""))
-             parts))
-       "</td>"))
+               [:div {:class (name key)
+                      :style (css {"width" (str (/ (* 100.0 cnt) total) "%")
+                                   "float" "left"})}
+                cnt])))])
 
 (defn- td-num [content]
-  (format "<td class=\"with-number\">%s</td>" content))
+  [:td.with-number content])
+
+(defn- thead []
+  [:thead
+   [:tr
+    [:td.ns-name "Namespace"]
+    [:td.with-bar "Forms"]
+    (td-num "Forms %")
+    [:td.with-bar "Lines"]
+    (td-num "Lines %")
+    (td-num "Total")
+    (td-num "Blank")
+    (td-num "Instrumented")]])
+
+(defn- head [{:keys [title rootpath]}]
+  (letfn [(path [f] (format "%s%s" rootpath f))]
+    [:head
+     (concat
+      [[:meta {:http-equiv "Content-Type"
+               :content    "text/html; charset=utf-8"}]
+       [:title title]]
+      (page/include-css (path STYLESHEET)))]))
+
+(defn- summary-line [file-stat]
+  (let [filepath  (:file file-stat)
+        libname   (:lib file-stat)
+
+        forms     (:forms file-stat)
+        cov-forms (:covered-forms file-stat)
+        mis-forms (- forms cov-forms)
+
+        lines     (:lines file-stat)
+        instrd    (:instrd-lines file-stat)
+        covered   (:covered-lines file-stat)
+        partial   (:partial-lines file-stat)
+        blank     (:blank-lines file-stat)
+        missed    (- instrd partial covered)]
+    [:tr
+     [:td [:a {:href (format "%s.html" filepath)} libname]]
+     (td-bar forms [:covered cov-forms]
+             [:not-covered mis-forms])
+     (td-num (format "%.2f %%" (/ (* 100.0 cov-forms) forms)))
+     (td-bar instrd [:covered covered]
+             [:partial partial]
+             [:not-covered missed])
+     (td-num (format "%.2f %%" (/ (* 100.0 (+ covered partial))
+                                  instrd)))
+     (td-num lines)
+     (td-num blank)
+     (td-num instrd)]))
+
+(defn- total-line
+  [{:keys [:percent-forms-covered
+           :percent-lines-covered]}]
+  [:tr
+   [:td "Totals:"]
+   (td-bar nil)
+   (td-num (format "%.2f %%" percent-forms-covered))
+   (td-bar nil)
+   (td-num (format "%.2f %%" percent-lines-covered))
+   (td-num "")
+   (td-num "")
+   (td-num "")])
 
 (defn summary [^String out-dir forms]
-  (let [output-file (io/file out-dir "index.html")
+  (let [output-file    (io/file out-dir "index.html")
         totalled-stats (total-stats forms)]
     (println "Writing HTML report to:" (.getAbsolutePath output-file))
     (with-out-writer output-file
-      (println "<html>")
-      (println " <head>")
-      (println "   <meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\">")
-      (println "  <link rel=\"stylesheet\" href=\"./coverage.css\"/>")
-      (println "  <title>Coverage Summary</title>")
-      (println " </head>")
-      (println " <body>")
-      (println "  <table>")
-      (println "   <thead><tr>")
-      (println "    <td class=\"ns-name\"> Namespace </td>")
-      (println "    <td class=\"with-bar\"> Forms </td>")
-      (println (td-num "Forms %"))
-      (println "    <td class=\"with-bar\"> Lines </td>")
-      (println (td-num "Lines %"))
-      (println (cs/join (map td-num ["Total" "Blank" "Instrumented"])))
-      (println "   </tr></thead>")
-      (doseq [file-stat (sort-by :lib (file-stats forms))]
-        (let [filepath  (:file file-stat)
-              libname   (:lib  file-stat)
+      (println
+       (h/html
+        [:html
+         (head {:title    "Coverage Summary"
+                :rootpath "./"})
+         [:body
+          [:table#summary
+           (thead)
+           [:tbody
+            (for [file-stat (sort-by :lib (file-stats forms))]
+              (summary-line file-stat))]
+           [:tfoot
+            (total-line totalled-stats)]]]])))))
 
-              forms     (:forms file-stat)
-              cov-forms (:covered-forms file-stat)
-              mis-forms (- forms cov-forms)
-
-              lines     (:lines file-stat)
-              instrd    (:instrd-lines  file-stat)
-              covered   (:covered-lines file-stat)
-              partial   (:partial-lines file-stat)
-              blank     (:blank-lines   file-stat)
-              missed    (- instrd partial covered)]
-          (println "<tr>")
-          (printf  " <td><a href=\"%s.html\">%s</a></td>" filepath libname)
-          (println (td-bar forms [:covered cov-forms]
-                           [:not-covered mis-forms]))
-          (println (td-num (format "%.2f %%" (/ (* 100.0 cov-forms) forms))))
-          (println (td-bar instrd [:covered covered]
-                           [:partial partial]
-                           [:not-covered missed]))
-          (println (td-num (format "%.2f %%" (/ (* 100.0 (+ covered partial))
-                                                instrd))))
-          (println
-           (cs/join (map td-num [lines blank instrd])))
-          (println "</tr>")))
-      (println "<tr><td>Totals:</td>")
-      (println (td-bar nil))
-      (println (td-num (format "%.2f %%" (:percent-forms-covered totalled-stats))))
-      (println (td-bar nil))
-      (println (td-num (format "%.2f %%" (:percent-lines-covered totalled-stats))))
-      (println "   </tr>")
-      (println "  </table>")
-      (println " </body>")
-      (println "</html>"))))
+(defn copy-resource [out-dir n]
+  (io/copy (resource-reader n) (io/file out-dir n)))
 
 (defn report [^String out-dir forms]
-  (io/copy (resource-reader "coverage.css") (io/file out-dir "coverage.css"))
+  (doseq [f [STYLESHEET]]
+    (copy-resource out-dir f))
+
   (summary out-dir forms)
   (doseq [[rel-file file-forms] (group-by :file forms)]
     (let [file     (io/file out-dir (str rel-file ".html"))
           rootpath (relative-path (io/file out-dir) (.getParentFile file))]
       (io/make-parents file)
       (with-out-writer file
-        (println "<html>")
-        (println " <head>")
-        (println "   <meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\">")
-        (printf "  <link rel=\"stylesheet\" href=\"%scoverage.css\"/>" rootpath)
-        (println "  <title>" rel-file "</title>")
-        (println " </head>")
-        (println " <body>")
-        (doseq [line (line-stats file-forms)]
-          (let [cls (cond (:blank?        line) "blank"
-                          (:covered?      line) "covered"
-                          (:partial?      line) "partial"
-                          (:instrumented? line) "not-covered"
-                          :else            "not-tracked")]
-            (printf
-             "<span class=\"%s\" title=\"%d out of %d forms covered\">
-                %03d&nbsp;&nbsp;%s
-                </span><br/>%n"
-             cls (:hit line) (:total line)
-             (:line line)
-             (cs/escape (:text line " ") html-escapes))))
-        (println " </body>")
-        (println "</html>")))))
+        (println
+         (h/html
+          [:html
+           (head {:title    rel-file
+                  :rootpath rootpath})
+           [:body
+            (interpose
+             [:br]
+             (for [line (line-stats file-forms)]
+               (let [cls (cond (:blank? line) "blank"
+                               (:covered? line) "covered"
+                               (:partial? line) "partial"
+                               (:instrumented? line) "not-covered"
+                               :else "not-tracked")]
+                 [:span {:class cls
+                         :title (format "%d out of %d forms covered" (:hit line) (:total line))}
+                  (str (format "%03d" (:line line))
+                       (:text line " "))])))]]))))))
