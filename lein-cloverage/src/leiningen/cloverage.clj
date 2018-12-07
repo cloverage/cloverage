@@ -20,16 +20,18 @@
   Specify -o OUTPUTDIR for output directory, for other options run
   `lein cloverage --help`."
   [project & args]
-  (let [project (if (already-has-cloverage? project)
-                  project
-                  (update-in project [:dependencies]
-                             conj    ['cloverage (get-lib-version)]))
-        opts    (assoc (:cloverage project)
-                       :src-ns-path (vec (:source-paths project))
-                       :test-ns-path (vec (:test-paths project)))]
+  (let [project        (if (already-has-cloverage? project)
+                         project
+                         (update-in project [:dependencies]
+                                    conj ['cloverage (get-lib-version)]))
+        test-selectors (:test-selectors project)
+        opts           (assoc (:cloverage project)
+                              :src-ns-path (vec (:source-paths project))
+                              :test-ns-path (vec (:test-paths project)))]
     (try
       (eval/eval-in-project project
-                            `(cloverage.coverage/run-project '~opts ~@args)
+                            ;; test-selectors needs unquoted here to be read as functions
+                            `(cloverage.coverage/run-project (assoc '~opts :test-selectors ~test-selectors) ~@args)
                             '(require 'cloverage.coverage))
       (catch ExceptionInfo e
         (main/exit (:exit-code (ex-data e) 1))))))

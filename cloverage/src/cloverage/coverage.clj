@@ -26,6 +26,34 @@
 (def ^:dynamic *covered* (atom []))
 (def ^:dynamic *exit-after-test* true)
 
+;; The following form is basically just taken from leiningen.test
+
+(defn form-for-suppressing-unselected-tests
+  [namespaces selectors test-func]
+  (let [copy-meta (fn [var from-key to-key]
+                    (when-let [x (get (meta var) from-key)]
+                      (alter-meta! var #(-> % (assoc to-key x) (dissoc from-key)))))
+        vars      (when (seq selectors)
+                    ;; need to manually require namespaces to make sure they've been
+                    ;; loaded before test runner has a chance to run
+                    (doseq [n namespaces]
+                      (require n))
+                    (->> namespaces
+                         (map ns-interns)
+                         (mapcat vals)
+                         (remove (fn [var]
+                                   (some (fn [selector]
+                                           (let [meta-info (merge (-> var meta :ns meta)
+                                                                  (assoc (meta var) :leiningen.test/var var))]
+                                             (selector meta-info)))
+                                         selectors)))))
+        copy #(doseq [v vars]
+                (copy-meta v %1 %2))]
+    (copy :test :leiningen/skipped-test)
+    (try (test-func)
+         (finally
+           (copy :leiningen/skipped-test :test)))))
+
 (defmacro with-coverage [libs & body]
   `(binding [*covered* (atom [])]
      (println "Capturing code coverage for" ~libs)
@@ -187,7 +215,9 @@
                   src-ns-path
                   runner
                   test-ns-path
-                  custom-report]} opts
+                  custom-report
+                  test-selectors
+                  selector]} opts
           include        (-> src-ns-path
                              (find-nses ns-regex)
                              (remove-nses ns-exclude-regex))
@@ -216,11 +246,15 @@
           (when-not (#{:clojure.test :midje} runner)
             (try (require (symbol (format "%s.cloverage" (name runner))))
                  (catch FileNotFoundException _)))
+
           (let [test-result (when (seq test-nses)
                               (if (and junit? (not= runner :clojure.test))
                                 (throw (RuntimeException.
                                         "Junit output only supported for clojure.test at present"))
-                                ((runner-fn opts) (map symbol test-nses))))
+                                (let [test-ns-symbols (map symbol test-nses)]
+                                  (form-for-suppressing-unselected-tests test-ns-symbols
+                                                                         (vals (select-keys test-selectors selector))
+                                                                         #((runner-fn opts) test-ns-symbols)))))
                 forms       (rep/gather-stats @*covered*)
                 ;; sum up errors as in lein test
                 errors      (when test-result
