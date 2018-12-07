@@ -10,6 +10,7 @@ in github. Commentary on the change should appear as a nested, unordered list.
 ## 1.0.11 (WIP)
 - Improvements
   - Add the --custom-report option to build your own formatter
+  - Add support for test selectors (see #54 and #230)
 - Bugfixes
   - Fix the handling of --ns-regex and --test-ns-regex (#183)
   - Read options from the Leiningen project file (#155)
