@@ -32,10 +32,11 @@ cache:
     - $HOME/.m2
 
 jdk:
+  - oraclejdk9
   - oraclejdk8
   - oraclejdk7
   - openjdk7
-  - openjdk6
+  - openjdk8 
 
 after_success:
   - bash deploy.sh
