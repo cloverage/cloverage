@@ -36,6 +36,8 @@ jdk:
   - oraclejdk7
   - openjdk7
   - openjdk6
+  - openjdk11
+  - openjdk-ea
 
 after_success:
   - bash deploy.sh
