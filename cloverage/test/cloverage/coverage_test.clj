@@ -148,7 +148,8 @@
 
 (t/deftest test-eval-ns
   (eval (inst/wrap #'cov/track-coverage 0 '(ns foo.bar)))
-  (t/is (= (count (filter :tracked @cov/*covered*)) (count (filter :covered @cov/*covered*)))))
+  (t/is (= (count (filter :tracked (cov/covered)))
+           (count (filter :covered (cov/covered))))))
 
 (t/deftest test-eval-case
   (doseq [x '[a b 3 #{3} fallthrough]]
