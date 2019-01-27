@@ -54,13 +54,6 @@
          (finally
            (copy :leiningen/skipped-test :test)))))
 
-(defmacro with-coverage [libs & body]
-  `(binding [*covered* (atom [])]
-     (println "Capturing code coverage for" ~libs)
-     (doseq [lib# ~libs]
-       (instrument #'track-coverage lib#))
-     ~@body
-     (gather-stats @*covered*)))
 
 (defn cover
   "Mark the given file and line in as having been covered."
