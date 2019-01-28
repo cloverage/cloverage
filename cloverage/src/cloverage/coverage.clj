@@ -20,7 +20,8 @@
             [cloverage.report.text :as text]
             [cloverage.source :as src])
   (:import (java.io FileNotFoundException)
-           (clojure.lang IObj)))
+           (java.util.concurrent.atomic AtomicInteger)
+           (clojure.lang IDeref IObj)))
 
 (def ^:dynamic *instrumented-ns*) ;; currently instrumented ns
 (def ^:dynamic *covered* (atom []))
@@ -54,23 +55,19 @@
          (finally
            (copy :leiningen/skipped-test :test)))))
 
-(defmacro with-coverage [libs & body]
-  `(binding [*covered* (atom [])]
-     (println "Capturing code coverage for" ~libs)
-     (doseq [lib# ~libs]
-       (instrument #'track-coverage lib#))
-     ~@body
-     (gather-stats @*covered*)))
+(defn covered []
+  (mapv (fn [{:keys [^AtomicInteger hits] :as form}]
+          (merge form {:hits (.get hits) :covered (pos? (.get hits))}))
+        @*covered*))
 
 (defn cover
   "Mark the given file and line in as having been covered."
   [idx]
-  (let [covered (swap! *covered* #(if-let [{:keys [hits] :as data} (nth % idx nil)]
-                                    (assoc % idx (assoc data :covered true :hits (inc (or hits 0))))
-                                    %))]
-    (when-not (nth covered idx nil)
-      (log/warn (str "Couldn't track coverage for form with index " idx
-                     " covered has " (count covered) ".")))))
+  ;; Note well that this function is written to have minimal overhead. Make sure
+  ;; there are no reflection warnings and especially beware introducing any
+  ;; unnecessary coordination here – it can greatly affect performance when
+  ;; instrumenting tests that use multithreading.
+  (.getAndIncrement ^AtomicInteger (get (nth (.deref ^IDeref *covered*) idx) :hits)))
 
 (defmacro capture
   "Eval the given form and record that the given line on the given
@@ -80,10 +77,9 @@
      (cover ~idx)
      ~form))
 
-(defn add-form
-  "Adds a structure representing the given form to the *covered* vector."
+(defn parse-form
   [form line-hint]
-  (debug/tprnl "Adding form" form "at line" (:line (meta form)) "hint" line-hint)
+  (debug/tprnl "Parsing form" form "at line" (:line (meta form)) "hint" line-hint)
   (let [lib       *instrumented-ns*
         file      (src/resource-path lib)
         line      (or (:line (meta form)) line-hint)
@@ -93,22 +89,17 @@
                    :tracked   true
                    :line      line
                    :lib       lib
-                   :file      file}]
+                   :file      file
+                   :hits      (AtomicInteger. 0)}]
     (binding [*print-meta* true]
-      (debug/tprn "Parsed form" form)
-      (debug/tprn "Adding" form-info))
-    (->
-     (swap! *covered* conj form-info)
-     count
-     dec)))
+      (debug/tprn "Parsed form" form))
+    form-info))
 
 (defn track-coverage [line-hint form]
   (debug/tprnl "Track coverage called with" form)
-  (let [idx   (count @*covered*)
-        form' (if (instance? IObj form)
-                (vary-meta form assoc :idx idx)
-                form)]
-    `(capture ~(add-form form' line-hint) ~form')))
+  (let [form' (parse-form form line-hint)
+        idx   (dec (count (swap! *covered* conj form')))]
+    `(capture ~idx ~form)))
 
 (defn mark-loaded [namespace]
   (binding [*ns* (find-ns 'clojure.core)]
@@ -255,7 +246,7 @@
                                   (form-for-suppressing-unselected-tests test-ns-symbols
                                                                          (vals (select-keys test-selectors selector))
                                                                          #((runner-fn opts) test-ns-symbols)))))
-                forms       (rep/gather-stats @*covered*)
+                forms       (rep/gather-stats (covered))
                 ;; sum up errors as in lein test
                 errors      (when test-result
                               (:errors test-result))
