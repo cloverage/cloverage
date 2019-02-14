@@ -1,6 +1,6 @@
 (ns cloverage.debug
-  (:use [clojure.java.io :only [writer]])
-  (:require [clojure.pprint]))
+  (:require [clojure.pprint]
+            [clojure.java.io :refer [writer]]))
 
 (def ^:dynamic *debug* false)
 ;; debug output

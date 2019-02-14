@@ -1,15 +1,9 @@
 (ns cloverage.instrument
-  (:use [slingshot.slingshot :only [throw+]]
-        [clojure.java.io :only [writer]]
-        [clojure.string  :only [split]])
-  (:require [clojure.set :as set]
-            [clojure.test :as test]
-            [clojure.tools.logging :as log]
-            [cloverage.rewrite :refer [unchunk]]
+  (:require [clojure.tools.logging :as log]
             [clojure.tools.reader :as r]
+            [cloverage.rewrite :refer [unchunk]]
             [riddley.walk :refer [macroexpand-all]]
-            [cloverage.debug :refer :all]
-            [cloverage.source :refer :all]))
+            [slingshot.slingshot :refer [throw+]]))
 
 (defn iobj? [form]
   (and
