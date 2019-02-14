@@ -1,6 +1,8 @@
 (ns cloverage.instrument
   (:require [clojure.tools.logging :as log]
             [clojure.tools.reader :as r]
+            [cloverage.debug :as d]
+            [cloverage.source :as s]
             [cloverage.rewrite :refer [unchunk]]
             [riddley.walk :refer [macroexpand-all]]
             [slingshot.slingshot :refer [throw+]]))
@@ -118,8 +120,8 @@
    (let [res (cond (seq? form)  (list-type-in-env form env)
                    (coll? form) :coll
                    :else        :atomic)]
-     (tprnl "Type of" (class form) form "is" res)
-     (tprnl "Meta of" form "is" (meta form))
+     (d/tprnl "Type of" (class form) form "is" res)
+     (d/tprnl "Meta of" form "is" (meta form))
      res)))
 
 (defn- var->sym [^clojure.lang.Var fvar]
@@ -163,7 +165,7 @@
 
   e.g. - `a (+ a b)`       (let or loop)"
   [f line-hint [args & body :as form]]
-  (tprnl "Wrapping overload" args body)
+  (d/tprnl "Wrapping overload" args body)
   (let [line (or (:line (meta form)) line-hint)]
     (let [wrapped (doall (map (wrapper f line) body))]
       `(~args ~@wrapped))))
@@ -174,7 +176,7 @@
   e.g. - ([a b] (+ a b)) or
           ([n] {:pre [(> n 0)]} (/ 1 n))"
   [f line-hint [args & body :as form]]
-  (tprnl "Wrapping function overload" args body)
+  (d/tprnl "Wrapping function overload" args body)
   (let [line  (or (:line (meta form)) line-hint)
         conds (when (and (next body) (map? (first body)))
                 (first body))
@@ -194,15 +196,15 @@
 ;;   (([a] (inc a))
 ;;    ([a b] (+ a b)))
 (defn wrap-overloads [f line-hint form]
-  (tprnl "Wrapping overloads " form)
+  (d/tprnl "Wrapping overloads " form)
   (let [line (or (:line (meta form)) line-hint)]
     (if (vector? (first form))
       (wrap-overload f line form)
       (try
         (doall (map (partial wrap-overload f line) form))
         (catch Exception e
-          (tprnl "ERROR: " form)
-          (tprnl e)
+          (d/tprnl "ERROR: " form)
+          (d/tprnl e)
           (throw
            (Exception. (pr-str "While wrapping" (:original (meta form)))
                        e)))))))
@@ -226,7 +228,7 @@
 
 ;; For a collection, just recur on its elements.
 (defmethod do-wrap :coll [f line form _]
-  (tprn ":coll" form)
+  (d/tprn ":coll" form)
   (let [wrappee (map (wrapper f line) form)
         wrapped (cond (vector? form) `[~@wrappee]
                       (set? form) `#{~@wrappee}
@@ -241,7 +243,7 @@
                               (when (nil? (empty form))
                                 (throw+ (str "Can't construct empty " (class form))))
                               `(into ~(empty form) [] ~(vec wrappee))))]
-    (tprn ":wrapped" (class form) (class wrapped) wrapped)
+    (d/tprn ":wrapped" (class form) (class wrapped) wrapped)
     (f line wrapped)))
 
 (defn wrap-fn-body [f line form]
@@ -251,12 +253,12 @@
                  `(~fn-sym ~(second form)
                            ~@(wrap-overloads f line (rest (rest form))))
                  `(~fn-sym ~@(wrap-overloads f line (rest form))))]
-    (tprnl "Instrumented function" res)
+    (d/tprnl "Instrumented function" res)
     res))
 
 ;; Wrap a fn form
 (defmethod do-wrap :fn [f line form _]
-  (tprnl "Wrapping fn " form)
+  (d/tprnl "Wrapping fn " form)
   (f line (wrap-fn-body f line form)))
 
 (defmethod do-wrap :let [f line [let-sym bindings & body :as form] _]
@@ -307,12 +309,12 @@
   ;; (like :tag type hints for reflection when resolving methods)
   (if (= :list (form-type attr-name env))
     (do
-      (tprnl "List dotform, recursing on" (rest attr-name))
+      (d/tprnl "List dotform, recursing on" (rest attr-name))
       (f line `(~dot-sym ~obj-name (~(first attr-name)
                                     ~@(doall (map (wrapper f line)
                                                   (rest attr-name)))))))
     (do
-      (tprnl "Simple dotform, recursing on" args)
+      (d/tprnl "Simple dotform, recursing on" args)
       (f line `(~dot-sym ~obj-name ~attr-name ~@(doall (map (wrapper f line) args)))))))
 
 (defmethod do-wrap :set [f line [set-symbol target expr] _]
@@ -365,10 +367,10 @@
   (do-wrap f line (unchunk form) env))
 
 (defmethod do-wrap :list [f line form env]
-  (tprnl "Wrapping " (class form) form)
+  (d/tprnl "Wrapping " (class form) form)
   (let [expanded (macroexpand form)]
-    (tprnl "Expanded" form "into" expanded)
-    (tprnl "Meta on expanded is" (meta expanded))
+    (d/tprnl "Expanded" form "into" expanded)
+    (d/tprnl "Meta on expanded is" (meta expanded))
     (if (= :list (form-type expanded env))
       (let [wrapped (doall (map (wrapper f line) expanded))]
         (f line (add-original form wrapped)))
@@ -409,8 +411,8 @@
 (defn instrument
   "Instruments and evaluates a list of forms."
   ([f-var lib]
-   (let [filename (resource-path lib)]
-     (let [src (form-reader lib)]
+   (let [filename (s/resource-path lib)]
+     (let [src (s/form-reader lib)]
        (loop [instrumented-forms nil]
          (if-let [form (binding [*read-eval* false]
                          (r/read {:eof nil
@@ -432,7 +434,7 @@
                          *source-path* filename]
                  (eval wrapped))
                (binding [*print-meta* true]
-                 (tprn "Evalling" wrapped " with meta " (meta wrapped)))
+                 (d/tprn "Evalling" wrapped " with meta " (meta wrapped)))
                (catch Exception e
                  (throw (Exception.
                          (str "Couldn't eval form "
@@ -443,7 +445,7 @@
                          e))))
              (recur (conj instrumented-forms wrapped)))
            (let [rforms (reverse instrumented-forms)]
-             (dump-instrumented rforms lib)
+             (d/dump-instrumented rforms lib)
              rforms)))))))
 
 (defn nop
