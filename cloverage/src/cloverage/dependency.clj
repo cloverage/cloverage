@@ -1,6 +1,6 @@
 (ns cloverage.dependency
-  (:use [cloverage.kahn :only (kahn-sort)]
-        [cloverage.source :only (ns-form)]))
+  (:require [cloverage.kahn :refer [kahn-sort]]
+            [cloverage.source :refer [ns-form]]))
 
 ;;(do
 ;; (clojure.core/in-ns 'cloverage.coverage)

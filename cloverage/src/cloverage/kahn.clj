@@ -1,6 +1,6 @@
 ;; taken from https://gist.github.com/1263783
 (ns cloverage.kahn
-  (:use [clojure.set :only (difference union intersection)]))
+  (:require [clojure.set :refer [difference union intersection]]))
 
 (defn without
   "Returns set s with x removed."
