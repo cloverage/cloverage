@@ -12,9 +12,9 @@
           :url "http://www.eclipse.org/legal/epl-v10.html"
           :distribution :repo
           :comments "same as Clojure"}
-  :plugins [[lein-release "1.0.9"]]
-  :lein-release {:scm :git ; Because we're not in the top-level directory, so it doesn't auto-detect
-                    :deploy-via :clojars}
+  :deploy-repositories {"releases"
+                        {:url "https://repo.clojars.org"
+                         :creds :gpg}}
   :dependencies [[org.clojure/tools.reader "1.1.2"]
                     [org.clojure/tools.cli "0.3.5"]
                     [org.clojure/tools.logging "0.4.0"]
@@ -23,11 +23,11 @@
                     [timofreiberg/bultitude "0.2.10"]
                     [riddley "0.1.14"]
                     [slingshot "0.12.2"]]
-  :profiles {:dev    {:aot          ^:replace []
-                    :dependencies [[org.clojure/clojure "1.8.0"]]
-                    :plugins [[lein-cljfmt "0.5.7"]
-                              [jonase/eastwood "0.2.5"]
-                              [lein-kibit "0.1.6"]]
+  :profiles {:dev {:aot ^:replace []
+                   :dependencies [[org.clojure/clojure "1.8.0"]]
+                   :plugins [[lein-cljfmt "0.5.7"]
+                             [jonase/eastwood "0.2.5"]
+                             [lein-kibit "0.1.6"]]
                     :eastwood {:exclude-linters [:no-ns-form-found]}
                     :global-vars {*warn-on-reflection* true}}
           :sample {:source-paths ["sample"]}
