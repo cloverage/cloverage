@@ -20,6 +20,13 @@
          (filter resource-exists?)
          first)))
 
+(defn source-file-path
+  "Given a classpath-relative path, return a relative source file path."
+  [resource]
+  (let [cwd           (-> (java.io.File. "") .getAbsolutePath (str "/"))
+        resource-path (-> (.getResource (get-loader) resource) .toURI .getPath)]
+    (clojure.string/replace resource-path cwd "")))
+
 (defn resource-reader [resource]
   (if-let [resource (and resource
                          (.getResourceAsStream

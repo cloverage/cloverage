@@ -60,4 +60,4 @@
 (deftest lcov-report-writes-report-with-forms
   (let [test-forms test-gathered-forms
         report (with-out-str (#'cloverage.report.lcov/write-lcov-report test-forms))]
-    (is (= "TN:\nSF:cloverage/sample/dummy_sample.clj\nDA:1,1\nDA:5,1\nDA:7,0\nLF:3\nLH:2\nend_of_record\n" report))))
+    (is (= "TN:\nSF:test/cloverage/sample/dummy_sample.clj\nDA:1,1\nDA:5,1\nDA:7,0\nLF:3\nLH:2\nend_of_record\n" report))))
