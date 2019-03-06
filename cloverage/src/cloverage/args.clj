@@ -33,6 +33,7 @@
    :ns-regex         regexes-or-strings?
    :test-ns-regex    regexes-or-strings?
    :ns-exclude-regex regexes-or-strings?
+   :exclude-call     regexes-or-strings?
    :src-ns-path      regexes-or-strings?
    :runner           keyword?
    :test-ns-path     regexes-or-strings?
@@ -82,10 +83,12 @@
   Rename boolean flags then merge in any project settings."
   [[opts add-nses help] project-settings]
   (let [->regexes (partial map re-pattern)
+        ->symbols (partial map symbol)
         opts      (-> opts
                       (update :ns-regex ->regexes)
                       (update :test-ns-regex ->regexes)
                       (update :ns-exclude-regex ->regexes)
+                      (update :exclude-call ->symbols)
                       (set/rename-keys boolean-flags)
                       (overwrite project-settings)
                       (update :test-selectors #(into {} %)))]
@@ -136,6 +139,10 @@
     :parse-fn (collecting-args-parser)]
    ["-e" "--ns-exclude-regex"
     "Regex for namespaces not to be instrumented (can be repeated)."
+    :default []
+    :parse-fn (collecting-args-parser)]
+   ["--exclude-call"
+    "Name of fn/macro whose call sites are not to be instrumented (can be repeated)."
     :default []
     :parse-fn (collecting-args-parser)]
    ["-t" "--test-ns-regex"
