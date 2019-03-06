@@ -75,7 +75,7 @@
     (t/is (= 1 (both-defn 1)))))
 
 (t/deftest test-exclude-calls
-  (let [form    '(inc 100) 
+  (let [form    '(inc 100)
         wrapped (inst/do-wrap #'inst/nop 42 form {})]
     (t/is (not= form wrapped))
     (binding [inst/*exclude-calls* #{'clojure.core/inc}]

@@ -375,7 +375,7 @@
 (defmethod do-wrap :list [f line form env]
   (d/tprnl "Wrapping " (class form) form)
   (if (and *exclude-calls*
-          (*exclude-calls* (maybe-resolve-symbol (first form))))
+           (*exclude-calls* (maybe-resolve-symbol (first form))))
     form
     (let [expanded (macroexpand form)]
       (d/tprnl "Expanded" form "into" expanded)
