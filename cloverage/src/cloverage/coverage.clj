@@ -203,6 +203,7 @@
                   ns-regex
                   test-ns-regex
                   ns-exclude-regex
+                  exclude-call
                   src-ns-path
                   runner
                   test-ns-path
@@ -224,7 +225,9 @@
           (if (empty? ordered-nses)
             (throw (RuntimeException. "Cannot instrument namespaces; there is a cyclic dependency"))
             (doseq [namespace ordered-nses]
-              (binding [*instrumented-ns* namespace]
+              (binding [*instrumented-ns* namespace
+                        inst/*exclude-calls* (when (seq exclude-call)
+                                               (set exclude-call))]
                 (if nop?
                   (inst/instrument #'inst/nop namespace)
                   (inst/instrument #'track-coverage namespace)))
