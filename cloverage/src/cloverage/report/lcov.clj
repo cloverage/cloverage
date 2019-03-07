@@ -1,16 +1,17 @@
 (ns cloverage.report.lcov
   (:require
    [clojure.java.io :as io]
+   [cloverage.source :refer [source-file-path]]
    [cloverage.report :refer [line-stats with-out-writer]]))
 
 (defn write-lcov-report
   "Write out lcov report to *out*"
   [forms]
-  (doseq [[rel-file file-forms] (group-by :file forms)]
+  (doseq [[file file-forms] (group-by :file forms)]
     (let [lines (line-stats file-forms)
           instrumented (filter :instrumented? lines)]
       (println "TN:")
-      (printf "SF:%s%n" rel-file)
+      (printf "SF:%s%n" (source-file-path file))
       (doseq [line instrumented]
         (printf "DA:%d,%d%n" (:line line) (:hit line)))
       (printf "LF:%d%n" (count instrumented))
