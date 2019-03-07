@@ -1,10 +1,13 @@
 (ns cloverage.source
   (:require [clojure.tools.reader :as r]
             [clojure.tools.reader.reader-types :as rt]
-            [clojure.java.io :as io]))
+            [clojure.java.io :as io]
+            [clojure.string :as str])
+  (:import (java.io InputStreamReader File PushbackReader)
+           (clojure.lang RT)))
 
 (defn- get-loader ^ClassLoader []
-  (clojure.lang.RT/baseLoader))
+  (RT/baseLoader))
 
 (defn- resource-exists? [path]
   (not (nil? (io/resource path (get-loader)))))
@@ -23,22 +26,22 @@
 (defn source-file-path
   "Given a classpath-relative path, return a relative source file path."
   [resource]
-  (let [cwd           (-> (java.io.File. "") .getAbsolutePath (str "/"))
+  (let [cwd           (-> (File. "") .getAbsolutePath (str "/"))
         resource-path (-> (.getResource (get-loader) resource) .toURI .getPath)]
-    (clojure.string/replace resource-path cwd "")))
+    (str/replace resource-path cwd "")))
 
 (defn resource-reader [resource]
   (if-let [resource (and resource
                          (.getResourceAsStream
                           (get-loader)
                           resource))]
-    (java.io.InputStreamReader. resource) ; We assume the default charset is set correctly
+    (InputStreamReader. resource) ; We assume the default charset is set correctly
     (throw (IllegalArgumentException. (str "Cannot find resource " resource)))))
 
 (defn form-reader [ns-symbol]
   (if-let [res-path (resource-path ns-symbol)]
     (rt/indexing-push-back-reader
-     (java.io.PushbackReader.
+     (PushbackReader.
       (resource-reader res-path)))
     (throw (ex-info (format "Resource path not found for namespace: %s" (name ns-symbol))
                     {:ns-symbol ns-symbol}))))
