@@ -54,6 +54,7 @@ Available options and command-line arguments:
  :nop?             --no-nop, --nop              false            Instrument with noops.
  :ns-regex         -n, --ns-regex               []               Regex for instrumented namespaces (can be repeated).
  :ns-exclude-regex -e, --ns-exclude-regex       []               Regex for namespaces not to be instrumented (can be repeated).
+ :exclude-call     --exclude-call               []               Name of fn/macro whose call sites are not to be instrumented (can be repeated).
  :test-ns-regex    -t, --test-ns-regex          []               Regex for test namespaces (can be repeated).
  :src-ns-path      -p, --src-ns-path            []               Path (string) to directory containing source code namespaces (can be repeated).
  :test-ns-path     -s, --test-ns-path           []               Path (string) to directory containing test namespaces (can be repeated).

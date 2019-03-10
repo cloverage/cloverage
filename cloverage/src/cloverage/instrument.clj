@@ -366,15 +366,24 @@
 (defmethod do-wrap :for [f line form env]
   (do-wrap f line (unchunk form) env))
 
+(def ^:dynamic *exclude-calls*
+  "The set of symbols that will suppress instrumentation when any are used in
+  the calling position of a form. Useful for excluding problematic macro call
+  sites from coverage metrics."
+  nil)
+
 (defmethod do-wrap :list [f line form env]
   (d/tprnl "Wrapping " (class form) form)
-  (let [expanded (macroexpand form)]
-    (d/tprnl "Expanded" form "into" expanded)
-    (d/tprnl "Meta on expanded is" (meta expanded))
-    (if (= :list (form-type expanded env))
-      (let [wrapped (doall (map (wrapper f line) expanded))]
-        (f line (add-original form wrapped)))
-      (wrap f line (add-original form expanded)))))
+  (if (and *exclude-calls*
+           (*exclude-calls* (maybe-resolve-symbol (first form))))
+    form
+    (let [expanded (macroexpand form)]
+      (d/tprnl "Expanded" form "into" expanded)
+      (d/tprnl "Meta on expanded is" (meta expanded))
+      (if (= :list (form-type expanded env))
+        (let [wrapped (doall (map (wrapper f line) expanded))]
+          (f line (add-original form wrapped)))
+        (wrap f line (add-original form expanded))))))
 
 (defn wrap-record-spec [f line-hint [meth-name args & body :as form]]
   (let [line (or (:line (meta form)) line-hint)]
