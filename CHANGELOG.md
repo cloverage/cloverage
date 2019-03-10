@@ -7,10 +7,18 @@ provide a short summary description of the particular changes of the patch.
 Include the issue number (#xxx) which will link back to the originating issue
 in github. Commentary on the change should appear as a nested, unordered list.
 
-## 1.0.11 (WIP)
+
+## 1.1.1 (WIP)
+- Improvements
+  - Support for excluding call sites by fn/macro name (#242)
+- Bugfixes
+  - Fix lcov output format (bug: #225, PR: #244)
+
+## 1.1.0
 - Improvements
   - Add the --custom-report option to build your own formatter
   - Add support for test selectors (see #54 and #230)
+  - Significant performance improvements (#236)
 - Bugfixes
   - Fix the handling of --ns-regex and --test-ns-regex (#183)
   - Read options from the Leiningen project file (#155)
