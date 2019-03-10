@@ -15,6 +15,19 @@
                          :creds :gpg}}
   :lein-release {:scm :git ; Because we're not in the top-level directory, so it doesn't auto-detect
                  :deploy-via :clojars}
+  :release-tasks [["vcs" "assert-committed"]
+                  ["change" "version" "leiningen.release/bump-version" "release"]
+                  ["vcs" "commit"]
+                  ;; We can't tag here: lein's builtin release functionality
+                  ;; tags only by version, but we share a repository with
+                  ;; cloverage itself. It's up to the maintainers to make this
+                  ;; not desync too much.
+                  #_["vcs" "tag"]
+                  ["deploy"]
+                  ["change" "version" "leiningen.release/bump-version"]
+                  ["vcs" "commit"]
+                  ["vcs" "push"]]
+
   :min-lein-version "2.0.0"
   :profiles {:dev {:plugins [[lein-cljfmt "0.5.7"]
                               [jonase/eastwood "0.2.5"]
