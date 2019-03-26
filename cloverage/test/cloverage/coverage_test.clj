@@ -247,3 +247,15 @@
        "--emma-xml"
        "-x" "cloverage.sample.cyclic-dependency"
        "cloverage.sample.cyclic-dependency")))))
+
+(t/deftest test-no-ns-found-for-instrumentation
+  (binding [cloverage.coverage/*exit-after-test* false]
+    (t/testing "Expect validation error when no namespaces are selected for instrumentation"
+     (t/is
+      (thrown-with-msg?
+       RuntimeException #"No namespaces selected for instrumentation.*"
+       (cloverage.coverage/-main
+        "-o" "out"
+        "--emma-xml"
+        "--ns-regex" "cloverage.*"
+        "--ns-exclude-regex" ".*"))))))

@@ -222,6 +222,11 @@
           (println "Loading namespaces: " (apply list namespaces))
           (println "Test namespaces: " test-nses)
 
+          (when (empty? namespaces)
+            (throw (RuntimeException.
+                    (str "No namespaces selected for instrumentation using " {:ns-regex ns-regex
+                                                                              :ns-exclude-regex ns-exclude-regex}))))
+
           (if (empty? ordered-nses)
             (throw (RuntimeException. "Cannot instrument namespaces; there is a cyclic dependency"))
             (doseq [namespace ordered-nses]
