@@ -7,8 +7,13 @@ provide a short summary description of the particular changes of the patch.
 Include the issue number (#xxx) which will link back to the originating issue
 in github. Commentary on the change should appear as a nested, unordered list.
 
+## 1.1.2 (WIP)
 
-## 1.1.1 (WIP)
+- Improvements
+  - Provide separate error when no namespaces selected for instrumentation (#245)
+
+## 1.1.1
+
 - Improvements
   - Support for excluding call sites by fn/macro name (#242)
 - Bugfixes
