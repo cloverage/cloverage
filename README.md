@@ -72,6 +72,13 @@ project being tested, then run:
 
 Where *args-to-coverage* will usually be something like "-n 'ns.regex.*' -t 'text.ns.regex.*'"
 
+### Clojure CLI Tool
+
+To use cloverage in a Clojure CLI Project,
+`clj -Sdeps '{:deps {cloverage {:mvn/version "RELEASE"}}}' -m cloverage.coverage *args-to-coverage*`
+
+Where *args-to-coverage* will usually be something like "-p src -s test"
+
 
 ## Troubleshooting
 
