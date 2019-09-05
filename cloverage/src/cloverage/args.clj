@@ -13,6 +13,10 @@
   (every? #(or (string? %)
                (instance? Pattern %)) coll))
 
+(defn- symbols?
+  [coll]
+  (every? symbol? coll))
+
 (def valid
   {:text?            boolean?
    :html?            boolean?
@@ -33,7 +37,7 @@
    :ns-regex         regexes-or-strings?
    :test-ns-regex    regexes-or-strings?
    :ns-exclude-regex regexes-or-strings?
-   :exclude-call     regexes-or-strings?
+   :exclude-call     symbols?
    :src-ns-path      regexes-or-strings?
    :runner           keyword?
    :test-ns-path     regexes-or-strings?
