@@ -81,3 +81,69 @@
     (binding [inst/*exclude-calls* #{'clojure.core/inc}]
       (let [wrapped (inst/do-wrap #'inst/nop 42 form {})]
         (t/is (= form wrapped))))))
+
+(t/deftest test-wrap-defrecord-methods
+  (let [form    (list 'defrecord 'MyRecord []
+                      'Protocol
+                      (list 'method []
+                            (with-meta '(do-something) {:line 1337})))
+        wrapped (list 'defrecord 'MyRecord []
+                      'Protocol
+                      (list 'method []
+                            (inst/wrap #'inst/no-instr 1337 '(do-something))))]
+    (t/is (not= form wrapped))
+    (t/is (= wrapped
+             (inst/do-wrap #'inst/no-instr 0 form nil))
+          "Lines inside defrecord methods should get wrapped.")))
+
+(t/deftest test-wrap-deftype-methods
+  ;; (deftype ...) expands to (let [] (deftype* ...))
+  ;; ignore the let form & binding because we're only interested in how `deftype*` gets instrumented
+  (let [form (nth
+              (macroexpand-1
+               (list 'deftype 'MyType []
+                     'Protocol
+                     (list 'method []
+                           (with-meta '(do-something) {:line 1337}))))
+              2)
+        wrapped (nth
+                 (macroexpand-1
+                  (list 'deftype 'MyType []
+                        'Protocol
+                        (list 'method []
+                              (inst/wrap #'inst/no-instr 1337 '(do-something)))))
+                 2)]
+    (t/is (= (first form) 'deftype*)) ; make sure we're actually looking at the right thing
+    (t/is (not= form wrapped))
+    (t/is (= wrapped
+             (inst/do-wrap #'inst/no-instr 0 form nil))
+          "Lines inside deftype methods should get wrapped.")))
+
+(t/deftest test-deftype-defrecord-line-metadata
+  ;; * If an individual line in a defrecord or deftype method body has ^:line metadata, we should use that (3 in the
+  ;;   test below)
+  ;;
+  ;; * Failing that, if the entire (method [args*] ...) form has line number metadata, we should use that (2 in the
+  ;;   test below)
+  ;;
+  ;; * Finally, we should fall back to using the line number passed in to `wrap-deftype-defrecord-methods`
+  ;; * (presumably the line of the entire `defrecord`/`deftype` form) (1 in the test below)
+  (let [form    (list
+                 'defrecord 'MyRecord []
+                 'Protocol
+                 (-> (list 'method-with-meta []
+                           (with-meta '(line-with-meta) {:line 3})
+                           (with-meta '(line-without-meta) nil))
+                     (with-meta {:line 2}))
+                 (-> (list 'method-without-meta [] (with-meta '(line-without-meta) nil))
+                     (with-meta nil)))
+        wrapped (list 'defrecord 'MyRecord []
+                      'Protocol
+                      (list 'method-with-meta []
+                            (inst/wrap #'inst/no-instr 3 '(line-with-meta))
+                            (inst/wrap #'inst/no-instr 2 '(line-without-meta)))
+                      (list 'method-without-meta []
+                            (inst/wrap #'inst/no-instr 1 '(line-without-meta))))]
+    (t/is (= wrapped
+             (inst/do-wrap #'inst/no-instr 1 form nil))
+          "Wrapped defrecord/deftype methods should use most-specific line number metadata available.")))
