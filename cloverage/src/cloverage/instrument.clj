@@ -86,7 +86,6 @@
     '#{reify*}      :reify*
     ;; FIXME: monitor-enter monitor-exit
     ;; FIXME: import*?
-    ;; FIXME: deftype*
 
     ;; namespaced macros
     `#{cond}        :cond    ; special case cond to avoid false partial
@@ -98,6 +97,7 @@
     `#{defmulti}    :defmulti ; special case defmulti to avoid boilerplate
     `#{defprotocol} :atomic   ; no code in protocols
     `#{defrecord}   :record
+    `#{deftype*}    :deftype*
     `#{ns}          :atomic
 
     ;; http://dev.clojure.org/jira/browse/CLJ-1330 means AOT-compiled definlines
@@ -385,17 +385,33 @@
           (f line (add-original form wrapped)))
         (wrap f line (add-original form expanded))))))
 
-(defn wrap-record-spec [f line-hint [meth-name args & body :as form]]
-  (let [line (or (:line (meta form)) line-hint)]
-    `(~meth-name ~args ~@(map (wrapper f line) body))))
+(defn wrap-deftype-defrecord-method [f line [meth-name args & body :as method-form]]
+  (let [method-line (or (:line (meta method-form)) line)
+        body        (for [form body
+                          :let [line (or (:line (meta form)) method-line)]]
+                      (wrap f line form))]
+    `(~meth-name ~args ~@body)))
 
 (defmethod do-wrap :record [f line [defr-symbol name fields & opts+specs] _]
-  ;; (defrecord name [fields+] options* specs*)
-  ;; currently no options
+  ;; (defrecord name [fields*] options* specs*)
+  ;;
   ;; spec == thing-being-implemented (methodName [args*] body)*
   ;; we only want to recurse on the methods
-  (let [specs (map #(if (seq? %) (wrap-record-spec f line %) %) opts+specs)]
-    (f line `(~defr-symbol ~name ~fields ~@specs))))
+  (let [wrapped-opts+specs (for [opt-or-spec opts+specs]
+                             (if (list? opt-or-spec)
+                               (wrap-deftype-defrecord-method f line opt-or-spec)
+                               opt-or-spec))]
+    (f line `(~defr-symbol ~name ~fields ~@wrapped-opts+specs))))
+
+(defmethod do-wrap :deftype* [f line [deft-symbol name class-name fields implements interfaces & methods] _]
+  ;; (deftype name [fields*] options* specs*)
+  ;;
+  ;; expands into
+  ;;
+  ;; (deftype* name class-name [fields*] :implements [interfaces] methods*)
+  (let [wrapped-methods (for [method methods]
+                          (wrap-deftype-defrecord-method f line method))]
+    `(~deft-symbol ~name ~class-name ~fields ~implements ~interfaces ~@wrapped-methods)))
 
 (defmethod do-wrap :defmulti [f line [defm-symbol name & other] _]
   ;; wrap defmulti to avoid partial coverage warnings due to internal
