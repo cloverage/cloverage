@@ -30,8 +30,16 @@
                               :test-ns-path (vec (:test-paths project)))]
     (try
       (eval/eval-in-project project
-                            ;; test-selectors needs unquoted here to be read as functions
-                            `(cloverage.coverage/run-project (assoc '~opts :test-selectors ~test-selectors) ~@args)
+                            `(let [decls#      (-> []
+                                                   (.getClass)
+                                                   (.getClassLoader)
+                                                   (.getResources "data_readers.clj")
+                                                   enumeration-seq)
+                                   read-decls# (comp read-string slurp)
+                                   readers#    (reduce merge {} (map read-decls# decls#))]
+                               (binding [clojure.tools.reader/*data-readers* readers#]
+                                 ;; test-selectors needs unquoted here to be read as functions
+                                 (cloverage.coverage/run-project (assoc '~opts :test-selectors ~test-selectors) ~@args)))
                             '(require 'cloverage.coverage))
       (catch ExceptionInfo e
         (main/exit (:exit-code (ex-data e) 1))))))
