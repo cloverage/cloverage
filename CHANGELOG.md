@@ -7,10 +7,21 @@ provide a short summary description of the particular changes of the patch.
 Include the issue number (#xxx) which will link back to the originating issue
 in github. Commentary on the change should appear as a nested, unordered list.
 
-## 1.1.2 (WIP)
+## 1.1.3 (WIP)
+
+Nothing yet!
+
+## 1.1.2
 
 - Improvements
-  - Provide separate error when no namespaces selected for instrumentation (#245)
+  - Support for deftype forms (#254)
+  - Custom data readers are now installed before instrumentation (#255, #197)
+  - Better error message when no namespaces selected for instrumentation (#245)
+  - Travis CI tests now run on Ubuntu Trusty (#256)
+  - License cleanup (no changes, just housekeeping) (#249, #251)
+  - Documentation for using cloverage with deps.edn/clj ecosystem (#248)
+- Bugfixes
+  - :exclude-calls didn't work because of an incorrect type conversion (#253)
 
 ## 1.1.1
 
@@ -84,11 +95,11 @@ in github. Commentary on the change should appear as a nested, unordered list.
   - Correct test namespaces regex usage (#67)
   - Cope with zero-namespace situations correctly (#62)
 
-## 1.0.5:
+## 1.0.5
 - Bugfixes:
  - Work around AOT-ed inline functions not being wrappable (http://dev.clojure.org/jira/browse/CLJ-1330)
 
-## 1.0.4:
+## 1.0.4
 - Features:
  - Minimal EMMA XML output format support.
  - [Coveralls](https://coveralls.io) output format.
@@ -99,7 +110,7 @@ in github. Commentary on the change should appear as a nested, unordered list.
  - Support for (:require [(namespace.prefix (suffix :as rename))]) ns forms
  - Cloverage jars no longer include all dependencies
 
-## 1.0.3:
+## 1.0.3
  - fix empty list crash
  - add letfn support
  - print html report URL after testing
