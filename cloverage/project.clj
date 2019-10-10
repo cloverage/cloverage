@@ -24,7 +24,7 @@
                  [riddley "0.2.0"]
                  [slingshot "0.12.2"]]
   :profiles {:dev {:aot ^:replace []
-                   :dependencies [[org.clojure/clojure "1.8.0"]]
+                   :dependencies [[org.clojure/clojure "1.10.1"]]
                    :plugins [[lein-cljfmt "0.6.4"]
                              [jonase/eastwood "0.3.6"]
                              [lein-kibit "0.1.7"]]
@@ -36,5 +36,6 @@
              :1.6 {:dependencies [[org.clojure/clojure "1.6.0"]]}
              :1.7 {:dependencies [[org.clojure/clojure "1.7.0"]]}
              :1.8 {:dependencies [[org.clojure/clojure "1.8.0"]]}
-             :master {:dependencies [[org.clojure/clojure "1.9.0-master-SNAPSHOT"]]}}
-  :aliases {"all" ["with-profile" "+1.4:+1.5:+1.6:+1.7:+1.8:+master"]})
+             :1.9 {:dependencies [[org.clojure/clojure "1.9.0"]]}
+             :1.10 {:dependencies [[org.clojure/clojure "1.10.1"]]}}
+  :aliases {"all" ["with-profile" "+1.4:+1.5:+1.6:+1.7:+1.8:+1.9:+1.10"]})
