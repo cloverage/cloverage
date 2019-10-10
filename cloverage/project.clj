@@ -21,7 +21,7 @@
                  [org.clojure/data.xml "0.0.8"]
                  [org.clojure/data.json "0.2.6"]
                  [timofreiberg/bultitude "0.3.0"]
-                 [riddley "0.1.14"]
+                 [riddley "0.2.0"]
                  [slingshot "0.12.2"]]
   :profiles {:dev {:aot ^:replace []
                    :dependencies [[org.clojure/clojure "1.8.0"]]
