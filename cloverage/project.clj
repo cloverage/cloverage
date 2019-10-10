@@ -26,7 +26,7 @@
   :profiles {:dev {:aot ^:replace []
                    :dependencies [[org.clojure/clojure "1.8.0"]]
                    :plugins [[lein-cljfmt "0.6.4"]
-                             [jonase/eastwood "0.2.5"]
+                             [jonase/eastwood "0.3.6"]
                              [lein-kibit "0.1.6"]]
                    :eastwood {:exclude-linters [:no-ns-form-found]}
                    :global-vars {*warn-on-reflection* true}}
