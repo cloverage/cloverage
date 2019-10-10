@@ -16,7 +16,7 @@
                         {:url "https://repo.clojars.org"
                          :creds :gpg}}
   :dependencies [[org.clojure/tools.reader "1.1.2"]
-                 [org.clojure/tools.cli "0.3.5"]
+                 [org.clojure/tools.cli "0.4.2"]
                  [org.clojure/tools.logging "0.4.0"]
                  [org.clojure/data.xml "0.0.8"]
                  [org.clojure/data.json "0.2.6"]
