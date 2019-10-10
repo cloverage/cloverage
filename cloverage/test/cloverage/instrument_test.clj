@@ -45,8 +45,7 @@
   (t/is (= :list (form-type- '(+ 1 2))))
   (t/is (= :do (form-type- '(do 1 2 3))))
   (t/is (= :list (form-type- '(loop 1 2 3)
-                             {'loop 'hoop} ;fake a local binding
-))))
+                             {'loop 'hoop})))) ;fake a local binding
 
 (t/deftest do-wrap-for-record-returns-record
   (t/is (= 1 (method (eval (inst/wrap #'inst/nop 0 (Record. 1)))))))

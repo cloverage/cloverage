@@ -25,7 +25,7 @@
                  [slingshot "0.12.2"]]
   :profiles {:dev {:aot ^:replace []
                    :dependencies [[org.clojure/clojure "1.8.0"]]
-                   :plugins [[lein-cljfmt "0.5.7"]
+                   :plugins [[lein-cljfmt "0.6.4"]
                              [jonase/eastwood "0.2.5"]
                              [lein-kibit "0.1.6"]]
                    :eastwood {:exclude-linters [:no-ns-form-found]}
