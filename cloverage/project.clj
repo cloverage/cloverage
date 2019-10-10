@@ -17,7 +17,7 @@
                          :creds :gpg}}
   :dependencies [[org.clojure/tools.reader "1.1.2"]
                  [org.clojure/tools.cli "0.4.2"]
-                 [org.clojure/tools.logging "0.4.0"]
+                 [org.clojure/tools.logging "0.5.0"]
                  [org.clojure/data.xml "0.0.8"]
                  [org.clojure/data.json "0.2.6"]
                  [timofreiberg/bultitude "0.2.10"]
