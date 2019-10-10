@@ -27,7 +27,7 @@
                    :dependencies [[org.clojure/clojure "1.8.0"]]
                    :plugins [[lein-cljfmt "0.6.4"]
                              [jonase/eastwood "0.3.6"]
-                             [lein-kibit "0.1.6"]]
+                             [lein-kibit "0.1.7"]]
                    :eastwood {:exclude-linters [:no-ns-form-found]}
                    :global-vars {*warn-on-reflection* true}}
              :sample {:source-paths ["sample"]}
