@@ -1,10 +1,11 @@
 (ns cloverage.coverage
   (:gen-class)
-  (:require [bultitude.core :as blt]
+  (:require [clojure.java.classpath :as cp]
             [clojure.java.io :as io]
             [clojure.test :as test]
             [clojure.test.junit :as junit]
             [clojure.tools.logging :as log]
+            [clojure.tools.namespace.find :as ns-find]
             [cloverage.args :as args]
             [cloverage.debug :as debug]
             [cloverage.dependency :as dep]
@@ -124,8 +125,8 @@
   (let [namespaces (map name
                         (cond
                           (and (empty? ns-paths) (empty? regex-patterns)) '()
-                          (empty? ns-paths) (blt/namespaces-on-classpath)
-                          :else (mapcat #(blt/namespaces-on-classpath :classpath %) ns-paths)))]
+                          (empty? ns-paths) (ns-find/find-namespaces (cp/classpath))
+                          :else (ns-find/find-namespaces (map io/file ns-paths))))]
     (debug/tprn "found:" {:namespaces     namespaces
                           :ns-paths       ns-paths
                           :regex-patterns regex-patterns})
