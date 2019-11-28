@@ -114,12 +114,24 @@
     :list ; local variables can't be macros/special symbols
     (list-type head)))
 
+(def ^:dynamic *exclude-calls*
+  "The set of symbols that will suppress instrumentation when any are used in
+  the calling position of a form. Useful for excluding problematic macro call
+  sites from coverage metrics."
+  nil)
+
+(defn exclude? [form]
+  (boolean (and *exclude-calls*
+                (*exclude-calls* (maybe-resolve-symbol (first form))))))
+
 (defn form-type
   "Classifies the given form"
   ([form env]
-   (let [res (cond (seq? form)  (list-type-in-env form env)
-                   (coll? form) :coll
-                   :else        :atomic)]
+   (let [res (cond (and (seq? form)
+                        (exclude? form)) :excluded
+                   (seq? form)           (list-type-in-env form env)
+                   (coll? form)          :coll
+                   :else                 :atomic)]
      (d/tprnl "Type of" (class form) form "is" res)
      (d/tprnl "Meta of" form "is" (meta form))
      res)))
@@ -212,6 +224,11 @@
 ;; Don't wrap or descend into unknown forms
 (defmethod do-wrap :unknown [f line form _]
   (log/warn (str "Unknown special form " (seq form)))
+  form)
+
+;; Don't wrap or descend into excluded forms
+(defmethod do-wrap :excluded [_ _ form _]
+  (log/info (str "Excluded form " (seq form)))
   form)
 
 ;; Don't wrap definline functions - see http://dev.clojure.org/jira/browse/CLJ-1330
@@ -366,24 +383,15 @@
 (defmethod do-wrap :for [f line form env]
   (do-wrap f line (unchunk form) env))
 
-(def ^:dynamic *exclude-calls*
-  "The set of symbols that will suppress instrumentation when any are used in
-  the calling position of a form. Useful for excluding problematic macro call
-  sites from coverage metrics."
-  nil)
-
 (defmethod do-wrap :list [f line form env]
   (d/tprnl "Wrapping " (class form) form)
-  (if (and *exclude-calls*
-           (*exclude-calls* (maybe-resolve-symbol (first form))))
-    form
-    (let [expanded (macroexpand form)]
-      (d/tprnl "Expanded" form "into" expanded)
-      (d/tprnl "Meta on expanded is" (meta expanded))
-      (if (= :list (form-type expanded env))
-        (let [wrapped (doall (map (wrapper f line) expanded))]
-          (f line (add-original form wrapped)))
-        (wrap f line (add-original form expanded))))))
+  (let [expanded (macroexpand form)]
+    (d/tprnl "Expanded" form "into" expanded)
+    (d/tprnl "Meta on expanded is" (meta expanded))
+    (if (= :list (form-type expanded env))
+      (let [wrapped (doall (map (wrapper f line) expanded))]
+        (f line (add-original form wrapped)))
+      (wrap f line (add-original form expanded)))))
 
 (defn wrap-deftype-defrecord-method [f line [meth-name args & body :as method-form]]
   (let [method-line (or (:line (meta method-form)) line)
