@@ -38,5 +38,6 @@
              :1.7 {:dependencies [[org.clojure/clojure "1.7.0"]]}
              :1.8 {:dependencies [[org.clojure/clojure "1.8.0"]]}
              :1.9 {:dependencies [[org.clojure/clojure "1.9.0"]]}
-             :1.10 {:dependencies [[org.clojure/clojure "1.10.1"]]}}
+             :1.10 {:dependencies [[org.clojure/clojure "1.10.1"]]}
+             :test {:jvm-opts ["-Duser.language=en-US"]}}
   :aliases {"all" ["with-profile" "+1.4:+1.5:+1.6:+1.7:+1.8:+1.9:+1.10"]})
