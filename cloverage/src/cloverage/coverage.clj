@@ -195,6 +195,7 @@
                   codecov?
                   coveralls?
                   summary?
+                  colorize?
                   fail-threshold
                   low-watermark
                   high-watermark
@@ -274,7 +275,7 @@
               (when raw? (raw/report output forms @*covered*))
               (when codecov? (codecov/report output forms))
               (when coveralls? (coveralls/report output forms))
-              (when summary? (console/summary forms low-watermark high-watermark)))
+              (when summary? (console/summary forms low-watermark high-watermark colorize?)))
             (when custom-report (launch-custom-report custom-report {:project popts
                                                                      :args    opts
                                                                      :output  output

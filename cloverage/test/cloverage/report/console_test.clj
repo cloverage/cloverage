@@ -32,7 +32,7 @@
   (is (= "         hello world" (pad-right 20 "hello world"))))
 
 (deftest check-colorize
-  (let [f (colorize "%.3f" 33 66)]
+  (let [f (colorize "%.3f" 33 66 true)]
     (is (= (ansi :red "0.000") (f 0.0)))
     (is (= (ansi :red "10.001") (f 10.0005)))
     (is (= (ansi :red "33.000") (f 32.9999)))
@@ -40,9 +40,17 @@
     (is (= (ansi :yellow "66.000") (f 65.9999)))
     (is (= (ansi :green "66.000") (f 66.0000)))
     (is (= (ansi :green "100.000") (f 100.0000))))
-  (is (thrown? IllegalArgumentException (colorize "%.2f" -1 30)))
-  (is (thrown? IllegalArgumentException (colorize "%.2f" 65 30)))
-  (is (thrown? IllegalArgumentException (colorize "%.2f" 40 130))))
+  (let [no-c (colorize "%.3f" 33 66 false)]
+    (is (= "0.000" (no-c 0.0)))
+    (is (= "10.001" (no-c 10.0005)))
+    (is (= "33.000" (no-c 32.9999)))
+    (is (= "33.000" (no-c 33.0000)))
+    (is (= "66.000" (no-c 65.9999)))
+    (is (= "66.000" (no-c 66.0000)))
+    (is (= "100.000" (no-c 100.0000))))
+  (is (thrown? IllegalArgumentException (colorize "%.2f" -1 30 true)))
+  (is (thrown? IllegalArgumentException (colorize "%.2f" 65 30 true)))
+  (is (thrown? IllegalArgumentException (colorize "%.2f" 40 130 true))))
 
 (deftest check-print-table
   (let [data [{:field1 "Hello world"     :field2 94 :field3 true}

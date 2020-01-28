@@ -27,6 +27,7 @@
    :codecov?         boolean?
    :coveralls?       boolean?
    :summary?         boolean?
+   :colorize?        boolean?
    :fail-threshold   integer?
    :low-watermark    integer?
    :high-watermark   integer?
@@ -67,7 +68,7 @@
 (def boolean-flags
   (letfn [(add-? [k]
             [k (keyword (str (name k) \?))])]
-    (->> [:text :html :raw :emma-xml :junit :lcov :codecov :coveralls :summary :debug :nop :help]
+    (->> [:text :html :raw :emma-xml :junit :lcov :codecov :coveralls :summary :colorize :debug :nop :help]
          (map add-?)
          (into {}))))
 
@@ -118,6 +119,8 @@
     "Output raw coverage data (for debugging)." :default false]
    ["--[no-]summary"
     "Prints a summary" :default true]
+   ["--[no-]colorize"
+    "Adds ANSI color to the summary" :default true]
    ["--fail-threshold"
     "Sets the percentage threshold at which cloverage will abort the build. Default: 0%"
     :default 0
