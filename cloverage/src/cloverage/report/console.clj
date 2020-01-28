@@ -22,7 +22,7 @@
 (defn printable-count [text]
   (->> text strip-ansi count))
 
-(defn colorize [formatter low-watermark high-watermark]
+(defn colorize [formatter low-watermark high-watermark colorize?]
   (cond
     (neg? low-watermark)
     (throw (IllegalArgumentException. "Low-watermark cannot be less than 0%"))
@@ -38,6 +38,9 @@
               ([pct] (f pct (format formatter pct)))
               ([pct text]
                (cond
+                 (not colorize?)
+                 text
+
                  (< pct low-watermark)
                  (ansi :red text)
 
@@ -80,8 +83,8 @@
 
 (defn summary
   "Create a text summary for output on the command line"
-  [forms low-watermark high-watermark]
-  (let [colorizer (colorize "%.2f" low-watermark high-watermark)
+  [forms low-watermark high-watermark colorize?]
+  (let [colorizer (colorize "%.2f" low-watermark high-watermark colorize?)
         line-calc (fn [file-stat]
                     (let [libname   (:lib  file-stat)
                           forms     (:forms file-stat)
