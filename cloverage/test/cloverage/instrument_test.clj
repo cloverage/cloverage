@@ -84,9 +84,6 @@
 (defmacro ^:private on-line [line-number form]
   `(with-meta ~form {:line ~line-number}))
 
-(defn wrapped [line-number form]
-  (list 'cloverage.instrument/wrapm 'cloverage.instrument/no-instr line-number form))
-
 (t/deftest test-wrap-let-form
   (t/testing "let should recurisvely wrap its forms"
     (let [form (list 'let ['x (list 'let ['y (on-line 3 '(+ 1 2))]

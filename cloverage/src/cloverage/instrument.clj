@@ -281,7 +281,7 @@
            (list let-sym (wrap-bindings f line bindings env))
            (vec
             (for [form body]
-              (do-wrap f (or (:line (meta form))) form env))))))
+              (do-wrap f (or (:line (meta form)) line) form env))))))
 
 (defmethod do-wrap :letfn [f line [_ bindings & _ :as form] _]
   ;; (letfn [(foo [bar] ...) ...] body) ->
