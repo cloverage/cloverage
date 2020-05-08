@@ -166,10 +166,23 @@
 
 (t/deftest fail-gracefully-when-instrumenting
   (t/testing "If instrumenting a form fails we should log an Exception and continue instead of failing entirely."
-    (let [form         '(this-function-does-not-exist 100)
-          log-messages (atom [])]
-      (with-redefs [log/log* (fn [_ & message]
-                               (swap! log-messages conj (vec message)))]
+    (let [form                   '(this-function-does-not-exist 100)
+          log-messages           (atom [])
+          evalled-original-form? (atom false)
+          orig-eval-form         inst/eval-form]
+      (with-redefs [log/log*       (fn [_ & message]
+                                     (swap! log-messages conj (vec message)))
+                    ;; `eval-form` should be called twice -- once with the instrumented form, which will fail, and a
+                    ;; second time with an uninstrumented form.
+                    ;;
+                    ;; Both times would normally fail because `this-function-does-not-exist` doesn't exist, but for
+                    ;; the sake of theses tests we want to pretend evaling the original form the second time around
+                    ;; works normally. So for the second call just record the fact that it happened any avoid actually
+                    ;; evalling it
+                    inst/eval-form (fn [filename form line-hint instrumented-form]
+                                     (if (identical? form instrumented-form)
+                                       (reset! evalled-original-form? true)
+                                       (orig-eval-form filename form line-hint instrumented-form)))]
         (t/testing "instrument-form should return uninstrumented form as-is"
           (t/is (= form
                    (inst/instrument-form #'inst/no-instr nil form))))
@@ -182,4 +195,7 @@
             (doseq [s ["Error instrumenting form"
                        "Unable to resolve symbol: this-function-does-not-exist"]]
               (t/is (str/includes? message s)
-                    (str "Error message should include %s" (pr-str s))))))))))
+                    (str "Error message should include %s" (pr-str s))))))
+        (t/testing "We should have attempted to evauluate the *original* form"
+          (t/is (= true
+                   @evalled-original-form?)))))))

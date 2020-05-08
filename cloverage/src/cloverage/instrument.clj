@@ -466,7 +466,7 @@
 ;;
 ;; used to perform the instrumentation
 
-(defn- eval-instrumented-form
+(defn eval-form
   "Evaluate an `instrumented-form`."
   [filename form line-hint instrumented-form]
   (try
@@ -508,15 +508,17 @@
                                 (catch Throwable e
                                   (throw+ e "Couldn't wrap form %s at line %s"
                                           form line-hint)))]
-        (eval-instrumented-form filename form line-hint instrumented-form)
+        (eval-form filename form line-hint instrumented-form)
         instrumented-form)
-      ;; if we run into an error instrumenting a form, log it and return the uninstrumented form, so we can continue
+      ;; if we run into an error instrumenting a form, log it and return/eval the uninstrumented form, so we can
+      ;; continue
       (catch Throwable e
         (log/error "Error instrumenting form"
                    (ex-info "Error instrumenting form" {:filename filename
                                                         :line     line-hint
                                                         :form     form}
                             e))
+        (eval-form filename form line-hint form)
         form))))
 
 (defn instrument-file
