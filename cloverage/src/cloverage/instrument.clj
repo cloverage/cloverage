@@ -2,9 +2,9 @@
   (:require [clojure.tools.logging :as log]
             [clojure.tools.reader :as r]
             [cloverage.debug :as d]
-            [cloverage.source :as s]
             [cloverage.rewrite :refer [unchunk]]
-            [riddley.walk :refer [macroexpand-all]]
+            [cloverage.source :as s]
+            [riddley.walk :as rw]
             [slingshot.slingshot :refer [throw+]]))
 
 (defn iobj? [form]
@@ -441,45 +441,95 @@
                      `(~(first method) ~@(wrap-overload f line (rest method))))
                    methods))))
 
+(defn- source-forms
+  "Return a sequence of all forms in a source file using `source-reader` to read them."
+  [source-reader]
+  ;; `read-form` will return `nil` at the end of the file so keep reading forms until we run out
+  (letfn [(read-form []
+            (binding [*read-eval* false]
+              (r/read {:eof       nil
+                       :features  #{:clj}
+                       :read-cond :allow}
+                      source-reader)))]
+    (take-while some? (repeatedly read-form))))
+
+;; `f-var` used below is a var referring to a function with the form
+;;
+;;    (fn [line-hint form])
+;;
+;; used to perform the instrumentation
+
+(defn- eval-instrumented-form
+  "Evaluate an `instrumented-form`."
+  [filename form line-hint instrumented-form]
+  (try
+    (binding [*file*        filename
+              *source-path* filename]
+      (eval instrumented-form))
+    (binding [*print-meta* true]
+      (d/tprn "Evalling" instrumented-form " with meta " (meta instrumented-form)))
+    (catch Exception e
+      (let [error-message (try
+                            (str "Couldn't eval form "
+                                 (binding [*print-meta* true]
+                                   (with-out-str (prn instrumented-form)))
+                                 (with-out-str (prn (rw/macroexpand-all instrumented-form)))
+                                 (with-out-str (prn form)))
+                            (catch Throwable _
+                              "Error evaluating form"))]
+        (throw (ex-info error-message
+                        {:line              line-hint
+                         :filename          filename
+                         :form              form
+                         :instrumented-form instrumented-form}
+                        e))))))
+
+(defn- instrument-form
+  "Instrument a single `form`. Returns instrumented form."
+  [f-var filename form]
+  (let [line-hint (:line (meta form))]
+    (try
+      (let [form              (if (and (iobj? form)
+                                       (nil? (:file (meta form))))
+                                (vary-meta form assoc :file filename)
+                                form)
+            instrumented-form (try
+                                (wrap f-var line-hint form)
+                                (catch Throwable e
+                                  (throw+ e "Couldn't wrap form %s at line %s"
+                                          form line-hint)))]
+        (eval-instrumented-form filename form line-hint instrumented-form)
+        instrumented-form)
+      (catch Throwable e
+        (throw (ex-info "Error instrumenting form"
+                        {:filename filename
+                         :line     line-hint
+                         :form     form}
+                        e))))))
+
+(defn- instrument-file
+  "Instrument all the forms in a file. Returns sequence of instrumented forms."
+  [f-var lib filename]
+  (with-open [^java.io.Closeable source-reader (s/form-reader lib)]
+    (transduce
+     (map (partial instrument-form f-var filename))
+     conj
+     []
+     (source-forms source-reader))))
+
 (defn instrument
   "Instruments and evaluates a list of forms."
-  ([f-var lib]
-   (let [filename (s/resource-path lib)]
-     (let [src (s/form-reader lib)]
-       (loop [instrumented-forms nil]
-         (if-let [form (binding [*read-eval* false]
-                         (r/read {:eof nil
-                                  :features #{:clj}
-                                  :read-cond :allow}
-                                 src))]
-           (let [line-hint (:line (meta form))
-                 form      (if (and (iobj? form)
-                                    (nil? (:file (meta form))))
-                             (vary-meta form assoc :file filename)
-                             form)
-                 wrapped   (try
-                             (wrap f-var line-hint form)
-                             (catch Throwable t
-                               (throw+ t "Couldn't wrap form %s at line %s"
-                                       form line-hint)))]
-             (try
-               (binding [*file*        filename
-                         *source-path* filename]
-                 (eval wrapped))
-               (binding [*print-meta* true]
-                 (d/tprn "Evalling" wrapped " with meta " (meta wrapped)))
-               (catch Exception e
-                 (throw (Exception.
-                         (str "Couldn't eval form "
-                              (binding [*print-meta* true]
-                                (with-out-str (prn wrapped)))
-                              (with-out-str (prn (macroexpand-all wrapped)))
-                              (with-out-str (prn form)))
-                         e))))
-             (recur (conj instrumented-forms wrapped)))
-           (let [rforms (reverse instrumented-forms)]
-             (d/dump-instrumented rforms lib)
-             rforms)))))))
+  [f-var lib]
+  (let [filename (s/resource-path lib)]
+    (try
+      (let [instrumented (instrument-file f-var lib filename)]
+        (d/dump-instrumented instrumented lib)
+        instrumented)
+      (catch Throwable e
+        (throw (ex-info (str "Error instrumenting " lib)
+                        {:lib      lib
+                         :filename filename}
+                        e))))))
 
 (defn nop
   "Instrument form with expressions that do nothing."
