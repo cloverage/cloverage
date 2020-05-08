@@ -22,17 +22,26 @@
 
 (def output-dir  "out")
 
+(defn- expand=* [msg forms]
+  (let [expanded (map rw/macroexpand-all forms)
+        expected (butlast expanded)
+        actual   (last expanded)]
+    (t/do-report
+     {:type     (if ((set expected) actual) :pass :fail)
+      :message  msg
+      :expected (if (> (count expected) 1)
+                  expected
+                  (first expected))
+      :actual   actual
+      :diffs    (when-not ((set expected) actual)
+                  [[actual (if (> (count expected) 1)
+                             (for [form expected]
+                               (data/diff form actual))
+                             (data/diff (first expected) actual))]])})))
+
 (defmethod t/assert-expr 'expand=
-  [msg [_ expected actual]]
-  `(let [expected# (rw/macroexpand-all ~expected)
-         actual#   (rw/macroexpand-all ~actual)]
-     (t/do-report
-      {:type     (if (= expected# actual#) :pass :fail)
-       :message  ~msg
-       :expected expected#
-       :actual   actual#
-       :diffs    (when-not (= expected# actual#)
-                   [[actual# (data/diff expected# actual#)]])})))
+  [msg [_ & forms]]
+  `(expand=* ~msg ~(vec forms)))
 
 (t/deftest preserves-type-hint
   (t/is (= 'long
@@ -64,13 +73,11 @@
 
 (t/deftest test-wrap-map
   (let [wrapped (rw/macroexpand-all (inst/wrap #'cov/track-coverage 0 '{:a apple :b banana}))]
-    (t/is (or
-           (expand= `(cov/capture 0 {(cov/capture 1 :a) (cov/capture 2 ~'apple)
-                                     (cov/capture 3 :b)  (cov/capture 4 ~'banana)})
-                    wrapped)
-           (expand= `(cov/capture 0 {(cov/capture 1 :b) (cov/capture 2 ~'banana)
-                                     (cov/capture 3 :a)  (cov/capture 4 ~'apple)})
-                    wrapped)))))
+    (t/is (expand= `(cov/capture 0 {(cov/capture 1 :a) (cov/capture 2 ~'apple)
+                                    (cov/capture 3 :b)  (cov/capture 4 ~'banana)})
+                   `(cov/capture 0 {(cov/capture 1 :b) (cov/capture 2 ~'banana)
+                                    (cov/capture 3 :a)  (cov/capture 4 ~'apple)})
+                   wrapped))))
 
 (t/deftest test-wrap-list
   (t/is (expand= `(cov/capture 0 ((cov/capture 1 +) (cov/capture 2 1)
