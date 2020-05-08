@@ -107,8 +107,7 @@
                                     {:line 1})))]
       (t/is (= `(do (do (defrecord ~'MyRecord []
                           ~'Protocol
-                          ~'(method []
-                              (cloverage.instrument/wrapm cloverage.instrument/no-instr 1337 (do-something))))))
+                          ~'(method [] (cloverage.instrument/wrapm cloverage.instrument/no-instr 1337 (do-something))))))
                (inst/do-wrap #'inst/no-instr 0 form nil))))))
 
 (t/deftest test-wrap-deftype-methods
