@@ -126,15 +126,15 @@
 
 (defn form-type
   "Classifies the given form"
-  ([form env]
-   (let [res (cond (and (seq? form)
-                        (exclude? form)) :excluded
-                   (seq? form)           (list-type-in-env form env)
-                   (coll? form)          :coll
-                   :else                 :atomic)]
-     (d/tprnl "Type of" (class form) form "is" res)
-     (d/tprnl "Meta of" form "is" (meta form))
-     res)))
+  [form env]
+  (let [res (cond (and (seq? form)
+                       (exclude? form)) :excluded
+                  (seq? form)           (list-type-in-env form env)
+                  (coll? form)          :coll
+                  :else                 :atomic)]
+    (d/tprnl "Type of" (class form) form "is" res)
+    (d/tprnl "Meta of" form "is" (meta form))
+    res))
 
 (defn- var->sym [^clojure.lang.Var fvar]
   (let [it (name (.sym fvar))
@@ -144,6 +144,7 @@
 (defmulti do-wrap
   "Traverse the given form and wrap all its sub-forms in a function that evals
   the form and records that it was called."
+  {:arglists '([f line form env])}
   (fn [f line form env]
     (form-type form env)))
 
@@ -441,7 +442,7 @@
                      `(~(first method) ~@(wrap-overload f line (rest method))))
                    methods))))
 
-(defn- source-forms
+(defn source-forms
   "Return a sequence of all forms in a source file using `source-reader` to read them."
   [source-reader]
   ;; `read-form` will return `nil` at the end of the file so keep reading forms until we run out
@@ -478,13 +479,16 @@
                             (catch Throwable _
                               "Error evaluating form"))]
         (throw (ex-info error-message
-                        {:line              line-hint
-                         :filename          filename
-                         :form              form
-                         :instrumented-form instrumented-form}
+                        (merge
+                         {:line              line-hint
+                          :filename          filename
+                          :form              form
+                          :instrumented-form instrumented-form}
+                         (when-let [macroexpanded (try (rw/macroexpand-all instrumented-form) (catch Throwable _))]
+                           {:macroexpanded-form macroexpanded}))
                         e))))))
 
-(defn- instrument-form
+(defn instrument-form
   "Instrument a single `form`. Returns instrumented form."
   [f-var filename form]
   (let [line-hint (:line (meta form))]
@@ -507,7 +511,7 @@
                          :form     form}
                         e))))))
 
-(defn- instrument-file
+(defn instrument-file
   "Instrument all the forms in a file. Returns sequence of instrumented forms."
   [f-var lib filename]
   (with-open [^java.io.Closeable source-reader (s/form-reader lib)]
