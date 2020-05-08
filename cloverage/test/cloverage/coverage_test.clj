@@ -1,5 +1,6 @@
 (ns cloverage.coverage-test
-  (:require [clojure.test :as t]
+  (:require [clojure.data :as data]
+            [clojure.test :as t]
             [cloverage.coverage :as cov]
             [cloverage.instrument :as inst]
             [riddley.walk :as rw])
@@ -21,12 +22,17 @@
 
 (def output-dir  "out")
 
-(defn expand=
-  "Check that two expressions are equal modulo recursive macroexpansion."
-  [f1 f2]
-  (let [e1 (rw/macroexpand-all f1)
-        e2 (rw/macroexpand-all f2)]
-    (= e1 e2)))
+(defmethod t/assert-expr 'expand=
+  [msg [_ expected actual]]
+  `(let [expected# (rw/macroexpand-all ~expected)
+         actual#   (rw/macroexpand-all ~actual)]
+     (t/do-report
+      {:type     (if (= expected# actual#) :pass :fail)
+       :message  ~msg
+       :expected expected#
+       :actual   actual#
+       :diffs    (when-not (= expected# actual#)
+                   [[actual# (data/diff expected# actual#)]])})))
 
 (t/deftest preserves-type-hint
   (t/is (= 'long
