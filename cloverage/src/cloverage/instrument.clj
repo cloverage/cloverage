@@ -339,8 +339,10 @@
   ;; target cannot be wrapped or evaluated
   (f line `(~set-symbol ~target ~(wrap f line expr))))
 
-(defmethod do-wrap :do [f line [do-symbol & body] _]
-  (f line `(~do-symbol ~@(map (wrapper f line) body))))
+(defmethod do-wrap :do
+  [f line [do-symbol & body] env]
+  (f line (cons do-symbol (for [form body]
+                            (do-wrap f (or (:line (meta form)) line) form env)))))
 
 (defmethod do-wrap :cond [f line [cond-symbol & body :as form] _]
   (if (and (= 2 (count body))
@@ -386,13 +388,16 @@
 
 (defmethod do-wrap :list [f line form env]
   (d/tprnl "Wrapping " (class form) form)
-  (let [expanded (macroexpand form)]
-    (d/tprnl "Expanded" form "into" expanded)
-    (d/tprnl "Meta on expanded is" (meta expanded))
-    (if (= :list (form-type expanded env))
+  (let [expanded (macroexpand-1 form)]
+    (if (identical? form expanded)
+      ;; if this list is *not* a macro form, then recursively wrap each item in the list.
       (let [wrapped (doall (map (wrapper f line) expanded))]
         (f line (add-original form wrapped)))
-      (wrap f line (add-original form expanded)))))
+      ;; otherwise recursively wrap the entire expanded form.
+      (do
+        (d/tprnl "Expanded" form "into" expanded)
+        (d/tprnl "Meta on expanded is" (meta expanded))
+        (do-wrap f line (add-original form expanded) env)))))
 
 (defn wrap-deftype-defrecord-method [f line [meth-name args & body :as method-form]]
   (let [method-line (or (:line (meta method-form)) line)
@@ -401,13 +406,14 @@
                       (wrap f line form))]
     `(~meth-name ~args ~@body)))
 
-(defmethod do-wrap :record [f line [defr-symbol name fields & opts+specs] _]
+(defmethod do-wrap :record
+  [f line [defr-symbol name fields & opts+specs] _]
   ;; (defrecord name [fields*] options* specs*)
   ;;
   ;; spec == thing-being-implemented (methodName [args*] body)*
   ;; we only want to recurse on the methods
   (let [wrapped-opts+specs (for [opt-or-spec opts+specs]
-                             (if (list? opt-or-spec)
+                             (if (seq? opt-or-spec)
                                (wrap-deftype-defrecord-method f line opt-or-spec)
                                opt-or-spec))]
     (f line `(~defr-symbol ~name ~fields ~@wrapped-opts+specs))))
