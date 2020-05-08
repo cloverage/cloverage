@@ -81,6 +81,26 @@
       (let [wrapped (inst/do-wrap #'inst/nop 42 form {})]
         (t/is (= form wrapped))))))
 
+(defmacro ^:private on-line [line-number form]
+  `(with-meta ~form {:line ~line-number}))
+
+(defn wrapped [line-number form]
+  (list 'cloverage.instrument/wrapm 'cloverage.instrument/no-instr line-number form))
+
+(t/deftest test-wrap-let-form
+  (t/testing "let should recurisvely wrap its forms"
+    (let [form (list 'let ['x (list 'let ['y (on-line 3 '(+ 1 2))]
+                                    'y)]
+                     (on-line 4 '(+ x 3)))]
+      (t/is (= '(let [x (let [y ((cloverage.instrument/wrapm cloverage.instrument/no-instr 3 +)
+                                 (cloverage.instrument/wrapm cloverage.instrument/no-instr 3 1)
+                                 (cloverage.instrument/wrapm cloverage.instrument/no-instr 3 2))]
+                          y)]
+                  ((cloverage.instrument/wrapm cloverage.instrument/no-instr 4 +)
+                   (cloverage.instrument/wrapm cloverage.instrument/no-instr 4 x)
+                   (cloverage.instrument/wrapm cloverage.instrument/no-instr 4 3)))
+               (inst/do-wrap #'inst/no-instr 1 form nil))))))
+
 (t/deftest test-wrap-defrecord-methods
   (let [form    (list 'defrecord 'MyRecord []
                       'Protocol

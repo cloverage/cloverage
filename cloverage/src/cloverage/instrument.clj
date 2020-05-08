@@ -172,16 +172,6 @@
   [f line]
   (partial wrap f line))
 
-(defn wrap-binding
-  "Wrap a let/loop binding
-
-  e.g. - `a (+ a b)`       (let or loop)"
-  [f line-hint [args & body :as form]]
-  (d/tprnl "Wrapping overload" args body)
-  (let [line (or (:line (meta form)) line-hint)]
-    (let [wrapped (doall (map (wrapper f line) body))]
-      `(~args ~@wrapped))))
-
 (defn wrap-overload
   "Wrap a single function overload.
 
@@ -278,12 +268,20 @@
   (d/tprnl "Wrapping fn " form)
   (f line (wrap-fn-body f line form)))
 
-(defmethod do-wrap :let [f line [let-sym bindings & body :as form] _]
-  (f line
-     `(~let-sym
-       [~@(mapcat (partial wrap-binding f line)
-                  (partition 2 bindings))]
-       ~@(doall (map (wrapper f line) body)))))
+(defn- wrap-bindings
+  "Wrap bindings from `let`, `loop`, or similar."
+  [f line bindings env]
+  (vec (mapcat (fn [[binding value]]
+                 [binding (do-wrap f (or (:line (meta value)) line) value env)])
+               (partition 2 bindings))))
+
+(defmethod do-wrap :let
+  [f line [let-sym bindings & body] env]
+  (f line (concat
+           (list let-sym (wrap-bindings f line bindings env))
+           (vec
+            (for [form body]
+              (do-wrap f (or (:line (meta form))) form env))))))
 
 (defmethod do-wrap :letfn [f line [_ bindings & _ :as form] _]
   ;; (letfn [(foo [bar] ...) ...] body) ->
