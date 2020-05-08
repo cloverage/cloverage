@@ -510,12 +510,14 @@
                                           form line-hint)))]
         (eval-instrumented-form filename form line-hint instrumented-form)
         instrumented-form)
+      ;; if we run into an error instrumenting a form, log it and return the uninstrumented form, so we can continue
       (catch Throwable e
-        (throw (ex-info "Error instrumenting form"
-                        {:filename filename
-                         :line     line-hint
-                         :form     form}
-                        e))))))
+        (log/error "Error instrumenting form"
+                   (ex-info "Error instrumenting form" {:filename filename
+                                                        :line     line-hint
+                                                        :form     form}
+                            e))
+        form))))
 
 (defn instrument-file
   "Instrument all the forms in a file. Returns sequence of instrumented forms."

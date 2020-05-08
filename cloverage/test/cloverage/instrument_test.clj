@@ -1,5 +1,7 @@
 (ns cloverage.instrument-test
-  (:require [clojure.test :as t]
+  (:require [clojure.string :as str]
+            [clojure.test :as t]
+            [clojure.tools.logging :as log]
             [cloverage.instrument :as inst]
             [riddley.walk :as rw]))
 
@@ -161,3 +163,23 @@
     (t/is (= wrapped
              (inst/do-wrap #'inst/no-instr 1 form nil))
           "Wrapped defrecord/deftype methods should use most-specific line number metadata available.")))
+
+(t/deftest fail-gracefully-when-instrumenting
+  (t/testing "If instrumenting a form fails we should log an Exception and continue instead of failing entirely."
+    (let [form         '(this-function-does-not-exist 100)
+          log-messages (atom [])]
+      (with-redefs [log/log* (fn [_ & message]
+                               (swap! log-messages conj (vec message)))]
+        (t/testing "instrument-form should return uninstrumented form as-is"
+          (t/is (= form
+                   (inst/instrument-form #'inst/no-instr nil form))))
+        (t/testing "Exception should be logged"
+          (t/is (= 1
+                   (count @log-messages)))
+          (let [[[message-type _ message]] @log-messages]
+            (t/is (= :error
+                     message-type))
+            (doseq [s ["Error instrumenting form"
+                       "Unable to resolve symbol: this-function-does-not-exist"]]
+              (t/is (str/includes? message s)
+                    (str "Error message should include %s" (pr-str s))))))))))
