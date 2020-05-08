@@ -338,9 +338,10 @@
   ;; target cannot be wrapped or evaluated
   (f line `(~set-symbol ~target ~(wrap f line expr))))
 
-(defmethod do-wrap :do [f line [do-symbol & body] env]
+(defmethod do-wrap :do
+  [f line [do-symbol & body] env]
   (f line (cons do-symbol (for [form body]
-                            (do-wrap f line form env)))))
+                            (do-wrap f (or (:line (meta form)) line) form env)))))
 
 (defmethod do-wrap :cond [f line [cond-symbol & body :as form] _]
   (if (and (= 2 (count body))
