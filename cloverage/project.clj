@@ -25,7 +25,10 @@
                  [riddley "0.2.0"]
                  [slingshot "0.12.2"]]
   :profiles {:dev {:aot ^:replace []
-                   :dependencies [[org.clojure/clojure "1.10.1"]]
+                   :dependencies [[org.clojure/clojure "1.10.1"]
+                                  [pjstadig/humane-test-output "0.10.0"]]
+                   :injections [(require 'pjstadig.humane-test-output)
+                                (pjstadig.humane-test-output/activate!)]
                    :plugins [[lein-cljfmt "0.6.4"]
                              [jonase/eastwood "0.3.6"]
                              [lein-kibit "0.1.7"]]
