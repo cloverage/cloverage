@@ -161,3 +161,12 @@
     (t/is (= wrapped
              (inst/do-wrap #'inst/no-instr 1 form nil))
           "Wrapped defrecord/deftype methods should use most-specific line number metadata available.")))
+
+(t/deftest test-instrumenting-fn-forms-preserves-metadata
+  (let [form         '(.submit clojure.lang.Agent/pooledExecutor ^java.lang.Runnable (fn []))
+        instrumented (rw/macroexpand-all (inst/instrument-form #'inst/no-instr nil ^{:line 1} form))]
+    (t/is (= '(. clojure.lang.Agent/pooledExecutor submit (fn* ([])))
+             instrumented))
+    (t/testing "metadata on the fn form should be preserved"
+      (t/is (= 'java.lang.Runnable
+               (:tag (meta (nth instrumented 3))))))))
