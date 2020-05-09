@@ -4,25 +4,24 @@
             [clojure.java.io :as io]
             [clojure.test :as test]
             [clojure.test.junit :as junit]
-            [clojure.tools.logging :as log]
             [clojure.tools.namespace.find :as ns-find]
             [cloverage.args :as args]
             [cloverage.debug :as debug]
             [cloverage.dependency :as dep]
             [cloverage.instrument :as inst]
             [cloverage.report :as rep]
+            [cloverage.report.codecov :as codecov]
             [cloverage.report.console :as console]
             [cloverage.report.coveralls :as coveralls]
-            [cloverage.report.codecov :as codecov]
             [cloverage.report.emma-xml :as emma-xml]
             [cloverage.report.html :as html]
             [cloverage.report.lcov :as lcov]
             [cloverage.report.raw :as raw]
             [cloverage.report.text :as text]
             [cloverage.source :as src])
-  (:import (java.io FileNotFoundException)
-           (java.util.concurrent.atomic AtomicInteger)
-           (clojure.lang IDeref IObj)))
+  (:import clojure.lang.IDeref
+           java.io.FileNotFoundException
+           java.util.concurrent.atomic.AtomicInteger))
 
 (def ^:dynamic *instrumented-ns*) ;; currently instrumented ns
 (def ^:dynamic *covered* (atom []))
@@ -134,6 +133,36 @@
       (filter (fn [ns] (some #(re-matches % ns) regex-patterns)) namespaces)
       namespaces)))
 
+(defn load-namespaces [{:keys [extra-test-ns ns-regex test-ns-regex ns-exclude-regex src-ns-path test-ns-path]} add-nses]
+  (let [include      (-> src-ns-path
+                         (find-nses ns-regex)
+                         (remove-nses ns-exclude-regex))
+        namespaces   (concat add-nses include)
+        test-nses    (concat extra-test-ns (find-nses test-ns-path test-ns-regex))
+        ordered-nses (dep/in-dependency-order (map symbol namespaces))]
+    (when (empty? namespaces)
+      (throw (RuntimeException.
+              (str "No namespaces selected for instrumentation using " {:ns-regex         ns-regex
+                                                                        :ns-exclude-regex ns-exclude-regex}))))
+    (println "Loading namespaces: " (apply list namespaces))
+    (println "Test namespaces: " test-nses)
+    {:test-nses test-nses, :ordered-nses ordered-nses}))
+
+(defn instrument-namespaces [{:keys [exclude-call nop?]} ordered-nses]
+  (if (empty? ordered-nses)
+    (throw (RuntimeException. "Cannot instrument namespaces; there is a cyclic dependency"))
+    (doseq [namespace ordered-nses]
+      (binding [*instrumented-ns*    namespace
+                inst/*exclude-calls* (when (seq exclude-call)
+                                       (set exclude-call))]
+        (if nop?
+          (inst/instrument #'inst/nop namespace)
+          (inst/instrument #'track-coverage namespace)))
+      (println "Loaded " namespace " .")
+      ;; mark the ns as loaded
+      (mark-loaded namespace)))
+  (println "Instrumented namespaces."))
+
 (defn- resolve-var [sym]
   (let [ns (namespace (symbol sym))
         ns (when ns (symbol ns))]
@@ -167,6 +196,52 @@
   (throw (IllegalArgumentException.
           "Runner not found. Built-in runners are `clojure.test` and `midje`.")))
 
+(defn run-tests [{:keys [runner test-selectors selector junit?], :as opts} test-nses]
+  ;; load runner multimethod definition from other dependencies
+  (when-not (#{:clojure.test :midje} runner)
+    (try (require (symbol (format "%s.cloverage" (name runner))))
+         (catch FileNotFoundException _)))
+  (let [test-result (when (seq test-nses)
+                      (if (and junit? (not= runner :clojure.test))
+                        (throw (RuntimeException.
+                                "Junit output only supported for clojure.test at present"))
+                        (let [test-ns-symbols (map symbol test-nses)]
+                          (form-for-suppressing-unselected-tests test-ns-symbols
+                                                                 (vals (select-keys test-selectors selector))
+                                                                 #((runner-fn opts) test-ns-symbols)))))
+        forms       (rep/gather-stats (covered))
+        ;; sum up errors as in lein test
+        num-errors  (when test-result
+                      (:errors test-result))]
+    (println "Ran tests.")
+    {:test-result test-result, :forms forms, :num-errors num-errors}))
+
+(defn launch-custom-report
+  [report-sym arg-map]
+  (when-let [f (resolve-var report-sym)]
+    (debug/tprnl "Custom Report: " report-sym)
+    (f arg-map)))
+
+(defn report-results
+  [{:keys [text? html? raw? emma-xml? lcov? codecov? coveralls? summary? colorize? low-watermark high-watermark
+           custom-report ^String output], :as opts}
+   project-opts
+   forms]
+  (when output
+    (.mkdirs (io/file output))
+    (when text? (text/report output forms))
+    (when html? (html/report output forms))
+    (when emma-xml? (emma-xml/report output forms))
+    (when lcov? (lcov/report output forms))
+    (when raw? (raw/report output forms @*covered*))
+    (when codecov? (codecov/report output forms))
+    (when coveralls? (coveralls/report output forms))
+    (when summary? (console/summary forms low-watermark high-watermark colorize?)))
+  (when custom-report (launch-custom-report custom-report {:project project-opts
+                                                           :args    opts
+                                                           :output  output
+                                                           :forms   forms})))
+
 (defn- coverage-under? [forms failure-threshold]
   (when (pos? failure-threshold)
     (let [pct-covered (apply min (vals (rep/total-stats forms)))
@@ -175,115 +250,25 @@
         (println "Failing build as coverage is below threshold of" failure-threshold "%"))
       failed?)))
 
-(defn launch-custom-report
-  [report-sym arg-map]
-  (when-let [f (resolve-var report-sym)]
-    (debug/tprnl "Custom Report: " report-sym)
-    (f arg-map)))
-
 (defn run-main
-  [[{:keys [debug?] :as opts} add-nses help] popts]
+  [[{:keys [debug? junit? fail-threshold help? runner test-selectors selector], :as opts} add-nses help] project-opts]
   (binding [*ns*          (find-ns 'cloverage.coverage)
             debug/*debug* debug?]
-    (let [^String output (:output opts)
-          {:keys [text?
-                  html?
-                  raw?
-                  emma-xml?
-                  junit?
-                  lcov?
-                  codecov?
-                  coveralls?
-                  summary?
-                  colorize?
-                  fail-threshold
-                  low-watermark
-                  high-watermark
-                  nop?
-                  extra-test-ns
-                  help?
-                  ns-regex
-                  test-ns-regex
-                  ns-exclude-regex
-                  exclude-call
-                  src-ns-path
-                  runner
-                  test-ns-path
-                  custom-report
-                  test-selectors
-                  selector]} opts
-          include        (-> src-ns-path
-                             (find-nses ns-regex)
-                             (remove-nses ns-exclude-regex))
-          namespaces     (concat add-nses include)
-          test-nses      (concat extra-test-ns (find-nses test-ns-path test-ns-regex))
-          ordered-nses   (dep/in-dependency-order (map symbol namespaces))]
-      (if help?
-        (println help)
-        (do
-          (println "Loading namespaces: " (apply list namespaces))
-          (println "Test namespaces: " test-nses)
-
-          (when (empty? namespaces)
-            (throw (RuntimeException.
-                    (str "No namespaces selected for instrumentation using " {:ns-regex ns-regex
-                                                                              :ns-exclude-regex ns-exclude-regex}))))
-
-          (if (empty? ordered-nses)
-            (throw (RuntimeException. "Cannot instrument namespaces; there is a cyclic dependency"))
-            (doseq [namespace ordered-nses]
-              (binding [*instrumented-ns* namespace
-                        inst/*exclude-calls* (when (seq exclude-call)
-                                               (set exclude-call))]
-                (if nop?
-                  (inst/instrument #'inst/nop namespace)
-                  (inst/instrument #'track-coverage namespace)))
-              (println "Loaded " namespace " .")
-              ;; mark the ns as loaded
-              (mark-loaded namespace)))
-
-          (println "Instrumented namespaces.")
-          ;; load runner multimethod definition from other dependencies
-          (when-not (#{:clojure.test :midje} runner)
-            (try (require (symbol (format "%s.cloverage" (name runner))))
-                 (catch FileNotFoundException _)))
-
-          (let [test-result (when (seq test-nses)
-                              (if (and junit? (not= runner :clojure.test))
-                                (throw (RuntimeException.
-                                        "Junit output only supported for clojure.test at present"))
-                                (let [test-ns-symbols (map symbol test-nses)]
-                                  (form-for-suppressing-unselected-tests test-ns-symbols
-                                                                         (vals (select-keys test-selectors selector))
-                                                                         #((runner-fn opts) test-ns-symbols)))))
-                forms       (rep/gather-stats (covered))
-                ;; sum up errors as in lein test
-                errors      (when test-result
-                              (:errors test-result))
-                exit-code   (cond
-                              (not test-result) -1
-                              (> errors 128) -2
-                              (coverage-under? forms fail-threshold) -3
-                              :else errors)]
-            (println "Ran tests.")
-            (when output
-              (.mkdirs (io/file output))
-              (when text? (text/report output forms))
-              (when html? (html/report output forms))
-              (when emma-xml? (emma-xml/report output forms))
-              (when lcov? (lcov/report output forms))
-              (when raw? (raw/report output forms @*covered*))
-              (when codecov? (codecov/report output forms))
-              (when coveralls? (coveralls/report output forms))
-              (when summary? (console/summary forms low-watermark high-watermark colorize?)))
-            (when custom-report (launch-custom-report custom-report {:project popts
-                                                                     :args    opts
-                                                                     :output  output
-                                                                     :forms   forms}))
-            (if *exit-after-test*
-              (do (shutdown-agents)
-                  (System/exit exit-code))
-              exit-code)))))))
+    (if help?
+      (println help)
+      (let [{:keys [test-nses ordered-nses]} (load-namespaces opts add-nses)]
+        (instrument-namespaces opts ordered-nses)
+        (let [{:keys [test-result forms num-errors]} (run-tests opts test-nses)
+              exit-code                              (cond
+                                                       (not test-result)                      -1
+                                                       (> num-errors 128)                     -2
+                                                       (coverage-under? forms fail-threshold) -3
+                                                       :else                                  num-errors)]
+          (report-results opts project-opts forms)
+          (if *exit-after-test*
+            (do (shutdown-agents)
+                (System/exit exit-code))
+            exit-code))))))
 
 (defn run-project [project-opts & args]
   (try
