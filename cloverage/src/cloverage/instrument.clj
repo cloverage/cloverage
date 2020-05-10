@@ -272,7 +272,7 @@
                            ~@(wrap-overloads f line (rest (rest form))))
                  `(~fn-sym ~@(wrap-overloads f line (rest form))))]
     (d/tprnl "Instrumented function" res)
-    res))
+    (vary-meta res (partial merge (meta form)))))
 
 ;; Wrap a fn form
 (defmethod do-wrap :fn [f line form _]
