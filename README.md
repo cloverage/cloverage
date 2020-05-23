@@ -7,9 +7,27 @@ Travis: [![Build Status](https://travis-ci.org/cloverage/cloverage.svg?branch=ma
 
 CircleCI: [![CircleCI](https://circleci.com/gh/cloverage/cloverage.svg?style=shield)](https://circleci.com/gh/cloverage/cloverage)
 
+[![Clojars Project](http://clojars.org/lein-cloverage/latest-version.svg)](http://clojars.org/lein-cloverage)
+
 ## Installation
 
-Add [![Clojars Project](http://clojars.org/lein-cloverage/latest-version.svg)](http://clojars.org/lein-cloverage) to :plugins in your .lein/profiles.clj
+Cloverage can be included into specific projects as a plugin and also be installed user-wide in your `~/.lein/profiles.clj` file. A user-wide installation will make it available to any projects being managed by Leiningen.
+
+### Install Cloverage into a specific project
+
+Add the following to your `project.clj` metadata:
+
+``` clojure
+:plugins [[lein-cloverage "1.1.2"]]
+```
+
+### Install Cloverage to all Leiningen managed projects
+
+Add the following to your user-wide Leiningen profiles file `~/.lein/profiles.clj`:
+
+``` clojure
+{:user {:plugins [[lein-cloverage "1.1.2"]]}}
+```
 
 ## Testing frameworks support
 
