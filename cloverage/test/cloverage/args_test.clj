@@ -33,7 +33,7 @@
 (deftest parse-custom-report
   (testing "Reading the custom-report from the args"
     (let [crep (-> ["--custom-report" "cloverage.custom-reporter/reporter-fn"]
-                   (args/parse-args {:src-ns-path ["src"]})
+                   (args/parse-args {:src-ns-path ["test"]})
                    (first)
                    :custom-report)]
       (is (symbol? crep)
