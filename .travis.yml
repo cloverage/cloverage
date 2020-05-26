@@ -26,7 +26,7 @@ before_script:
   - (cd lein-cloverage && lein do cljfmt check, eastwood, kibit)
 
 script:
-  - (cd cloverage && lein with-profile +sample test)
+  - (cd cloverage && lein test)
   - (cd lein-cloverage && lein test)
 
 cache:
