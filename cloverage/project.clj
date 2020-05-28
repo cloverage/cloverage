@@ -7,7 +7,6 @@
         :tag "HEAD"}
   :vcs :git
   :main ^:skip-aot cloverage.coverage
-  :aot [clojure.tools.reader]
   :license {:name "Eclipse Public License - v 1.0"
             :url "http://www.eclipse.org/legal/epl-v10.html"
             :distribution :repo
