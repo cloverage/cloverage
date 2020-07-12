@@ -33,10 +33,9 @@
 
 (defn add-original [old new]
   (if (iobj? new)
-    (let [res      (-> (propagate-line-numbers (:line (meta old)) new)
-                       (vary-meta merge (meta old))
-                       (vary-meta assoc :original old))]
-      res)
+    (-> (propagate-line-numbers (:line (meta old)) new)
+        (vary-meta merge (meta old))
+        (vary-meta assoc :original old))
     new))
 
 (defn atomic-special? [sym]
@@ -262,7 +261,7 @@
                                 (throw+ (str "Can't construct empty " (class form))))
                               `(into ~(empty form) [] ~(vec wrappee))))]
     (d/tprn ":wrapped" (class form) (class wrapped) wrapped)
-    (f line wrapped)))
+    (f line (add-original form wrapped))))
 
 (defn wrap-fn-body [f line form]
   (let [fn-sym (first form)
