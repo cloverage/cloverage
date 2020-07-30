@@ -50,7 +50,11 @@
 
           ;; bit.ly/codeship-env-vars
           (= (System/getenv "CI_NAME") "codeship")
-          (service-info "codeship" "CI_BUILD_NUMBER"))
+          (service-info "codeship" "CI_BUILD_NUMBER")
+
+          ;; https://docs.drone.io/pipeline/environment/reference/
+          (env? "DRONE")
+          (service-info "drone" "DRONE_BUILD_NUMBER"))
 
         covdata (->>
                  forms
