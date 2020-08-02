@@ -10,9 +10,8 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"
             :distribution :repo
             :comments "same as Clojure"}
-  :deploy-repositories {"releases"
-                        {:url "https://repo.clojars.org"
-                         :creds :gpg}}
+  :deploy-repositories [["releases" :clojars]
+                        ["snapshots" :clojars]]
   :lein-release {:scm :git ; Because we're not in the top-level directory, so it doesn't auto-detect
                  :deploy-via :clojars}
   :release-tasks [["vcs" "assert-committed"]
