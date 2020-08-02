@@ -7,9 +7,32 @@ provide a short summary description of the particular changes of the patch.
 Include the issue number (#xxx) which will link back to the originating issue
 in github. Commentary on the change should appear as a nested, unordered list.
 
+## 1.1.4 (WIP)
+
+Nothing yet.
+
 ## 1.1.3 (WIP)
 
-Nothing yet!
+Thanks to everyone who contributed this release! A _lot_ of people ended up
+scratching their own itches and making Cloverage better for everyone. Particular
+thanks to @camsaul for a _ton_ of improvements that were a pleasure to
+incorporate and review.
+
+- Improvements
+  - Preserve metadata while wrapping collections (#291, #292)
+  - Preserve metadata while instrumenting forms (#282, #279)
+  - Better failure modes when forms can't be instrumented (#278, #257, refs #277)
+  - Automatically activate test profile when running Cloverage (#290, #289)
+  - Make colorization optional with `--(no-)colorize` (#267)
+  - Allow excluding `doseq` (#264, #263)
+  - CI improvements (#287, #221, #297)
+  - Documentation improvements (#285, #283)
+  - Internal code quality and test improvements (#281, #276, #275, #272)
+  - Updated dependencies (#259)
+- Bugfixes
+  - Don't attempt to :aot clojure.tools.reader (#288, #268)
+  - Fix instrumentation for generated defrecord forms (#273, #271, #257)
+  - Make the tests work on non-en_US platforms (#266)
 
 ## 1.1.2
 
