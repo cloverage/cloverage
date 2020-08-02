@@ -11,7 +11,7 @@ in github. Commentary on the change should appear as a nested, unordered list.
 
 Nothing yet.
 
-## 1.1.3 (WIP)
+## 1.1.3
 
 Thanks to everyone who contributed this release! A _lot_ of people ended up
 scratching their own itches and making Cloverage better for everyone. Particular
