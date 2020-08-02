@@ -1,6 +1,7 @@
 (ns leiningen.cloverage
   (:require [leiningen.core.eval :as eval]
-            [leiningen.core.main :as main])
+            [leiningen.core.main :as main]
+            [leiningen.core.project :as project])
   (:import (clojure.lang ExceptionInfo)))
 
 (defn get-lib-version []
@@ -20,7 +21,8 @@
   Specify -o OUTPUTDIR for output directory, for other options run
   `lein cloverage --help`."
   [project & args]
-  (let [project        (if (already-has-cloverage? project)
+  (let [project        (project/merge-profiles project [:leiningen/test :test])
+        project        (if (already-has-cloverage? project)
                          project
                          (update-in project [:dependencies]
                                     conj ['cloverage (get-lib-version)]))
