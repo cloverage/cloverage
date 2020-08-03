@@ -261,7 +261,7 @@
                                 (throw+ (str "Can't construct empty " (class form))))
                               `(into ~(empty form) [] ~(vec wrappee))))]
     (d/tprn ":wrapped" (class form) (class wrapped) wrapped)
-    (f line (add-original form wrapped))))
+    (f line (vary-meta wrapped merge (meta form)))))
 
 (defn wrap-fn-body [f line form]
   (let [fn-sym (first form)
