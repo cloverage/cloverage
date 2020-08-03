@@ -180,6 +180,13 @@
                                                           form))]
     (t/is (:preserved? (meta instrumented)))))
 
+(t/deftest test-coll-is-evaluated-once
+  (def test-coll-is-evaluated-once-count
+    "This needs to be reachable from global scope."
+    (atom 0))
+  (inst/instrument-form #'inst/no-instr nil `{:foo (swap! test-coll-is-evaluated-once-count inc)})
+  (t/is (= 1 @test-coll-is-evaluated-once-count)))
+
 (t/deftest fail-gracefully-when-instrumenting
   (t/testing "If instrumenting a form fails we should log an Exception and continue instead of failing entirely."
     (let [form                   '(this-function-does-not-exist 100)
