@@ -173,13 +173,6 @@
       (t/is (= 'java.lang.Runnable
                (:tag (meta (nth instrumented 3))))))))
 
-(t/deftest test-coll-preserves-metadata
-  (let [form         ^:preserved? [:foo :bar]
-        instrumented (macroexpand-1 (inst/instrument-form #'inst/no-instr
-                                                          nil
-                                                          form))]
-    (t/is (:preserved? (meta instrumented)))))
-
 (t/deftest fail-gracefully-when-instrumenting
   (t/testing "If instrumenting a form fails we should log an Exception and continue instead of failing entirely."
     (let [form                   '(this-function-does-not-exist 100)
