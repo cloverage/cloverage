@@ -180,10 +180,12 @@
                                                           form))]
     (t/is (:preserved? (meta instrumented)))))
 
+(def test-coll-is-evaluated-once-count
+  "This needs to be reachable from global scope."
+  (atom 0))
+
 (t/deftest test-coll-is-evaluated-once
-  (def test-coll-is-evaluated-once-count
-    "This needs to be reachable from global scope."
-    (atom 0))
+  (reset! test-coll-is-evaluated-once-count 0)
   (inst/instrument-form #'inst/no-instr nil `{:foo (swap! test-coll-is-evaluated-once-count inc)})
   (t/is (= 1 @test-coll-is-evaluated-once-count)))
 
