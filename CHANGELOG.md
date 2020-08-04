@@ -7,9 +7,18 @@ provide a short summary description of the particular changes of the patch.
 Include the issue number (#xxx) which will link back to the originating issue
 in github. Commentary on the change should appear as a nested, unordered list.
 
-## 1.2.0 (WIP)
+## 1.2.1 (WIP)
 
 Nothing yet.
+
+## 1.2.0 (BUGFIX RELEASE)
+
+1.1.3, specifically PR #292, introduced a regression that caused some
+expressions to be evaluated twice, breaking tests. #299 introduces an
+alternative implementation that maintains the metadata capturing behavior but
+appears to resolve the regression.
+
+This was the only change: everyone on 1.1.3 should upgrade to 1.2.0.
 
 ## 1.1.3
 
