@@ -206,9 +206,89 @@
     (t/is (:line found))
     (t/is (find-form cov '(inc (m c 0))))))
 
+(defn- eval-instrumented [form]
+  (let [instrumented (rw/macroexpand-all `(inst/wrapm cov/track-coverage 0 ~form))]
+    (eval instrumented)))
+
 (t/deftest test-wrap-new
   (t/is (expand= `(cov/capture 0 (~'new java.io.File (cov/capture 1 "foo/bar")))
-                 (inst/wrap #'cov/track-coverage 0 '(new java.io.File "foo/bar")))))
+                 (inst/wrap #'cov/track-coverage 0 '(new java.io.File "foo/bar"))))
+
+  (t/testing "should be instrumented correctly in normal circumstances"
+    (t/testing "Correct `form-type` should get detected"
+      (t/is (= :new
+               (inst/form-type '(new java.lang.String "ABC") nil))))
+    (t/is (= "ABC"
+             (eval-instrumented '(String. "ABC")))))
+
+  (t/testing "`new` defined as a local variable"
+    (t/testing "No instrumentation: local variables named `new` don't overshadow the `new` special form"
+      (t/is (= "ABC"
+               (let [new (partial list :new)]
+                 (new String "ABC")))))
+    (t/testing "With instrumentation: should behave the same as no instrumentation (#247)"
+      (t/testing "Correct `form-type` should get detected"
+        (t/is (= :new
+                 (inst/form-type '(new java.lang.String "ABC") {'new :new}))))
+      (t/is (= "ABC"
+               (eval-instrumented '(let [new (partial list :new)]
+                                     (String. "ABC")))))))
+
+  (t/testing "`new` defined as a var in the current namespace"
+    (binding [cov/*instrumented-ns* "cloverage.coverage-test"
+              *ns*                  (the-ns 'cloverage.coverage-test)]
+      (try
+        (intern 'cloverage.coverage-test 'new (partial list :new))
+        (t/testing "Correct `form-type` should get detected"
+          (t/is (= :new
+                   (inst/form-type '(new java.lang.String "ABC") nil))))
+        (t/testing "No instrumentation: local def shouldn't overshadow `new` special form"
+          (t/is (= "ABC"
+                   (new String "ABC"))))
+        (t/testing "With instrumentation: should behave the same way as no instrumentation (#247)"
+          (t/is (= "ABC"
+                   (eval-instrumented '(String. "ABC")))))
+        (finally
+          (ns-unmap (the-ns 'cloverage.coverage-test) 'new))))))
+
+(t/deftest test-wrap-var
+  (t/testing "`var` forms"
+    (t/testing "should be instrumented correctly in normal circumstances"
+      (t/testing "Correct `form-type` should get detected"
+        (t/is (= :atomic
+                 (inst/form-type '(var some?) nil))))
+      (t/is (= #'some?
+               (eval-instrumented '(var some?)))))
+
+    (t/testing "`var` defined as a local variable"
+      (t/testing "No instrumentation: local variables named `var` don't overshadow the `var` special form"
+        (t/is (= #'some?
+                 (let [var (partial list :var)]
+                   (var some?)))))
+      (t/testing "With instrumentation: should behave the same as no instrumentation (#247)"
+        (t/testing "Correct `form-type` should get detected"
+          (t/is (= :atomic
+                   (inst/form-type '(var some?) {'var :var}))))
+        (t/is (= #'some?
+                 (eval-instrumented '(let [var (partial list :var)]
+                                       (var some?)))))))
+
+    (t/testing "`var` defined as a var in the current namespace"
+      (binding [cov/*instrumented-ns* "cloverage.coverage-test"
+                *ns*                  (the-ns 'cloverage.coverage-test)]
+        (try
+          (intern 'cloverage.coverage-test 'var (partial list :var))
+          (t/testing "Correct `form-type` should get detected"
+            (t/is (= :atomic
+                     (inst/form-type '(var some?) nil))))
+          (t/testing "No instrumentation: local def shouldn't overshadow `var` special form"
+            (t/is (= #'some?
+                     (var some?))))
+          (t/testing "With instrumentation: should behave the same way as no instrumentation (#247)"
+            (t/is (= #'some?
+                     (eval-instrumented '(var some?)))))
+          (finally
+            (ns-unmap (the-ns 'cloverage.coverage-test) 'var)))))))
 
 (defn- compare-colls
   "Given N collections compares them. Returns true if collections have same
