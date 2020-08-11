@@ -47,7 +47,10 @@
   (or ((ns-aliases *ns*) sym)
       (find-ns sym)))
 
-(defn- resolve-symbol [s]
+(defn- resolve-symbol
+  "Attempt to resolve symbol `s` in the current namespace, returning a namespace-qualified symbol if resolved, otherwise
+  returning the `s` as-is."
+  [s]
   (if (pos? (.indexOf (name s) "."))
     s
     (if-let [ns-str (namespace s)]
@@ -66,8 +69,14 @@
         s))))
 
 (defn- maybe-resolve-symbol [expr]
-  (if (symbol? expr)
+  (cond
+    (special-symbol? expr)
+    expr
+
+    (symbol? expr)
     (resolve-symbol expr)
+
+    :else
     expr))
 
 (defn list-type [head]
@@ -106,11 +115,14 @@
     ;; XXX: we used to not do anything with unknown specials, now we wrap them
     ;; in a macro, then macroexpand back to original form. Methinks it's ok.
     special-symbol?   :unknown
-    (constantly true) :list))
+    :list))
 
 (defn list-type-in-env [[head & _] env]
-  (if (get env head)
-    :list ; local variables can't be macros/special symbols
+  ;; if the list is a call to a symbol with a local binding, but not a special form such as `var` or `new` (which
+  ;; aren't overshadowed by local variables) return `:list` type.
+  (if (and (get env head)
+           (not (special-symbol? head)))
+    :list
     (list-type head)))
 
 (def ^:dynamic *exclude-calls*
