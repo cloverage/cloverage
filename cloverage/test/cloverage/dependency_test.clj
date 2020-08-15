@@ -1,6 +1,7 @@
 (ns cloverage.dependency-test
-  (:require [cloverage.dependency :as cd]
-            [clojure.test :as t]))
+  (:require [clojure.test :as t]
+            [cloverage.dependency :as cd]
+            [cloverage.source :as source]))
 
 (def ns-fixtures {;; sources snipped from incanter : https://github.com/liebke/incanter
                   :incanter-core
@@ -39,7 +40,7 @@
                                (cern.jet.stat.tdouble DoubleDescriptive Gamma)
                                (javax.swing JTable JScrollPane JFrame)
                                (java.util Vector)))
-                   :expected '[incanter.core #{incanter.internal incanter.infix clojure.set}]}
+                   :expected '#{incanter.internal incanter.infix clojure.set}}
 
                   :incanter-bayes
                   {:ns-source
@@ -54,7 +55,7 @@
                                                          bind-columns)]
                             [incanter.stats :only (sample-normal sample-gamma sample-dirichlet
                                                                  sample-inv-wishart sample-mvn mean)]))
-                   :expected '[incanter.bayes #{incanter.core incanter.stats}]}
+                   :expected '#{incanter.core incanter.stats}}
                   :parkour-dseq
                   {:ns-source
                    '(ns parkour.io.dseq
@@ -66,34 +67,38 @@
                                 [parkour.util :refer [ignore-errors]])
                       (:import [java.io Closeable Writer]
                                [clojure.lang IObj]))
-                   :expected '[parkour.io.dseq
-                               #{clojure.core.protocols clojure.core.reducers parkour.conf
-                                 parkour.cstep parkour.wrapper parkour.mapreduce.source
-                                 parkour.io.dseq.mapred parkour.io.dseq.mapreduce
-                                 parkour.util}]}})
+                   :expected '#{clojure.core.protocols clojure.core.reducers parkour.conf
+                                parkour.cstep parkour.wrapper parkour.mapreduce.source
+                                parkour.io.dseq.mapred parkour.io.dseq.mapreduce
+                                parkour.util}}})
 
 (t/deftest test-dependency-extraction
-  (doall (for [[ns-name
-                {ns-form :ns-source expected :expected}] (seq ns-fixtures)]
-           (let [result (cd/dependency-libs ns-form)]
-            ;; wrap in seq to work around lack of LazySeq.toString
-             (t/is (= expected result)
-                   (str "Parsing " ns-name
-                        " should give " expected
-                        " but got " result))))))
+  (doseq [[ns-name {ns-form :ns-source, expected :expected}] ns-fixtures]
+    (t/testing ns-name
+      (with-redefs [source/ns-form (constantly ns-form)]
+        (t/is (= expected
+                 (#'cd/dependencies (symbol ns-name))))))))
 
 (t/deftest test-dependency-sort
-  (let [dep-lists [['first #{'fourth}]
-                   ['second #{'fourth 'first}]
-                   ['third #{}]
-                   ['fourth #{'fifth}]
-                   ['fifth #{}]]
-        result    (cd/dependency-sort dep-lists)
-        index-map (zipmap result (range))]
-    (t/is (not (nil? result)) "Dependency sort should not be nil.")
-    (doseq [[name deps] dep-lists]
-      (let [my-index (get index-map name)]
-        (doseq [dep deps]
-          (t/is (< (get index-map dep) my-index)
-                (str "Prerequisite " dep " of " name " should be loaded before,"
-                     " but isn't: " result)))))))
+  (t/is (= '[clojure.walk
+             clojure.template
+             clojure.string
+             clojure.stacktrace
+             clojure.test]
+           (cd/in-dependency-order '[clojure.stacktrace
+                                     clojure.string
+                                     clojure.template
+                                     clojure.test
+                                     clojure.walk]))))
+
+(t/deftest cyclic-dependency-test
+  (t/testing "Should throw an Exception if cyclic dependencies exist between namespaces"
+    (with-redefs [source/ns-form (fn [ns-symbol]
+                                   (condp = ns-symbol
+                                     'a '(ns a (:require b c))
+                                     'b '(ns b (:require c))
+                                     'c '(ns c (:require a))))]
+      (t/is (thrown-with-msg?
+             clojure.lang.ExceptionInfo
+             #"Circular dependency between c and a"
+             (cd/in-dependency-order '[a b c]))))))

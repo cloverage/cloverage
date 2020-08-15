@@ -13,11 +13,11 @@
             :comments "same as Clojure"}
   :deploy-repositories [["releases" :clojars]
                         ["snapshots" :clojars]]
-  :dependencies [[org.clojure/tools.reader "1.3.2"]
+  :dependencies [[org.clojure/tools.reader "1.3.3"]
                  [org.clojure/tools.cli "0.4.2"]
                  [org.clojure/tools.logging "0.5.0"]
-                 [org.clojure/tools.namespace "0.3.1"]
-                 [org.clojure/java.classpath "0.3.0"]
+                 [org.clojure/tools.namespace "1.0.0"]
+                 [org.clojure/java.classpath "1.0.0"]
                  [org.clojure/data.xml "0.0.8"]
                  [org.clojure/data.json "0.2.6"]
                  [riddley "0.2.0"]
@@ -31,7 +31,8 @@
                              [jonase/eastwood "0.3.6"]
                              [lein-kibit "0.1.7"]]
                    :eastwood {:exclude-linters [:no-ns-form-found]}
-                   :global-vars {*warn-on-reflection* true}}
+                   :global-vars {*warn-on-reflection* true}
+                   :source-paths ["repl"]}
              :1.4 {:dependencies [[org.clojure/clojure "1.4.0"]]}
              :1.5 {:dependencies [[org.clojure/clojure "1.5.1"]]}
              :1.6 {:dependencies [[org.clojure/clojure "1.6.0"]]}

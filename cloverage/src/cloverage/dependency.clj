@@ -1,69 +1,30 @@
 (ns cloverage.dependency
-  (:require [cloverage.kahn :refer [kahn-sort]]
-            [cloverage.source :refer [ns-form]]))
+  (:require [clojure.tools.namespace.dependency :as ns.deps]
+            [clojure.tools.namespace.parse :as ns.parse]
+            [cloverage.source :as source]))
 
-;;(do
-;; (clojure.core/in-ns 'cloverage.coverage)
-;; (clojure.core/with-loading-context
-;;  (clojure.core/gen-class
-;;   :name
-;;   "cloverage.coverage"
-;;   :impl-ns
-;;   cloverage.coverage
-;;   :main
-;;   true)
-;;  (clojure.core/refer 'clojure.core)
-;;  (clojure.core/import
-;;   '[clojure.lang LineNumberingPushbackReader IObj]
-;;   '[java.io File InputStreamReader]
-;;   '[java.lang Runtime])
-;;  (clojure.core/use
-;;   '[clojure.java.io :only [reader writer copy]]
-;;   '[clojure.tools.cli :only [cli]]
-;;   '[cloverage instrument debug report])
-;;  (clojure.core/require
-;;   '[clojure.set :as set]
-;;   nil
-;;clojure.core> '[clojure.test :as test]
-;;   '[clojure.tools.logging :as log]))
+(defn- dependencies
+  "Return a set of namespace symbols that are dependencies of a namespace named by `ns-symbol`.
 
+    (dependencies 'cloverage.dependency)
+    ;; -> #{clojure.tools.namespace.dependency clojure.tools.namespace.parse cloverage.source}"
+  [ns-symbol]
+  (ns.parse/deps-from-ns-decl (source/ns-form ns-symbol)))
 
-;; snipped from clojure.core
-;; either 'lib.name, '[lib.name] or '[lib.name :keyword & args]
-(defn- libspec?
-  "Returns true if x is a libspec"
-  [x]
-  (or (symbol? x)
-      (and (vector? x)
-           (or (nil? (second x))
-               (keyword? (second x))))))
-
-(defn- spec-dependencies [libspec]
-  (cond
-    (symbol?  libspec) [libspec]
-    (libspec? libspec) [(first (remove keyword? libspec))]
-    (vector?  libspec) (let [[prefix & args] libspec]
-                         (map #(symbol (str prefix \. (if (seq? %) (first %) %))) args))))
-
-(defn- ref-dependencies [reference]
-  (when (#{:use :require :load} (first reference))
-    (mapcat spec-dependencies (rest reference))))
-
-(defn dependency-libs
-  "Given a (ns ...) form, return the ns name and a list of namespaces
-  it depends on."
-  [[ns-sym ns-nam & refs]]
-  [ns-nam (set (mapcat ref-dependencies refs))])
-
-(defn dependency-sort
-  "Given a list of [ns-name dependencies] pairs, return a topological
-  sort of the dependency graph."
-  [dep-lists]
-  (let [dep-graph (into {} dep-lists)]
-    (reverse (filter (set (keys dep-graph)) (kahn-sort dep-graph)))))
+(defn- dependencies-graph
+  "Return a `clojure.tools.namespace` dependency graph of namespaces named by `ns-symbol`."
+  [ns-symbols]
+  (reduce
+   (fn [graph ns-symbol]
+     (reduce
+      (fn [graph dep]
+        (ns.deps/depend graph ns-symbol dep))
+      graph
+      (dependencies ns-symbol)))
+   (ns.deps/graph)
+   ns-symbols))
 
 (defn in-dependency-order
-  "Sort a list of namespace symbols so that any namespace occurs after
-  its dependencies."
-  [nses]
-  (dependency-sort (map #(-> % ns-form dependency-libs) nses)))
+  "Sort a list of namespace symbols so that any namespace occurs after its dependencies."
+  [ns-symbols]
+  (ns.deps/topo-sort (dependencies-graph ns-symbols)))
