@@ -9,7 +9,13 @@ in github. Commentary on the change should appear as a nested, unordered list.
 
 ## 1.2.1 (WIP)
 
-Nothing yet.
+- Bugfixes
+  - Fix broken instrumentation when a symbol naming a special form such as
+    `var` or `new` was defined in the current namespace or used in a local
+    `let` binding (#247, #280, #301)
+  - Fix the order in which namespaces get instrumented, which could case false
+    negatives in forms that are only evaluated the first time the namespace is
+    loaded (#294, #302, #303)
 
 ## 1.2.0 (BUGFIX RELEASE)
 

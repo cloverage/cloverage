@@ -1,27 +1,51 @@
 (ns cloverage.source
-  (:require [clojure.tools.reader :as r]
-            [clojure.tools.reader.reader-types :as rt]
-            [clojure.java.io :as io]
-            [clojure.string :as str])
-  (:import (java.io InputStreamReader File PushbackReader)
-           (clojure.lang RT)))
+  (:require [clojure.java.io :as io]
+            [clojure.string :as str]
+            [clojure.tools.namespace.file :as ns.file]
+            [clojure.tools.reader :as r]
+            [clojure.tools.reader.reader-types :as rt])
+  (:import clojure.lang.RT
+           [java.io File InputStreamReader PushbackReader]))
 
 (defn- get-loader ^ClassLoader []
   (RT/baseLoader))
 
-(defn- resource-exists? [path]
-  (not (nil? (io/resource path (get-loader)))))
-
 (defn resource-path
-  "Given a symbol representing a lib, return a classpath-relative path.  Borrowed from core.clj."
-  [lib]
-  (let [base (.. (name lib)
+  "Given a symbol naming a namespace, return a classpath-relative path to the file defining that namespace.
+
+    (resource-path 'cloverage.source)
+    ;; -> \"cloverage/source.clj\""
+  [ns-symbol]
+  (let [base (.. (name ns-symbol)
                  (replace \- \_)
                  (replace \. \/))]
-    (->> ["clj" "cljc"]
-         (map #(str base "." %))
-         (filter resource-exists?)
-         first)))
+    (some (fn [extension]
+            (let [filename (str base extension)]
+              ;; io/resource will return nil if the file doesn't exist
+              (when (io/resource filename (get-loader))
+                filename)))
+          ns.file/clojure-extensions)))
+
+(defn ns-form
+  "Return the `ns` declaration form from the file associated with the namespace named by `ns-symbol`.
+
+    (ns-form 'cloverage.source)
+    ;; ->
+    (ns cloverage.source
+      (:require [clojure.java.io :as io]
+                [clojure.string :as str]
+                [clojure.tools.namespace.file :as ns.file])
+      (:import clojure.lang.RT
+               java.io.File))"
+  [ns-symbol]
+  (let [resource (or (some->> (resource-path ns-symbol)
+                              (.getResource (get-loader)))
+                     (io/file (resource-path ns-symbol))
+                     (throw (ex-info (format "Cannot read ns declaration for namespace %s: cannot find file" ns-symbol)
+                                     {:ns ns-symbol})))]
+    (or (ns.file/read-file-ns-decl resource)
+        (throw (ex-info (format "Cannot read ns declaration for namespace %s: ns declaration not found in file" ns-symbol)
+                        {:ns ns-symbol})))))
 
 (defn source-file-path
   "Given a classpath-relative path, return a relative source file path."
@@ -30,7 +54,7 @@
         resource-path (-> (.getResource (get-loader) resource) .toURI .getPath)]
     (str/replace resource-path cwd "")))
 
-(defn resource-reader [resource]
+(defn resource-reader ^java.io.Closeable [resource]
   (if-let [resource (and resource
                          (.getResourceAsStream
                           (get-loader)
@@ -38,7 +62,7 @@
     (InputStreamReader. resource) ; We assume the default charset is set correctly
     (throw (IllegalArgumentException. (str "Cannot find resource " resource)))))
 
-(defn form-reader [ns-symbol]
+(defn form-reader ^java.io.Closeable [ns-symbol]
   (if-let [res-path (resource-path ns-symbol)]
     (rt/indexing-push-back-reader
      (PushbackReader.
@@ -46,18 +70,8 @@
     (throw (ex-info (format "Resource path not found for namespace: %s" (name ns-symbol))
                     {:ns-symbol ns-symbol}))))
 
-(defn forms [ns-symbol]
-  (let [src (form-reader ns-symbol)]
-    (loop [forms nil]
-      (if-let [form (r/read src false nil)]
-        (recur (conj forms form))
-        (reverse forms)))))
-
-(defn ns-form [ns-symbol]
-  (let [src (form-reader ns-symbol)]
-    (first (drop-while #(not= 'ns (first %))
-                       (take-while (comp not nil?)
-                                   (repeatedly #(r/read {:eof nil
-                                                         :features #{:clj}
-                                                         :read-cond :allow}
-                                                        src)))))))
+(defn forms
+  "Return all forms in the source file for the namespace named by `ns-symbol`."
+  [ns-symbol]
+  (with-open [reader (form-reader ns-symbol)]
+    (doall (take-while (partial not= ::eof) (repeatedly #(r/read reader false ::eof))))))

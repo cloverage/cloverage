@@ -3,6 +3,7 @@
             [clojure.test :as t]
             [cloverage.coverage :as cov]
             [cloverage.instrument :as inst]
+            [cloverage.source :as src]
             [riddley.walk :as rw])
   (:import java.io.File))
 
@@ -321,9 +322,9 @@
              ["cloverage.sample.dummy-sample"]))))
 
 (t/deftest test-main
-  (binding [cloverage.coverage/*exit-after-test* false]
+  (binding [cov/*exit-after-test* false]
     (t/is (=
-           (cloverage.coverage/-main
+           (cov/-main
             "-o" "out"
             "--junit" "--text" "--html" "--raw" "--emma-xml" "--coveralls" "--codecov" "--lcov"
             "-x" "cloverage.sample.exercise-instrumentation"
@@ -331,23 +332,30 @@
            0))))
 
 (t/deftest test-cyclic-dependency
-  (binding [cloverage.coverage/*exit-after-test* false]
-    (t/is
-     (thrown-with-msg?
-      RuntimeException #"Cannot instrument namespaces; there is a cyclic dependency"
-      (cloverage.coverage/-main
-       "-o" "out"
-       "--emma-xml"
-       "-x" "cloverage.sample.cyclic-dependency"
-       "cloverage.sample.cyclic-dependency")))))
+  (binding [cov/*exit-after-test* false]
+    (let [orig src/ns-form]
+      (with-redefs [src/ns-form (fn [ns-symbol]
+                                  (if (= ns-symbol 'cloverage.sample.cyclic-dependency)
+                                    '(ns cloverage.sample.cyclic-dependency
+                                       (:require [cloverage.sample.cyclic-dependency :as self]))
+                                    (orig ns-symbol)))]
+        (t/is
+         (thrown-with-msg?
+          clojure.lang.ExceptionInfo
+          #"Circular dependency between cloverage\.sample\.cyclic-dependency and cloverage\.sample\.cyclic-dependency"
+          (cov/-main
+           "-o" "out"
+           "--emma-xml"
+           "--extra-test-ns" "cloverage.sample.cyclic-dependency"
+           "cloverage.sample.cyclic-dependency")))))))
 
 (t/deftest test-no-ns-found-for-instrumentation
-  (binding [cloverage.coverage/*exit-after-test* false]
+  (binding [cov/*exit-after-test* false]
     (t/testing "Expect validation error when no namespaces are selected for instrumentation"
       (t/is
        (thrown-with-msg?
         RuntimeException #"No namespaces selected for instrumentation.*"
-        (cloverage.coverage/-main
+        (cov/-main
          "-o" "out"
          "--emma-xml"
          "--ns-regex" "cloverage.*"

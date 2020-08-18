@@ -123,9 +123,15 @@
                        :regex-patterns regex-patterns})
   (let [namespaces (map name
                         (cond
-                          (and (empty? ns-paths) (empty? regex-patterns)) '()
-                          (empty? ns-paths) (ns-find/find-namespaces (cp/classpath))
-                          :else (ns-find/find-namespaces (map io/file ns-paths))))]
+                          (and (empty? ns-paths) (empty? regex-patterns))
+                          '()
+
+                          (empty? ns-paths)
+                          (distinct (ns-find/find-namespaces (filter #(.isDirectory ^java.io.File %)
+                                                                     (cp/system-classpath))))
+
+                          :else
+                          (distinct (ns-find/find-namespaces (map io/file ns-paths)))))]
     (debug/tprn "found:" {:namespaces     namespaces
                           :ns-paths       ns-paths
                           :regex-patterns regex-patterns})
@@ -134,33 +140,40 @@
       namespaces)))
 
 (defn load-namespaces [{:keys [extra-test-ns ns-regex test-ns-regex ns-exclude-regex src-ns-path test-ns-path]} add-nses]
-  (let [include      (-> src-ns-path
-                         (find-nses ns-regex)
-                         (remove-nses ns-exclude-regex))
-        namespaces   (concat add-nses include)
-        test-nses    (concat extra-test-ns (find-nses test-ns-path test-ns-regex))
-        ordered-nses (dep/in-dependency-order (map symbol namespaces))]
+  (let [;; calculate the set of namespaces we're planning on instrumenting
+        include     (-> src-ns-path
+                        (find-nses ns-regex)
+                        (remove-nses ns-exclude-regex)
+                        (concat add-nses))
+        ;; Find all namespaces in the classpath (and any additional ones included) and then sort them in order so
+        ;; dependencies get loaded first.
+        all-nses    (dep/in-dependency-order (distinct (map symbol (concat include (find-nses src-ns-path [#".*"])))))
+        instrument? (set (map symbol include))
+        ;; Now get a sequence of namespaces to instrument in the dependency order. Do this by taking the entire sorted
+        ;; sequence of `all-nses` and filtering out ones we don't want to instrument
+        namespaces  (filter instrument? all-nses)
+        test-nses   (concat extra-test-ns (find-nses test-ns-path test-ns-regex))]
     (when (empty? namespaces)
       (throw (RuntimeException.
               (str "No namespaces selected for instrumentation using " {:ns-regex         ns-regex
                                                                         :ns-exclude-regex ns-exclude-regex}))))
     (println "Loading namespaces: " (apply list namespaces))
     (println "Test namespaces: " test-nses)
-    {:test-nses test-nses, :ordered-nses ordered-nses}))
+    {:test-nses test-nses, :ordered-nses namespaces}))
 
 (defn instrument-namespaces [{:keys [exclude-call nop?]} ordered-nses]
-  (if (empty? ordered-nses)
-    (throw (RuntimeException. "Cannot instrument namespaces; there is a cyclic dependency"))
-    (doseq [namespace ordered-nses]
-      (binding [*instrumented-ns*    namespace
-                inst/*exclude-calls* (when (seq exclude-call)
-                                       (set exclude-call))]
-        (if nop?
-          (inst/instrument #'inst/nop namespace)
-          (inst/instrument #'track-coverage namespace)))
-      (println "Loaded " namespace " .")
-      ;; mark the ns as loaded
-      (mark-loaded namespace)))
+  (when (empty? ordered-nses)
+    (throw (RuntimeException. "No namespaces selected for instrumentation.")))
+  (doseq [namespace ordered-nses]
+    (binding [*instrumented-ns*    namespace
+              inst/*exclude-calls* (when (seq exclude-call)
+                                     (set exclude-call))]
+      (if nop?
+        (inst/instrument #'inst/nop namespace)
+        (inst/instrument #'track-coverage namespace)))
+    (println "Instrumented" namespace)
+    ;; mark the ns as loaded
+    (mark-loaded namespace))
   (println "Instrumented namespaces."))
 
 (defn- resolve-var [sym]
