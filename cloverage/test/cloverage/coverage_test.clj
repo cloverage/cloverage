@@ -44,14 +44,17 @@
   [msg [_ & forms]]
   `(expand=* ~msg ~(vec forms)))
 
+(defn- my-long [x]
+  (long x))
+
 (t/deftest preserves-type-hint
   (t/is (= 'long
-          ;; top level type hint always worked, but ones nested in :list did not
-           (-> (inst/wrap #'cov/track-coverage 0 '(prn ^long (long 0)))
-               rw/macroexpand-all
-               (nth 2) ; (do (cloverage/cover 0) (...)
-               (nth 1) ; ((do (cloverage/cover 1) prn) (...))
-               (nth 2) ; (do (cloverage/cover 2) (...))
+           ;; top level type hint always worked, but ones nested in :list did not
+           (-> (inst/wrap #'cov/track-coverage 0 '(prn ^long (my-long 0)))
+               rw/macroexpand-all       ; (do (cover 0) ...)
+               last                     ; ((do (cover 1) prn) ...)
+               last                     ; (do (cover 2) ...)
+               last                     ; ((do (cover 3) my-long) (do (cover 4) 0))
                meta
                :tag))))
 
@@ -81,9 +84,8 @@
                    wrapped))))
 
 (t/deftest test-wrap-list
-  (t/is (expand= `(cov/capture 0 ((cov/capture 1 +) (cov/capture 2 1)
-                                                    (cov/capture 3 2)))
-                 (inst/wrap #'cov/track-coverage 0 `(+ 1 2)))))
+  (t/is (expand= `(cov/capture 0 ((cov/capture 1 my-fn) (cov/capture 2 1) (cov/capture 3 2)))
+                 (inst/wrap #'cov/track-coverage 0 `(my-fn 1 2)))))
 
 ;; XXX: the order that forms are registered is now from outside in. Bad?
 (t/deftest test-wrap-fn
@@ -197,15 +199,21 @@
 (t/deftest test-instrument-gets-lines
   (inst/instrument #'cov/track-coverage
                    'cloverage.sample.exercise-instrumentation)
-  (let [cov @cov/*covered*
-        found (find-form cov '(+ 40 2))]
-    #_(with-out-writer "out/foo"
-        (doseq [form-info cov]
-          (println form-info)))
-    #_(println "Form is")
-    (t/is found)
-    (t/is (:line found))
-    (t/is (find-form cov '(inc (m c 0))))))
+  (let [cov @cov/*covered*]
+    (doseq [[form expanded] '{(+ 40)      (+ 40)
+                              (+ 40 2)    (. clojure.lang.Numbers (add (cloverage.instrument/wrapm
+                                                                        cloverage.coverage/track-coverage 10 40)
+                                                                       (cloverage.instrument/wrapm
+                                                                        cloverage.coverage/track-coverage 10 2)))
+                              (str 1 2 3) (str 1 2 3)
+                              (inc m c 0) (. clojure.lang.Numbers (inc (cloverage.instrument/wrapm
+                                                                        cloverage.coverage/track-coverage
+                                                                        101
+                                                                        (m c 0))))}]
+      (t/testing (format "Form %s (expanded to %s) should get instrumented" (pr-str form) (pr-str expanded))
+        (t/is (find-form cov expanded))
+        (let [found (find-form cov expanded)]
+          (t/is (:line found)))))))
 
 (defn- eval-instrumented [form]
   (let [instrumented (rw/macroexpand-all `(inst/wrapm cov/track-coverage 0 ~form))]

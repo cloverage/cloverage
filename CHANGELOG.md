@@ -16,6 +16,8 @@ in github. Commentary on the change should appear as a nested, unordered list.
   - Fix the order in which namespaces get instrumented, which could case false
     negatives in forms that are only evaluated the first time the namespace is
     loaded (#294, #302, #303)
+  - Fix instrumention of inlined function calls like `int` (#277, #304)
+  - Performance improvements (#304)
 
 ## 1.2.0 (BUGFIX RELEASE)
 

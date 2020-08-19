@@ -1,18 +1,18 @@
 (ns cloverage.instrument
-  (:require [clojure.tools.logging :as log]
-            [clojure.tools.reader :as r]
+  (:require [clojure.pprint :as pprint]
+            [clojure.tools.logging :as log]
             [cloverage.debug :as d]
             [cloverage.rewrite :refer [unchunk]]
-            [cloverage.source :as s]
+            [cloverage.source :as source]
             [riddley.walk :as rw]
             [slingshot.slingshot :refer [throw+]]))
 
-(defn iobj? [form]
+(defn- iobj? [form]
   (and
    (instance? clojure.lang.IObj form)
    (not (instance? clojure.lang.AFunction form))))
 
-(defn propagate-line-numbers
+(defn- propagate-line-numbers
   "Assign :line metadata to all possible elements in a form,
   using start as default."
   [start form]
@@ -31,15 +31,28 @@
       ret)
     form))
 
-(defn add-original [old new]
+(defn- add-original [old new]
   (if (iobj? new)
     (-> (propagate-line-numbers (:line (meta old)) new)
         (vary-meta merge (meta old))
         (vary-meta assoc :original old))
     new))
 
-(defn atomic-special? [sym]
+(defn- atomic-special? [sym]
   (contains? '#{quote var clojure.core/import* recur} sym))
+
+(defn- inlined-fn-call?
+  "Whether a form represents a call to a inlineable function (e.g. `clojure.core/int`) and will be replaced with the
+  inlined version."
+  [[head & args]]
+  (when (symbol? head)
+    (when-let [{:keys [inline inline-arities]} (meta (resolve head))]
+      (when inline
+        ;; some inlineable function calls such as to `+` are only replaced with the inlined version for certain arities
+        ;; -- the `:inline-arities` function in the metadata can be used to check whether the call will be inlined
+        (if inline-arities
+          (inline-arities (count args))
+          true)))))
 
 ;; Snipped from tools.reader
 ;; https://github.com/clojure/tools.reader/blob/de7b39c3/src/main/clojure/clojure/tools/reader.clj#L456
@@ -79,51 +92,69 @@
     :else
     expr))
 
-(defn list-type [head]
-  (condp #(%1 %2) (maybe-resolve-symbol head)
-    ;; namespace-less specials
-    '#{try}         :try     ; try has to special case catch/finally
-    '#{if do throw} :do      ; these special forms can recurse on all args
-    '#{let* loop*}  :let
-    '#{def}         :def     ; def can recurse on initialization expr
-    '#{fn*}         :fn
-    '#{set!}        :set     ; set must not evaluate the target expr
-    '#{.}           :dotjava
-    '#{case*}       :case*
-    '#{new}         :new
-    '#{reify*}      :reify*
-    ;; FIXME: monitor-enter monitor-exit
-    ;; FIXME: import*?
+(def ^:private list-head-symbol->type
+  "Map of symbols to the type of form they represent when they're at the head of a list or list-like form.
 
-    ;; namespaced macros
-    `#{cond}        :cond    ; special case cond to avoid false partial
-    `#{loop let}    :let
-    `#{letfn}       :letfn
-    `#{for doseq}   :for
-    `#{fn}          :fn
-    `#{defn}        :defn    ; don't expand defn to preserve stack traces
-    `#{defmulti}    :defmulti ; special case defmulti to avoid boilerplate
-    `#{defprotocol} :atomic   ; no code in protocols
-    `#{defrecord}   :record
-    `#{deftype*}    :deftype*
-    `#{ns}          :atomic
+    {'do :do, 'let* :let, 'try :try, ...}"
+  (into {} (for [[symbols typ]
+                 ;; namespace-less symbols
+                 {'#{try}         :try  ; try has to special case catch/finally
+                  '#{if do throw} :do   ; these special forms can recurse on all args
+                  '#{let* loop*}  :let
+                  '#{def}         :def  ; def can recurse on initialization expr
+                  '#{fn*}         :fn
+                  '#{set!}        :set  ; set must not evaluate the target expr
+                  '#{.}           :dotjava
+                  '#{case*}       :case*
+                  '#{new}         :new
+                  '#{reify*}      :reify*
+                  ;; FIXME: monitor-enter monitor-exit
 
-    ;; http://dev.clojure.org/jira/browse/CLJ-1330 means AOT-compiled definlines
-    ;; are broken when used indirectly. Work around - do not wrap the definline
-    `#{booleans bytes chars shorts floats ints doubles longs} :inlined
-    atomic-special?   :atomic
-    ;; XXX: we used to not do anything with unknown specials, now we wrap them
-    ;; in a macro, then macroexpand back to original form. Methinks it's ok.
-    special-symbol?   :unknown
-    :list))
+                  ;; namespaced macros
+                  `#{cond}        :cond ; special case cond to avoid false partial
+                  `#{loop let}    :let
+                  `#{letfn}       :letfn
+                  `#{for doseq}   :for
+                  `#{fn}          :fn
+                  `#{defn}        :defn     ; don't expand defn to preserve stack traces
+                  `#{defmulti}    :defmulti ; special case defmulti to avoid boilerplate
+                  `#{defprotocol} :atomic   ; no code in protocols
+                  `#{defrecord}   :record
+                  `#{deftype*}    :deftype*
+                  `#{ns}          :atomic
 
-(defn list-type-in-env [[head & _] env]
-  ;; if the list is a call to a symbol with a local binding, but not a special form such as `var` or `new` (which
-  ;; aren't overshadowed by local variables) return `:list` type.
-  (if (and (get env head)
-           (not (special-symbol? head)))
-    :list
-    (list-type head)))
+                  ;; http://dev.clojure.org/jira/browse/CLJ-1330 means AOT-compiled definlines
+                  ;; are broken when used indirectly. Work around - do not wrap the definline
+                  `#{booleans bytes chars shorts floats ints doubles longs} :definlined-fn-call}
+                 symb symbols]
+             [symb typ])))
+
+(defn- list-type
+  "Return the type of a list or list-like (presumably a function/macro call) form.
+
+    (list-type '(= 1 2)) ; -> :list
+    (list-type '(fn [])) ; -> :fn"
+  ([[head :as form]]
+   (let [head (maybe-resolve-symbol head)]
+     (or (list-head-symbol->type head)
+         (cond
+           ;; A call to a function such as `clojure.core/int` that is defined normally with `defn` but has a special
+           ;; `:inline` version. Not necessarily inlined for all arities -- for example `+` is only inlined for 2+ args
+           (inlined-fn-call? form)  :inlined-fn-call
+           ;; A special form such as `quote` or `import*`
+           (atomic-special? head)   :atomic
+           ;; XXX: we used to not do anything with unknown specials, now we wrap them
+           ;; in a macro, then macroexpand back to original form. Methinks it's ok.
+           (special-symbol? head)   :unknown
+           :else                    :list))))
+
+  ([[head :as form] env]
+   ;; if the list is a call to a symbol with a local binding, but not a special form such as `var` or `new` (which
+   ;; aren't overshadowed by local variables) return `:list` type.
+   (if (and (get env head)
+            (not (special-symbol? head)))
+     :list
+     (list-type form))))
 
 (def ^:dynamic *exclude-calls*
   "The set of symbols that will suppress instrumentation when any are used in
@@ -131,7 +162,9 @@
   sites from coverage metrics."
   nil)
 
-(defn exclude? [form]
+(defn exclude?
+  "Whether we should skip instrumenting a form because it is specified in the `:exclude-call` options."
+  [form]
   (boolean (and *exclude-calls*
                 (*exclude-calls* (maybe-resolve-symbol (first form))))))
 
@@ -140,7 +173,7 @@
   [form env]
   (let [res (cond (and (seq? form)
                        (exclude? form)) :excluded
-                  (seq? form)           (list-type-in-env form env)
+                  (seq? form)           (list-type form env)
                   (coll? form)          :coll
                   :else                 :atomic)]
     (d/tprnl "Type of" (class form) form "is" res)
@@ -244,8 +277,20 @@
   form)
 
 ;; Don't wrap definline functions - see http://dev.clojure.org/jira/browse/CLJ-1330
-(defmethod do-wrap :inlined [f line [inline-fn & body] _]
+(defmethod do-wrap :definlined-fn-call [f line [inline-fn & body] _]
   `(~inline-fn ~@(map (wrapper f line) body)))
+
+;; Other functions that are defined via `defn` but that define special `:inline` versions in their metadata, such as
+;; `clojure.core/int`, should get expanded to the inlined versions before instrumentation. Riddley can expand it for
+;; us
+(defmethod do-wrap :inlined-fn-call
+  [f line form _]
+  ;; there's a bug in Riddley where the last form in an inlined call nested inside another inlined call can get marked
+  ;; as `::rw/transformed` preventing it from being expanded completely -- see
+  ;; https://github.com/ztellman/riddley/issues/33. We can work around it by removing the `::rw/transformed` key from
+  ;; the form's metadata if present
+  (let [form (vary-meta form dissoc ::rw/transformed)]
+    (wrap f line (rw/macroexpand form))))
 
 ;; Don't descend into atomic forms, but do wrap them
 (defmethod do-wrap :atomic [f line form _]
@@ -332,19 +377,20 @@
 (defmethod do-wrap :new [f line [new-sym class-name & args :as form] _]
   (f line `(~new-sym ~class-name ~@(doall (map (wrapper f line) args)))))
 
-(defmethod do-wrap :dotjava [f line [dot-sym obj-name attr-name & args :as form] env]
-  ;; either (. obj meth args*) or (. obj (meth args*))
+(defmethod do-wrap :dotjava
+  [f line [dot-sym obj-name & more] env]
+  ;; either (. obj meth args*) or (. obj (meth args*)) -- syntaxes are equivalent.
   ;; I think we might have to not-wrap symbols here, or we might lose metadata
   ;; (like :tag type hints for reflection when resolving methods)
-  (if (= :list (form-type attr-name env))
-    (do
-      (d/tprnl "List dotform, recursing on" (rest attr-name))
-      (f line `(~dot-sym ~obj-name (~(first attr-name)
-                                    ~@(doall (map (wrapper f line)
-                                                  (rest attr-name)))))))
-    (do
-      (d/tprnl "Simple dotform, recursing on" args)
-      (f line `(~dot-sym ~obj-name ~attr-name ~@(doall (map (wrapper f line) args)))))))
+  (if (seq? (first more))
+    ;; (. obj (meth args*)) syntax
+    (let [[method-name & args] (first more)]
+      (d/tprnl "List dotform, recursing on" (first more))
+      (f line `(~dot-sym ~obj-name (~method-name ~@(map (wrapper f line) args)))))
+    ;; (. obj meth args*) syntax
+    (let [[method-name & args] more]
+      (d/tprnl "Simple dotform, recursing on" more)
+      (f line `(~dot-sym ~obj-name ~method-name ~@(map (wrapper f line) args))))))
 
 (defmethod do-wrap :set [f line [set-symbol target expr] _]
   ;; target cannot be wrapped or evaluated
@@ -459,18 +505,6 @@
                      `(~(first method) ~@(wrap-overload f line (rest method))))
                    methods))))
 
-(defn source-forms
-  "Return a sequence of all forms in a source file using `source-reader` to read them."
-  [source-reader]
-  ;; `read-form` will return `nil` at the end of the file so keep reading forms until we run out
-  (letfn [(read-form []
-            (binding [*read-eval* false]
-              (r/read {:eof       nil
-                       :features  #{:clj}
-                       :read-cond :allow}
-                      source-reader)))]
-    (take-while some? (repeatedly read-form))))
-
 ;; `f-var` used below is a var referring to a function with the form
 ;;
 ;;    (fn [line-hint form])
@@ -487,23 +521,18 @@
     (binding [*print-meta* true]
       (d/tprn "Evalling" instrumented-form " with meta " (meta instrumented-form)))
     (catch Exception e
-      (let [error-message (try
-                            (str "Couldn't eval form "
-                                 (binding [*print-meta* true]
-                                   (with-out-str (prn instrumented-form)))
-                                 (with-out-str (prn (rw/macroexpand-all instrumented-form)))
-                                 (with-out-str (prn form)))
-                            (catch Throwable _
-                              "Error evaluating form"))]
-        (throw (ex-info error-message
-                        (merge
-                         {:line              line-hint
-                          :filename          filename
-                          :form              form
-                          :instrumented-form instrumented-form}
-                         (when-let [macroexpanded (try (rw/macroexpand-all instrumented-form) (catch Throwable _))]
-                           {:macroexpanded-form macroexpanded}))
-                        e))))))
+      (throw (ex-info "Error evaluating form"
+                      (merge
+                       {:line              line-hint
+                        :filename          filename
+                        :form              form
+                        :namespace         (with-meta (ns-name *ns*) nil)
+                        :instrumented-form instrumented-form}
+                       (when-let [macroexpanded (try (rw/macroexpand-all form) (catch Throwable _))]
+                         {:macroexpanded macroexpanded})
+                       (when-let [macroexpanded (try (rw/macroexpand-all instrumented-form) (catch Throwable _))]
+                         {:macroexpanded-instrumented macroexpanded}))
+                      e)))))
 
 (defn instrument-form
   "Instrument a single `form`. Returns instrumented form."
@@ -517,43 +546,48 @@
             instrumented-form (try
                                 (wrap f-var line-hint form)
                                 (catch Throwable e
-                                  (throw+ e "Couldn't wrap form %s at line %s"
-                                          form line-hint)))]
-        (eval-form filename form line-hint instrumented-form)
+                                  (throw (ex-info "Error instrumenting form"
+                                                  {:filename filename, :line line-hint, :form form}
+                                                  e))))]
+        (try
+          (eval-form filename form line-hint instrumented-form)
+          (catch Throwable e
+            (throw (ex-info "Error evaluating instrumented form" {} e))))
         instrumented-form)
-      ;; if we run into an error instrumenting a form, log it and return/eval the uninstrumented form, so we can
-      ;; continue
+      ;; if we run into an error instrumenting a form or evaluating it, log it and return/eval the uninstrumented
+      ;; form, so we can continue
       (catch Throwable e
-        (log/error "Error instrumenting form"
-                   (ex-info "Error instrumenting form" {:filename filename
-                                                        :line     line-hint
-                                                        :form     form}
-                            e))
+        (log/error (.getMessage e) "\n"
+                   (binding [*print-meta* true]
+                     (with-out-str (pprint/pprint (Throwable->map e)))))
         (eval-form filename form line-hint form)
         form))))
 
 (defn instrument-file
   "Instrument all the forms in a file. Returns sequence of instrumented forms."
   [f-var lib filename]
-  (with-open [^java.io.Closeable source-reader (s/form-reader lib)]
+  (with-open [source-reader (source/form-reader lib)]
     (transduce
      (map (partial instrument-form f-var filename))
      conj
-     []
-     (source-forms source-reader))))
+     (source/forms source-reader))))
 
 (defn instrument
-  "Instruments and evaluates a list of forms."
-  [f-var lib]
-  (let [filename (s/resource-path lib)]
+  "Instrument and evaluate the forms in the namespace named by `ns-symbol` using an instrumentation function referred to
+  by `f-var`. The instrumentation function has the signature a function with the signature
+
+    (f line-hint form) -> instrumented-form"
+
+  [f-var ns-symbol]
+  (let [filename (source/resource-path ns-symbol)]
     (try
-      (let [instrumented (instrument-file f-var lib filename)]
-        (d/dump-instrumented instrumented lib)
+      (let [instrumented (instrument-file f-var ns-symbol filename)]
+        (d/dump-instrumented instrumented ns-symbol)
         instrumented)
       (catch Throwable e
-        (throw (ex-info (str "Error instrumenting " lib)
-                        {:lib      lib
-                         :filename filename}
+        (throw (ex-info (str "Error instrumenting " ns-symbol)
+                        {:namespace ns-symbol
+                         :filename  filename}
                         e))))))
 
 (defn nop
