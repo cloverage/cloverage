@@ -164,17 +164,21 @@
 (defn instrument-namespaces [{:keys [exclude-call nop?]} ordered-nses]
   (when (empty? ordered-nses)
     (throw (RuntimeException. "No namespaces selected for instrumentation.")))
-  (doseq [namespace ordered-nses]
-    (binding [*instrumented-ns*    namespace
-              inst/*exclude-calls* (when (seq exclude-call)
-                                     (set exclude-call))]
-      (if nop?
-        (inst/instrument #'inst/nop namespace)
-        (inst/instrument #'track-coverage namespace)))
-    (println "Instrumented" namespace)
-    ;; mark the ns as loaded
-    (mark-loaded namespace))
-  (println "Instrumented namespaces."))
+  (let [start-time-ms (System/currentTimeMillis)]
+    (doseq [namespace ordered-nses]
+      (binding [*instrumented-ns*    namespace
+                inst/*exclude-calls* (when (seq exclude-call)
+                                       (set exclude-call))]
+        (if nop?
+          (inst/instrument #'inst/nop namespace)
+          (inst/instrument #'track-coverage namespace)))
+      (println "Instrumented" namespace)
+      ;; mark the ns as loaded
+      (mark-loaded namespace))
+    (printf "Instrumented %d namespaces in %.1f seconds.\n"
+            (count ordered-nses)
+            (/ (- (System/currentTimeMillis) start-time-ms)
+               1000.0))))
 
 (defn- resolve-var [sym]
   (let [ns (namespace (symbol sym))

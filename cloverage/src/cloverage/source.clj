@@ -71,7 +71,13 @@
                     {:ns-symbol ns-symbol}))))
 
 (defn forms
-  "Return all forms in the source file for the namespace named by `ns-symbol`."
-  [ns-symbol]
-  (with-open [reader (form-reader ns-symbol)]
-    (doall (take-while (partial not= ::eof) (repeatedly #(r/read reader false ::eof))))))
+  "Return a lazy sequence of all forms in a source file using `source-reader` to read them."
+  [source-reader]
+  ;; `read-form` will return `nil` at the end of the file so keep reading forms until we run out
+  (letfn [(read-form []
+            (binding [*read-eval* false]
+              (r/read {:eof       ::eof
+                       :features  #{:clj}
+                       :read-cond :allow}
+                      source-reader)))]
+    (take-while (partial not= ::eof) (repeatedly read-form))))

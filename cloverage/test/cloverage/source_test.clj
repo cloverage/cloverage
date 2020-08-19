@@ -18,9 +18,10 @@
 
 (t/deftest multibyte-test
   (t/testing "Form reader reads files with multibyte chars"
-    (t/is (= (source/forms 'cloverage.sample.multibyte-sample)
-             '((ns cloverage.sample.multibyte-sample)
-               (def a "あ"))))))
+    (t/is (= '((ns cloverage.sample.multibyte-sample)
+               (def a "あ"))
+             (with-open [reader (source/form-reader 'cloverage.sample.multibyte-sample)]
+               (vec (source/forms reader)))))))
 
 (t/deftest form-reader-test
   (t/testing "Useful exception is thrown if resource-path not found for a ns"

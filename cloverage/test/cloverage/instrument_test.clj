@@ -24,11 +24,6 @@
   ;; simply ensure that instrumentation succeeds without errors
   (t/is (inst/instrument #'inst/no-instr 'cloverage.sample.read-eval-sample)))
 
-(defn- form-type-
-  "Provide a default empty env to form-type, purely for easier testing."
-  ([f] (form-type- f nil))
-  ([f e] (inst/form-type f e)))
-
 (defprotocol Protocol
   (method [this]))
 
@@ -37,17 +32,46 @@
   (method [_] foo))
 
 (t/deftest test-form-type
-  (t/is (= :atomic (form-type- 1)))
-  (t/is (= :atomic (form-type- "foo")))
-  (t/is (= :atomic (form-type- 'bar)))
-  (t/is (= :coll (form-type- [1 2 3 4])))
-  (t/is (= :coll (form-type- {1 2 3 4})))
-  (t/is (= :coll (form-type- #{1 2 3 4})))
-  (t/is (= :coll (form-type- (Record. 1))))
-  (t/is (= :list (form-type- '(+ 1 2))))
-  (t/is (= :do (form-type- '(do 1 2 3))))
-  (t/is (= :list (form-type- '(loop 1 2 3)
-                             {'loop 'hoop})))) ;fake a local binding
+  (doseq [[message form->expected]
+          {"Atomic forms"
+           {[1]     :atomic
+            ["foo"] :atomic
+            ['bar]  :atomic}
+
+           "Collections"
+           {[[1 2 3 4]]   :coll
+            [{1 2 3 4}]   :coll
+            [#{1 2 3 4}]  :coll
+            [(Record. 1)] :coll}
+
+           "do & loop"
+           {['(do 1 2 3)]               :do
+            ;; fake a local binding
+            '[(loop 1 2 3) {loop hoop}] :list}
+
+           "Inlined function calls"
+           {['(int 1)]            :inlined-fn-call
+            [`(int 1)]            :inlined-fn-call
+            [`(int 1) '{int int}] :inlined-fn-call}
+
+           "Local vars overshadow inlined fn calls; make sure this is detected correctly"
+           {'[(int) {int int}] :list}
+
+           "If some arities are inlined and others are not, only return `:inlined-fn-call` when inlined"
+           {['(+ 1)]   :list
+            ['(+ 1 2)] :inlined-fn-call}
+
+           "Lists starting with other lists"
+           {['((or + 1) 1 2)] :list}
+
+           "List-like classes e.g. clojure.lang.Cons for which `list?` is false"
+           {[(cons 1 '(2 3))] :list}}
+
+          [[form env] expected] form->expected]
+    (t/testing message
+      (t/testing (str "\n" (pr-str (list 'form-type form env)))
+        (t/is (= expected
+                 (inst/form-type form env)))))))
 
 (t/deftest do-wrap-for-record-returns-record
   (t/is (= 1 (method (eval (inst/wrap #'inst/nop 0 (Record. 1)))))))
@@ -217,10 +241,63 @@
           (let [[[message-type _ message]] @log-messages]
             (t/is (= :error
                      message-type))
-            (doseq [s ["Error instrumenting form"
+            (doseq [s ["Error evaluating instrumented form"
                        "Unable to resolve symbol: this-function-does-not-exist"]]
               (t/is (str/includes? message s)
                     (str "Error message should include %s" (pr-str s))))))
         (t/testing "We should have attempted to evauluate the *original* form"
           (t/is (= true
                    @evalled-original-form?)))))))
+
+(t/deftest instrument-java-interop-forms-test
+  (t/testing "Java interop forms should get instrumented correctly (#304)"
+    (t/testing "Method calls"
+      ;; these two syntaxes are equivalent
+      (t/testing "(. object method & args) syntax"
+        (t/is (= '(do (. clojure.lang.RT count (do [(do 3) (do 4)])))
+                 (rw/macroexpand-all (inst/instrument-form #'inst/nop nil '(. clojure.lang.RT count [3 4]))))))
+      (t/testing "(. object (method & args)) syntax"
+        (t/is (= '(do (. clojure.lang.RT (count (do [(do 3) (do 4)]))))
+                 (rw/macroexpand-all (inst/instrument-form #'inst/nop nil '(. clojure.lang.RT (count [3 4]))))))))))
+
+(t/deftest instrument-inlined-primitives-test
+  (t/testing "Inline primitive cast functions like int() should be instrumented correctly (#277)"
+    (t/is (= '(. clojure.lang.RT (intCast 2))
+             (rw/macroexpand-all (inst/instrument-form #'inst/no-instr nil '(int 2)))
+             (rw/macroexpand-all (inst/instrument-form #'inst/no-instr nil `(int 2)))))
+    (t/testing "make sure example in #277 actually gets instrumented and doesn't fall back to returning the original form"
+      (let [form '(deftype MyType [^:unsynchronized-mutable ^int i]
+                    clojure.lang.IHashEq
+                    (hasheq [_]
+                      (set! i (int 2))))]
+        (t/is (not= form
+                    (inst/instrument-form #'inst/no-instr nil form)))))
+    (t/testing "Non-inlineable uses of functions like `int` should get instrumented normally"
+      (t/is (= `(map int [1])
+               (rw/macroexpand-all (inst/instrument-form #'inst/no-instr nil `(map int [1]))))))
+    (t/testing "For functions that are sometimes inlined (e.g `+`) make sure we instrument it appropriately in both cases"
+      (t/testing "Not inlined"
+        (t/is (= '(do ((do +) (do 1)))
+                 (rw/macroexpand-all (inst/instrument-form #'inst/nop nil '(+ 1))))))
+      (t/is (= '(do (. clojure.lang.Numbers (add (do 1) (do 2))))
+               (rw/macroexpand-all (inst/instrument-form #'inst/nop nil '(+ 1 2)))))
+      (t/is (= '(do (. clojure.lang.Numbers (add (do ((do identity) (do 1))) (do 2))))
+               (rw/macroexpand-all (inst/instrument-form #'inst/nop nil '(+ (identity 1) 2))))))
+    (t/testing "Inlined calls inside inlined calls should get instrumented correctly"
+      (t/is (= '(do
+                  (. clojure.lang.Numbers
+                     (add (do 1)
+                          (do (. clojure.lang.RT (clojure.core/count (do [(do 2) (do (if (do *print-meta*)
+                                                                                       (do 3)
+                                                                                       (do 4)))])))))))
+               (rw/macroexpand-all (inst/instrument-form #'inst/nop nil '(+ 1 (count [2 (if *print-meta* 3 4)]))))))
+      (t/is (= `(do (.
+                     clojure.lang.Util
+                     clojure.core/equiv
+                     (do (.
+                          clojure.lang.RT
+                          (clojure.core/count (do [(do 1) (do 2)]))))
+                     (do (.
+                          clojure.lang.RT
+                          (clojure.core/count (do [(do 3) (do 4)]))))))
+               (rw/macroexpand-all (inst/instrument-form #'inst/nop nil '(= (count [1 2]) (count [3 4])))))))))
