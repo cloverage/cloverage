@@ -18,6 +18,7 @@ in github. Commentary on the change should appear as a nested, unordered list.
     loaded (#294, #302, #303)
   - Fix instrumention of inlined function calls like `int` (#277, #304)
   - Performance improvements (#304)
+  - Instrument the class-or-instance part of Java interop forms (#306, #307)
 
 ## 1.2.0 (BUGFIX RELEASE)
 
