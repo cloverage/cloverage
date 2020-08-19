@@ -251,14 +251,23 @@
 
 (t/deftest instrument-java-interop-forms-test
   (t/testing "Java interop forms should get instrumented correctly (#304)"
-    (t/testing "Method calls"
-      ;; these two syntaxes are equivalent
-      (t/testing "(. object method & args) syntax"
-        (t/is (= '(do (. clojure.lang.RT count (do [(do 3) (do 4)])))
-                 (rw/macroexpand-all (inst/instrument-form #'inst/nop nil '(. clojure.lang.RT count [3 4]))))))
-      (t/testing "(. object (method & args)) syntax"
-        (t/is (= '(do (. clojure.lang.RT (count (do [(do 3) (do 4)]))))
-                 (rw/macroexpand-all (inst/instrument-form #'inst/nop nil '(. clojure.lang.RT (count [3 4]))))))))))
+    ;; these two syntaxes are equivalent
+    (t/testing "(. class-or-instance method & args) syntax"
+      (t/is (= '(do (. clojure.lang.RT count (do [(do 3) (do 4)])))
+               (rw/macroexpand-all (inst/instrument-form #'inst/nop nil '(. clojure.lang.RT count [3 4]))))))
+    (t/testing "(. class-or-instance (method & args)) syntax"
+      (t/is (= '(do (. clojure.lang.RT (count (do [(do 3) (do 4)]))))
+               (rw/macroexpand-all (inst/instrument-form #'inst/nop nil '(. clojure.lang.RT (count [3 4])))))))
+    (t/testing "class-or-instance part of Java interop form should get instrumented (#306)"
+      (t/is (= '(do (. (do (let* [x (do 1)]
+                             (do ((do str)
+                                  (do "X is")
+                                  (do x)))
+                             (do (. Thread currentThread))))
+                       getName))
+               (rw/macroexpand-all (inst/instrument-form #'inst/nop nil '(.getName (let [x 1]
+                                                                                     (str "X is" x)
+                                                                                     (Thread/currentThread))))))))))
 
 (t/deftest instrument-inlined-primitives-test
   (t/testing "Inline primitive cast functions like int() should be instrumented correctly (#277)"

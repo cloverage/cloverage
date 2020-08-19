@@ -378,19 +378,28 @@
   (f line `(~new-sym ~class-name ~@(doall (map (wrapper f line) args)))))
 
 (defmethod do-wrap :dotjava
-  [f line [dot-sym obj-name & more] env]
-  ;; either (. obj meth args*) or (. obj (meth args*)) -- syntaxes are equivalent.
-  ;; I think we might have to not-wrap symbols here, or we might lose metadata
-  ;; (like :tag type hints for reflection when resolving methods)
-  (if (seq? (first more))
-    ;; (. obj (meth args*)) syntax
-    (let [[method-name & args] (first more)]
-      (d/tprnl "List dotform, recursing on" (first more))
-      (f line `(~dot-sym ~obj-name (~method-name ~@(map (wrapper f line) args)))))
-    ;; (. obj meth args*) syntax
-    (let [[method-name & args] more]
-      (d/tprnl "Simple dotform, recursing on" more)
-      (f line `(~dot-sym ~obj-name ~method-name ~@(map (wrapper f line) args))))))
+  [f line [_ class-or-instance & more] env]
+  ;; form is either of the syntax
+  ;;
+  ;; (. class-or-instance method & args)
+  ;; or
+  ;; (. class-or-instance (method & args))
+  ;;
+  ;; both syntaxes are possible and equivalent
+  ;;
+  ;; If `class-or-instance` is a symbol (i.e., a class name), don't wrap it so we don't lose type information
+  (let [wrapped-class-or-instance (if (symbol? class-or-instance)
+                                    class-or-instance
+                                    (wrap f line class-or-instance))]
+    (f
+     line
+     (if (seq? (first more))
+       ;; (. class-or-instance (method & args))
+       (let [[[method & args]] more]
+         (list '. wrapped-class-or-instance (cons method (doall (map (wrapper f line) args)))))
+       ;; (. class-or-instance method & args)
+       (let [[method & args] more]
+         (list* '. wrapped-class-or-instance method (doall (map (wrapper f line) args))))))))
 
 (defmethod do-wrap :set [f line [set-symbol target expr] _]
   ;; target cannot be wrapped or evaluated
@@ -592,10 +601,10 @@
 
 (defn nop
   "Instrument form with expressions that do nothing."
-  [line-hint form]
+  [_ form]
   `(do ~form))
 
 (defn no-instr
   "Do not change form at all."
-  [line-hint form]
+  [_ form]
   form)
