@@ -225,8 +225,8 @@
           instrumented (rw/macroexpand-all (inst/wrap #'inst/nop nil form))]
       (t/is (= '(do (let* [my-str (do (fn* ([& args]
                                             (do ((do apply) (do str) (do args))))))]
-                      (do (new java.lang.IllegalArgumentException
-                               (do ((do my-str) (do "No matching clause")))))))
+                          (do (new java.lang.IllegalArgumentException
+                                   (do ((do my-str) (do "No matching clause")))))))
                instrumented))
       (let [fn-call-form (-> instrumented last last last last)]
         (t/is (= '(do ((do my-str) (do "No matching clause")))
