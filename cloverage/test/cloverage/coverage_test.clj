@@ -58,6 +58,26 @@
                meta
                :tag))))
 
+(t/deftest propagates-fn-call-type-hint
+  (t/testing "Tag info for a function call form should be included in the instrumented form (#308)"
+    ;; e.g. (str "Oops") -> ^String (do ((do str) (do "Oops")))
+    (let [form         `(new java.lang.IllegalArgumentException (str "No matching clause"))
+          instrumented (rw/macroexpand-all (inst/wrap #'cov/track-coverage 0 form))]
+      (t/is (= `(do
+                  (cov/cover 0)
+                  (new java.lang.IllegalArgumentException
+                       (do (cov/cover 1)
+                           ((do (cov/cover 2) str)
+                            (do (cov/cover 3) "No matching clause")))))
+               instrumented))
+      (let [fn-call-form (-> instrumented last last)]
+        (t/is (= `(do (cov/cover 1)
+                      ((do (cov/cover 2) str)
+                       (do (cov/cover 3) "No matching clause")))
+                 fn-call-form))
+        (t/is (= java.lang.String
+                 (:tag (meta fn-call-form))))))))
+
 ;; TODO: all test-wrap-X tests should be split in one test that checks
 ;; whether wrap works correctly, and one that checks track-coverage.
 (t/deftest test-wrap-primitives

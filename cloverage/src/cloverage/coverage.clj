@@ -73,9 +73,11 @@
   "Eval the given form and record that the given line on the given
   files was run."
   [idx form]
-  `(do
-     (cover ~idx)
-     ~form))
+  (with-meta
+    `(do
+       (cover ~idx)
+       ~form)
+    (meta form)))
 
 (defn parse-form
   [form line-hint]

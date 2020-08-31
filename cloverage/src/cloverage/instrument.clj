@@ -176,8 +176,12 @@
                   (seq? form)           (list-type form env)
                   (coll? form)          :coll
                   :else                 :atomic)]
-    (d/tprnl "Type of" (class form) form "is" res)
-    (d/tprnl "Meta of" form "is" (meta form))
+    (d/tprf "Type of %s %s is %s\n"
+            (some-> form class .getCanonicalName)
+            (str (when (meta form)
+                   (format "^%s " (pr-str (meta form))))
+                 (pr-str form))
+            res)
     res))
 
 (defn- var->sym [^clojure.lang.Var fvar]
@@ -452,17 +456,42 @@
 (defmethod do-wrap :for [f line form env]
   (do-wrap f line (unchunk form) env))
 
-(defmethod do-wrap :list [f line form env]
-  (d/tprnl "Wrapping " (class form) form)
+(defn- propagate-fn-call-tag
+  "Propagate type `:tag` metadata from the symbol in function position in the original form to the resulting
+  instrumented form e.g.
+
+    (propagate-fn-call-tag (str \"Ok\") (do (do str) (do \"Ok\")))
+    ;; -> ^String (do (do str) (do \"Ok\"))
+
+  This is done so the resulting instrumented form will have the same type tag information as the compiler would have
+  inferred from the original non-instrumented version."
+  [[head :as original-form] instrumented-form]
+  (let [form-tag (some (comp :tag meta)
+                       [original-form
+                        (when (symbol? head) (resolve head))
+                        head])]
+    (d/tprf "Propagating tag %s from form %s\n" (pr-str form-tag) (pr-str original-form))
+    (cond-> instrumented-form
+      form-tag (vary-meta update :tag (fn [existing-tag]
+                                        (or existing-tag form-tag))))))
+
+(defmethod do-wrap :list
+  [f line form env]
+  (d/tprnl "Wrapping list" (class form) (pr-str form))
   (let [expanded (macroexpand-1 form)]
     (if (identical? form expanded)
       ;; if this list is *not* a macro form, then recursively wrap each item in the list.
-      (let [wrapped (doall (map (wrapper f line) expanded))]
-        (f line (add-original form wrapped)))
-      ;; otherwise recursively wrap the entire expanded form.
+      (let [wrapped (->> (doall (map (wrapper f line) form))
+                         (add-original form)
+                         (propagate-fn-call-tag form))]
+        (d/tprf "Wrapped list ^%s %s\n-> ^%s %s\n" (pr-str (meta form)) (pr-str form)
+                (pr-str (meta wrapped)) (pr-str wrapped))
+        (f line wrapped))
+      ;; if list is a macro call: recursively wrap the entire expanded form
       (do
-        (d/tprnl "Expanded" form "into" expanded)
-        (d/tprnl "Meta on expanded is" (meta expanded))
+        (d/tprf "Expanded ^%s %s into ^%s %s\n"
+                (pr-str (meta form)) (pr-str form)
+                (pr-str (meta expanded)) (pr-str expanded))
         (do-wrap f line (add-original form expanded) env)))))
 
 (defn wrap-deftype-defrecord-method [f line [meth-name args & body :as method-form]]
@@ -544,7 +573,7 @@
                       e)))))
 
 (defn instrument-form
-  "Instrument a single `form`. Returns instrumented form."
+  "Instrument and evaluate a single `form`. Returns instrumented form."
   [f-var filename form]
   (let [line-hint (:line (meta form))]
     (try
@@ -567,13 +596,14 @@
       ;; form, so we can continue
       (catch Throwable e
         (log/error (.getMessage e) "\n"
-                   (binding [*print-meta* true]
+                   (binding [*print-meta*                true
+                             pprint/*print-right-margin* 120]
                      (with-out-str (pprint/pprint (Throwable->map e)))))
         (eval-form filename form line-hint form)
         form))))
 
 (defn instrument-file
-  "Instrument all the forms in a file. Returns sequence of instrumented forms."
+  "Instrument and evaluate all the forms in a file. Returns sequence of instrumented forms."
   [f-var lib filename]
   (with-open [source-reader (source/form-reader lib)]
     (transduce
@@ -602,7 +632,7 @@
 (defn nop
   "Instrument form with expressions that do nothing."
   [_ form]
-  `(do ~form))
+  (with-meta `(do ~form) (meta form)))
 
 (defn no-instr
   "Do not change form at all."
