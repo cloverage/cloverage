@@ -387,8 +387,10 @@
   ;;
   ;; both syntaxes are possible and equivalent
   ;;
-  ;; If `class-or-instance` is a symbol (i.e., a class name), don't wrap it so we don't lose type information
-  (let [wrapped-class-or-instance (if (symbol? class-or-instance)
+  ;; If `class-or-instance` is a symbol (i.e., a class name) or a class itself, don't wrap it so we don't lose type
+  ;; information
+  (let [wrapped-class-or-instance (if (or (symbol? class-or-instance)
+                                          (class? class-or-instance))
                                     class-or-instance
                                     (wrap f line class-or-instance))]
     (f
