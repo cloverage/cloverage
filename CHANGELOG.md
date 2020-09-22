@@ -19,6 +19,7 @@ in github. Commentary on the change should appear as a nested, unordered list.
   - Fix instrumention of inlined function calls like `int` (#277, #304)
   - Performance improvements (#304)
   - Instrument the class-or-instance part of Java interop forms (#306, #307)
+  - Propagate tag metadata when instrumenting function call forms (#308, #310)
 
 ## 1.2.0 (BUGFIX RELEASE)
 

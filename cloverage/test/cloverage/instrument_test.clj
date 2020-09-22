@@ -190,12 +190,49 @@
 
 (t/deftest test-instrumenting-fn-forms-preserves-metadata
   (let [form         '(.submit clojure.lang.Agent/pooledExecutor ^java.lang.Runnable (fn []))
-        instrumented (rw/macroexpand-all (inst/instrument-form #'inst/no-instr nil ^{:line 1} form))]
-    (t/is (= '(. clojure.lang.Agent/pooledExecutor submit (fn* ([])))
+        instrumented (rw/macroexpand-all (inst/instrument-form #'inst/nop nil ^{:line 1} form))]
+    (t/is (= '(do (. clojure.lang.Agent/pooledExecutor submit (do (fn* ([])))))
              instrumented))
-    (t/testing "metadata on the fn form should be preserved"
-      (t/is (= 'java.lang.Runnable
-               (:tag (meta (nth instrumented 3))))))))
+    (let [[_ fn-form :as do-form] (-> instrumented last last)]
+      (t/testing "metadata on the fn form should be propagated to the wrapper instrumentation form"
+        (t/is (= '(do (fn* ([])))
+                 do-form))
+        (t/is (= 'java.lang.Runnable
+                 (:tag (meta do-form)))))
+      (t/testing "metadata on the fn form should be preserved"
+        (t/is (= '(fn* ([]))
+                 fn-form))
+        (t/is (= 'java.lang.Runnable
+                 (:tag (meta fn-form))))))))
+
+(t/deftest test-instrumenting-fn-call-forms-propogates-metadata
+  (t/testing "Tag info for a function call form should be included in the instrumented form (#308)"
+    ;; e.g. (str "Oops") -> ^String (do ((do str) (do "Oops")))
+    (let [form         '(new java.lang.IllegalArgumentException (str "No matching clause"))
+          instrumented (rw/macroexpand-all (inst/wrap #'inst/nop nil form))]
+      (t/is (= '(do (new java.lang.IllegalArgumentException (do ((do str) (do "No matching clause")))))
+               instrumented))
+      (let [fn-call-form (-> instrumented last last)]
+        (t/is (= '(do ((do str) (do "No matching clause")))
+                 fn-call-form))
+        (t/is (= java.lang.String
+                 (:tag (meta fn-call-form)))))))
+
+  (t/testing "Should also work if tag was specified on the entire form"
+    (let [form         '(let [my-str (fn [& args]
+                                       (apply str args))]
+                          (new java.lang.IllegalArgumentException ^String (my-str "No matching clause")))
+          instrumented (rw/macroexpand-all (inst/wrap #'inst/nop nil form))]
+      (t/is (= '(do (let* [my-str (do (fn* ([& args]
+                                            (do ((do apply) (do str) (do args))))))]
+                          (do (new java.lang.IllegalArgumentException
+                                   (do ((do my-str) (do "No matching clause")))))))
+               instrumented))
+      (let [fn-call-form (-> instrumented last last last last)]
+        (t/is (= '(do ((do my-str) (do "No matching clause")))
+                 fn-call-form))
+        (t/is (= 'String
+                 (:tag (meta fn-call-form))))))))
 
 (t/deftest test-coll-preserves-metadata
   (let [form         ^:preserved? [:foo :bar]

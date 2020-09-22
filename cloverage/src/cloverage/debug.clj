@@ -1,19 +1,27 @@
 (ns cloverage.debug
-  (:require [clojure.pprint]
-            [clojure.java.io :refer [writer]]))
+  (:require [clojure.java.io :refer [writer]]
+            clojure.pprint))
 
-(def ^:dynamic *debug* false)
-;; debug output
-(defn tprn [& args]
+(def ^:dynamic *debug*
+  "Whether to enable Cloverage debugging output."
+  false)
+
+(defn tprn
+  "Like `clojure.pprint/pprint`, but only prints when Cloverage debugging is enabled."
+  [& args]
   (when *debug*
     (run! clojure.pprint/pprint args)
     (newline)))
 
-(defn tprnl [& args]
+(defn tprnl
+  "Like `println`, but only prints when Cloverage debugging is enabled."
+  [& args]
   (when *debug*
     (apply println args)))
 
-(defn tprf [& args]
+(defn tprf
+  "Like `printf`, but only prints when Cloverage debugging is enabled."
+  [& args]
   (when *debug*
     (apply printf args)))
 
