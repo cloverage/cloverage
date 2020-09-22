@@ -50,6 +50,7 @@ jobs:
           name: (cloverage) eastwood 2
           command: lein eastwood "{:namespaces [cloverage.sample.exercise-instrumentation]
                                    :exclude-linters [:unused-ret-vals
+                                                     :suspicious-expression
                                                      :suspicious-test
                                                      :constant-test
                                                      :wrong-pre-post]}"
