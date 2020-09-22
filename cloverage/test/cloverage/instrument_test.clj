@@ -295,7 +295,7 @@
     (t/testing "(. class-or-instance (method & args)) syntax"
       (t/is (= '(do (. clojure.lang.RT (count (do [(do 3) (do 4)]))))
                (rw/macroexpand-all (inst/instrument-form #'inst/nop nil '(. clojure.lang.RT (count [3 4])))))))
-    (t/testing "class-or-instance part of Java interop form should get instrumented (#306)"
+    (t/testing "class-or-instance part of Java interop form should get instrumented if not a class or symbol (#306)"
       (t/is (= '(do (. (do (let* [x (do 1)]
                                  (do ((do str)
                                       (do "X is")
@@ -304,7 +304,13 @@
                        getName))
                (rw/macroexpand-all (inst/instrument-form #'inst/nop nil '(.getName (let [x 1]
                                                                                      (str "X is" x)
-                                                                                     (Thread/currentThread))))))))))
+                                                                                     (Thread/currentThread)))))))
+      (t/testing "Class should not get instrumented (#309)"
+        (let [form (list '. clojure.lang.RT 'nth [:a :b :c] 0 nil)]
+          (t/is (= :a
+                   (eval form)))
+          (t/is (= (list 'do (list '. clojure.lang.RT 'nth '(do [(do :a) (do :b) (do :c)]) '(do 0) '(do nil)))
+                   (rw/macroexpand-all (inst/instrument-form #'inst/nop nil form)))))))))
 
 (t/deftest instrument-inlined-primitives-test
   (t/testing "Inline primitive cast functions like int() should be instrumented correctly (#277)"
