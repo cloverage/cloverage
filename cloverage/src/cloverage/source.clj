@@ -75,7 +75,8 @@
   [source-reader]
   ;; `read-form` will return `nil` at the end of the file so keep reading forms until we run out
   (letfn [(read-form []
-            (binding [*read-eval* false]
+            (binding [*read-eval* false
+                      r/*data-readers* *data-readers*]
               (r/read {:eof       ::eof
                        :features  #{:clj}
                        :read-cond :allow}
