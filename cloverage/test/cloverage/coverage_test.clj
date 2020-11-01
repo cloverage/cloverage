@@ -388,3 +388,31 @@
          "--emma-xml"
          "--ns-regex" "cloverage.*"
          "--ns-exclude-regex" ".*"))))))
+
+(t/deftest test-require-ns
+  (t/is (= 'cloverage.coverage-test
+           (ns-name (#'cov/require-ns "cloverage.coverage-test")))))
+
+(t/deftest test-runner-fn-eftest
+  (let [opts {:runner :eftest
+              :src-ns-path ["src"]
+              :test-ns-path ["test"]}]
+    (t/testing "check that eftest runner-fn just runs with opts as a seq of vectors, no errors"
+      (let [runner-opts {:runner-opts '([:test-warn-time 100]
+                                        [:multithread? false])}]
+        (with-redefs [cov/resolve-var (fn [x] (constantly {:error 0 :fail 0}))
+                      cov/find-nses (constantly [])
+                      cov/require-ns (constantly "test")
+                      require (constantly nil)]
+          (t/is (= {:errors 0}
+                   ((cov/runner-fn (merge opts runner-opts)) []))))))
+
+    (t/testing "check that eftest runner-fn just runs with opts as a map and returns errors"
+      (let [runner-opts {:runner-opts {:test-warn-time 100
+                                       :multithread? false}}]
+        (with-redefs [cov/resolve-var (fn [x] (constantly {:error 1 :fail 2}))
+                      cov/find-nses (constantly [])
+                      cov/require-ns (constantly "test")
+                      require (constantly nil)]
+          (t/is (= {:errors 3}
+                   ((cov/runner-fn (merge opts runner-opts)) []))))))))

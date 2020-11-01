@@ -190,6 +190,13 @@
     (ns-resolve (or ns *ns*)
                 (symbol (name sym)))))
 
+(defn- require-ns
+  "Require and return namespace by given string."
+  [ns-str]
+  (let [ns-sym (symbol ns-str)]
+    (require ns-sym)
+    (find-ns ns-sym)))
+
 (defmulti runner-fn :runner)
 
 (defmethod runner-fn :midje [_]
@@ -211,13 +218,33 @@
             (junit/with-junit-output (run-tests))))
         (run-tests)))))
 
+(defmethod runner-fn :eftest
+  [{:keys [runner-opts] :as opts}]
+  (fn [nses]
+    (let [find-tests-fn (resolve-var 'eftest.runner/find-tests)
+          run-tests-fn (resolve-var 'eftest.runner/run-tests)
+          eftest-opts (if (and (seq runner-opts)
+                               (not (map? runner-opts)))
+                        (into {} runner-opts)
+                        runner-opts)
+          extra-test-ns (or (seq (:extra-test-ns opts)) [])
+          test-namespaces (->> (find-nses (:test-ns-path opts) (:test-ns-regex opts))
+                               (concat extra-test-ns)
+                               (set)
+                               (map require-ns)
+                               (seq))
+          test-vars (find-tests-fn test-namespaces)
+          results (run-tests-fn test-vars eftest-opts)]
+      (apply require (map symbol nses))
+      {:errors (reduce + ((juxt :error :fail) results))})))
+
 (defmethod runner-fn :default [_]
   (throw (IllegalArgumentException.
-          "Runner not found. Built-in runners are `clojure.test` and `midje`.")))
+          "Runner not found. Built-in runners are `clojure.test`, `midje` and `eftest`.")))
 
 (defn run-tests [{:keys [runner test-selectors selector junit?], :as opts} test-nses]
   ;; load runner multimethod definition from other dependencies
-  (when-not (#{:clojure.test :midje} runner)
+  (when-not (#{:clojure.test :midje :eftest} runner)
     (try (require (symbol (format "%s.cloverage" (name runner))))
          (catch FileNotFoundException _)))
   (let [test-result (when (seq test-nses)

@@ -31,7 +31,7 @@ Add the following to your user-wide Leiningen profiles file `~/.lein/profiles.cl
 
 ## Testing frameworks support
 
-Cloverage uses `clojure.test` by default. If you prefer use `midje`, pass the `--runner :midje` flag. (In older versions of Cloverage, you had to wrap your midje tests in clojure.test's deftest. This is no longer necessary.) Other test libraries may ship with their own support for Cloverage external to this library; see their documentation for details.
+Cloverage uses `clojure.test` by default. If you prefer use `midje`, pass the `--runner :midje` flag. (In older versions of Cloverage, you had to wrap your midje tests in clojure.test's deftest. This is no longer necessary.) For using `eftest`, pass the `--runner :eftest` flag. Optionally you could configure a runner passing `:runner-opts` with a map in project settings. Other test libraries may ship with their own support for Cloverage external to this library; see their documentation for details.
 
 ## Usage
 
@@ -68,7 +68,8 @@ Available options and command-line arguments:
  :low-watermark    --low-watermark              50               Sets the low watermark percentage (valid values 0..100). Default: 50%
  :high-watermark   --high-watermark             80               Sets the high watermark percentage (valid values 0..100). Default: 80%
  :debug?           -d, --no-debug, --debug      false            Output debugging information to stdout.
- :runner           -r, --runner                 :clojure.test    Specify which test runner to use. Built-in runners are `clojure.test` and `midje`.
+ :runner           -r, --runner                 :clojure.test    Specify which test runner to use. Built-in runners are `clojure.test`, `midje` and `eftest`.
+ :runner-opts      (not allowed as a cli arg)   {}               Configure specified runner with any options map.
  :nop?             --no-nop, --nop              false            Instrument with noops.
  :ns-regex         -n, --ns-regex               []               Regex for instrumented namespaces (can be repeated).
  :ns-exclude-regex -e, --ns-exclude-regex       []               Regex for namespaces not to be instrumented (can be repeated).

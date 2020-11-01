@@ -41,6 +41,7 @@
    :exclude-call     symbols?
    :src-ns-path      regexes-or-strings?
    :runner           keyword?
+   :runner-opts      map?
    :test-ns-path     regexes-or-strings?
    :custom-report    symbol?})
 
@@ -136,7 +137,7 @@
    ["-d" "--[no-]debug"
     "Output debugging information to stdout." :default false]
    ["-r" "--runner"
-    "Specify which test runner to use. Built-in runners are `clojure.test` and `midje`."
+    "Specify which test runner to use. Built-in runners are `clojure.test`, `midje` and `eftest`."
     :default :clojure.test
     :parse-fn parse-kw-str]
    ["--[no-]nop" "Instrument with noops." :default false]
