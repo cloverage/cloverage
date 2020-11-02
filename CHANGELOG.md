@@ -10,6 +10,7 @@ in github. Commentary on the change should appear as a nested, unordered list.
 ## 1.2.2 (WIP)
 
 - Use Known Data Readers while Reading Forms
+- Support for eftest as a test runner with `--runner :eftest` (#314)
 
 ## 1.2.1
 
