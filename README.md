@@ -18,7 +18,7 @@ Cloverage can be included into specific projects as a plugin and also be install
 Add the following to your `project.clj` metadata:
 
 ``` clojure
-:plugins [[lein-cloverage "1.1.2"]]
+:plugins [[lein-cloverage "1.2.2"]]
 ```
 
 ### Install Cloverage to all Leiningen managed projects
@@ -26,7 +26,7 @@ Add the following to your `project.clj` metadata:
 Add the following to your user-wide Leiningen profiles file `~/.lein/profiles.clj`:
 
 ``` clojure
-{:user {:plugins [[lein-cloverage "1.1.2"]]}}
+{:user {:plugins [[lein-cloverage "1.2.2"]]}}
 ```
 
 ## Testing frameworks support
