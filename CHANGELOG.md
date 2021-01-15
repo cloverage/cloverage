@@ -7,7 +7,11 @@ provide a short summary description of the particular changes of the patch.
 Include the issue number (#xxx) which will link back to the originating issue
 in github. Commentary on the change should appear as a nested, unordered list.
 
-## 1.2.2 (WIP)
+## 1.3.0
+
+Nothing yet!
+
+## 1.2.2
 
 - Use known data readers while reading forms (#313)
 - Support for eftest as a test runner with `--runner :eftest` (#314)
