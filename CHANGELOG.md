@@ -9,7 +9,7 @@ in github. Commentary on the change should appear as a nested, unordered list.
 
 ## 1.3.0
 
-Nothing yet!
+- Fix loss of isolated namespaces during reordering (#312)
 
 ## 1.2.2
 

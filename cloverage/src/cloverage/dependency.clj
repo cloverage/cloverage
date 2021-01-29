@@ -27,4 +27,7 @@
 (defn in-dependency-order
   "Sort a list of namespace symbols so that any namespace occurs after its dependencies."
   [ns-symbols]
-  (ns.deps/topo-sort (dependencies-graph ns-symbols)))
+  (-> (dependencies-graph ns-symbols)
+      ns.deps/topo-sort
+      (concat ns-symbols)
+      distinct))

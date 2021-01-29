@@ -102,3 +102,12 @@
              clojure.lang.ExceptionInfo
              #"Circular dependency between c and a"
              (cd/in-dependency-order '[a b c]))))))
+
+(t/deftest isolated-namespace-test
+  (t/testing "Isolated namespaces should be included in the result"
+    (with-redefs [source/ns-form (fn [ns-symbol]
+                                   (condp = ns-symbol
+                                     'a '(ns a)
+                                     'b '(ns b)
+                                     'c '(ns c (:require b))))]
+      (t/is (= '[b c a] (cd/in-dependency-order '[a b c]))))))
