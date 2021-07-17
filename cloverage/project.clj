@@ -30,13 +30,8 @@
                    :plugins [[lein-cljfmt "0.6.4"]
                              [jonase/eastwood "0.8.1"]
                              [lein-kibit "0.1.7"]]
-                   :eastwood {:exclude-linters [:no-ns-form-found]
-                              :ignored-faults {:unused-ret-vals {cloverage.sample.exercise-instrumentation true}
-                                               :suspicious-expression {cloverage.sample.exercise-instrumentation true}
-                                               :suspicious-test {cloverage.sample.exercise-instrumentation true}
-                                               :constant-test {cloverage.sample.exercise-instrumentation true}
-                                               :wrong-pre-post {cloverage.sample.exercise-instrumentation true}}}
                    :global-vars {*warn-on-reflection* true}
+                   :resource-paths ["dev-resources"]
                    :source-paths ["repl"]}
              :1.4 {:dependencies [[org.clojure/clojure "1.4.0"]]}
              :1.5 {:dependencies [[org.clojure/clojure "1.5.1"]]}
