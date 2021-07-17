@@ -29,6 +29,6 @@
 
   :min-lein-version "2.0.0"
   :profiles {:dev {:plugins [[lein-cljfmt "0.6.4"]
-                             [jonase/eastwood "0.3.6"]
+                             [jonase/eastwood "0.8.1"]
                              [lein-kibit "0.1.7"]]}}
   :eval-in-leiningen true)
