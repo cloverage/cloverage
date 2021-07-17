@@ -40,20 +40,8 @@ jobs:
           command: lein cljfmt check
           working_directory: ./cloverage
       - run:
-          name: (cloverage) eastwood 1
-          # excluding the "exercise-instrumentation" namespace because it intentionally does
-          # things that eastwood will also flag.
-          command: lein eastwood "{:exclude-namespaces [cloverage.sample.exercise-instrumentation]}"
-          working_directory: ./cloverage
-      - run:
-          # running just the "exercise-instrumentation" namespace with certain linters turned off
-          name: (cloverage) eastwood 2
-          command: lein eastwood "{:namespaces [cloverage.sample.exercise-instrumentation]
-                                   :exclude-linters [:unused-ret-vals
-                                                     :suspicious-expression
-                                                     :suspicious-test
-                                                     :constant-test
-                                                     :wrong-pre-post]}"
+          name: (cloverage) eastwood
+          command: lein eastwood
           working_directory: ./cloverage
       - run:
           name: (cloverage) kibit

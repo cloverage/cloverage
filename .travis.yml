@@ -16,13 +16,7 @@ before_script:
   - |
     (cd cloverage && \
         lein do cljfmt check, \
-                eastwood "{:exclude-namespaces [cloverage.sample.exercise-instrumentation]}", \
-                eastwood "{:namespaces [cloverage.sample.exercise-instrumentation] \
-                           :exclude-linters [:unused-ret-vals \
-                                             :suspicious-expression \
-                                             :suspicious-test \
-                                             :constant-test \
-                                             :wrong-pre-post]}", \
+                eastwood , \
                 kibit)
   - (cd lein-cloverage && lein do cljfmt check, eastwood, kibit)
 
