@@ -4,6 +4,9 @@ jobs:
     docker:
       - image: clojure:lein-2.9.1
     steps:
+      - run:
+          name: Remove often erroneous Git config
+          command: rm -rf /home/circleci/.gitconfig
       - checkout
 
       ################################################################################
@@ -31,9 +34,7 @@ jobs:
 
       - run:
           name: (cloverage) tests
-          # "with-profile +sample" is needed to pull in a file with circular dependencies
-          # that the eastwood check (see below) isn't able to instrument.
-          command: lein with-profile +sample test
+          command: lein test
           working_directory: ./cloverage
       - run:
           name: (cloverage) cljfmt
