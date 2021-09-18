@@ -1,10 +1,11 @@
 (ns cloverage.report-test
   (:require
-   [clojure.test :refer :all]
-   [cloverage.report :refer :all]
-   [cloverage.report.html :refer [relative-path]]
-   [clojure.tools.reader :as r]
-   [clojure.java.io :as io]))
+   [clojure.java.io :as io]
+   [clojure.test :refer [deftest is]]
+   [cloverage.report.lcov :as lcov]
+   [cloverage.source :as source]
+   [cloverage.report :as sut]
+   [cloverage.report.html :refer [relative-path]]))
 
 (defn- parse-readable
   "parse in all forms from reader"
@@ -40,24 +41,24 @@
   (is (= "" (relative-path (io/file "dir/file/") (io/file "dir/file/")))))
 
 (deftest total-stats-zero
-  (is (= {:percent-lines-covered 0.0, :percent-forms-covered 0.0} (total-stats {}))))
+  (is (= {:percent-lines-covered 0.0, :percent-forms-covered 0.0} (sut/total-stats {}))))
 
 (deftest gather-starts-works-on-empty-forms
-  (is (= [] (gather-stats []))))
+  (is (= [] (sut/gather-stats []))))
 
 (deftest gather-stats-converts-file-forms
-  (with-redefs [cloverage.report/postprocess-file (fn [lib file forms] {:lib lib :file file})]
-    (is (= '([:lib "lib"] [:file "file"]) (gather-stats [{:lib "lib" :file "file" :line 1}])))))
+  (with-redefs [sut/postprocess-file (fn [lib file forms] {:lib lib :file file})]
+    (is (= '([:lib "lib"] [:file "file"]) (sut/gather-stats [{:lib "lib" :file "file" :line 1}])))))
 
 (deftest gather-starts-converts-raw-forms
-  (with-redefs [cloverage.source/resource-reader (fn [filename] (io/reader (get-resource-as-stream filename)))]
-    (is (= test-gathered-forms (gather-stats test-raw-forms)))))
+  (with-redefs [source/resource-reader (fn [filename] (io/reader (get-resource-as-stream filename)))]
+    (is (= test-gathered-forms (sut/gather-stats test-raw-forms)))))
 
 (deftest lcov-report-writes-empty-report-with-no-forms
-  (let [report (with-out-str (#'cloverage.report.lcov/write-lcov-report []))]
+  (let [report (with-out-str (lcov/write-lcov-report []))]
     (is (= "" report))))
 
 (deftest lcov-report-writes-report-with-forms
   (let [test-forms test-gathered-forms
-        report (with-out-str (#'cloverage.report.lcov/write-lcov-report test-forms))]
+        report (with-out-str (lcov/write-lcov-report test-forms))]
     (is (= "TN:\nSF:dev-resources/cloverage/sample/dummy_sample.clj\nDA:1,1\nDA:5,1\nDA:7,0\nLF:3\nLH:2\nend_of_record\n" report))))
