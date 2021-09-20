@@ -24,6 +24,8 @@
                  [slingshot "0.12.2"]]
   :profiles {:dev {:aot ^:replace []
                    :dependencies [[org.clojure/clojure "1.10.1"]
+                                  [lambdaisland/kaocha "1.0.887"]
+                                  [lambdaisland/kaocha-cloverage "1.0.75"]
                                   [pjstadig/humane-test-output "0.10.0"]]
                    :injections [(require 'pjstadig.humane-test-output)
                                 (pjstadig.humane-test-output/activate!)]
@@ -42,4 +44,5 @@
              :1.10 {:dependencies [[org.clojure/clojure "1.10.1"]]}
              :test {:source-paths ["sample"]
                     :jvm-opts ["-Duser.language=en-US"]}}
-  :aliases {"all" ["with-profile" "+1.4:+1.5:+1.6:+1.7:+1.8:+1.9:+1.10"]})
+  :aliases {"all" ["with-profile" "+1.4:+1.5:+1.6:+1.7:+1.8:+1.9:+1.10"]
+            "kaocha" ["with-profile" "dev" "run" "-m" "kaocha.runner"]})
