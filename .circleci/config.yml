@@ -31,7 +31,7 @@ jobs:
 
       - run:
           name: (cloverage) tests
-          command: lein test
+          command: lein kaocha
           working_directory: ./cloverage
       - run:
           name: (cloverage) cljfmt
