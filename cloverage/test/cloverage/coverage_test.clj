@@ -165,10 +165,10 @@
   (t/is (not (nil? (inst/wrap #'cov/track-coverage 0 '(for [i (range 5)] i))))))
 
 (t/deftest test-wrap-str
-  (inst/wrap #'cov/track-coverage 0
-             '(defn -main [& args]
-                (doseq [file (file-seq ".")]
-                  (println "File is" file)))))
+  (t/is (= 4 (count (inst/wrap #'cov/track-coverage 0
+                               '(defn -main [& args]
+                                  (doseq [file (file-seq ".")]
+                                    (println "File is" file))))))))
 
 (t/deftest test-eval-atomic
   (t/is (= 1 (eval (inst/wrap #'cov/track-coverage 0 1))))
