@@ -34,7 +34,7 @@
                              [lein-kibit "0.1.7"]]
                    :global-vars {*warn-on-reflection* true}
                    :resource-paths ["dev-resources"]
-                   :source-paths ["repl"]}
+                   :source-paths ["repl" "sample"]}
              :1.4 {:dependencies [[org.clojure/clojure "1.4.0"]]}
              :1.5 {:dependencies [[org.clojure/clojure "1.5.1"]]}
              :1.6 {:dependencies [[org.clojure/clojure "1.6.0"]]}
