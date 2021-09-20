@@ -4,7 +4,8 @@
             [cloverage.coverage :as cov]
             [cloverage.instrument :as inst]
             [cloverage.source :as src]
-            [riddley.walk :as rw])
+            [riddley.walk :as rw]
+            [clojure.java.io :as io])
   (:import java.io.File))
 
 (defn- denamespace
@@ -359,6 +360,25 @@
             "-x" "cloverage.sample.exercise-instrumentation"
             "cloverage.sample.exercise-instrumentation")
            0))))
+
+(defn- equal-content? [fname dir-a dir-b]
+  (= (slurp (io/file dir-a fname))
+     (slurp (io/file dir-b fname))))
+
+(t/deftest test-all-reporters
+  (let [generated-files ["coverage.txt" "index.html" "coverage.xml" "lcov.info" "coveralls.json"
+                         #_#_#_"raw-data.clj" "raw-stats.clj" "codecov.json"]]
+    (doseq [f generated-files]
+      (clojure.java.io/delete-file (io/file "out" f) true))
+
+    (binding [cov/*exit-after-test* false]
+      (cov/-main
+       "-o" "out"
+       "--junit" "--text" "--html" "--raw" "--emma-xml" "--coveralls" "--codecov" "--lcov"
+       "-x" "cloverage.sample.exercise-instrumentation"
+       "cloverage.sample.exercise-instrumentation")
+      (doseq [fname generated-files]
+        (t/is (equal-content? fname "out" "test/resources") (str "Failing for file: " fname))))))
 
 (t/deftest test-cyclic-dependency
   (binding [cov/*exit-after-test* false]

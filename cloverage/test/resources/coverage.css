@@ -1,0 +1,40 @@
+.covered {
+    font-family:  'Bitstream Vera Sans Mono', 'Courier', monospace;
+    background-color: #558B55;
+}
+
+.not-covered {
+    font-family:  'Bitstream Vera Sans Mono', 'Courier', monospace;
+    background-color: red;
+}
+
+.partial {
+    font-family:  'Bitstream Vera Sans Mono', 'Courier', monospace;
+    background-color: orange;
+}
+
+.not-tracked {
+    font-family:  'Bitstream Vera Sans Mono', 'Courier', monospace;
+}
+
+.blank {
+    font-family:  'Bitstream Vera Sans Mono', 'Courier', monospace;
+}
+
+td {
+    padding-right: 10px;
+}
+
+td.with-bar {
+    width: 250px;
+    text-align: center;
+}
+
+td.with-number {
+    text-align: right;
+}
+
+td.ns-name {
+    min-width: 150px;
+    padding-right: 25px;
+}

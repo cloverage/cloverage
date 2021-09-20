@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+    <testsuite name="exercise-instrumentation" package="cloverage.sample">
+        <testcase name="test-partially-covered" classname="cloverage.sample.exercise-instrumentation">
+        </testcase>
+        <testcase name="test-fully-covered-cond" classname="cloverage.sample.exercise-instrumentation">
+        </testcase>
+        <testcase name="test-mixed-multi" classname="cloverage.sample.exercise-instrumentation">
+        </testcase>
+        <testcase name="failing-transaction" classname="cloverage.sample.exercise-instrumentation">
+        </testcase>
+        <testcase name="CLJ-1330-workaround" classname="cloverage.sample.exercise-instrumentation">
+        </testcase>
+        <testcase name="test-permutation" classname="cloverage.sample.exercise-instrumentation">
+        </testcase>
+        <testcase name="test-palindrome" classname="cloverage.sample.exercise-instrumentation">
+        </testcase>
+        <testcase name="test-fully-covered-multi" classname="cloverage.sample.exercise-instrumentation">
+        </testcase>
+        <testcase name="test-fully-covered" classname="cloverage.sample.exercise-instrumentation">
+        </testcase>
+    </testsuite>
+    <testsuite name="cyclic-dependency" package="cloverage.sample">
+    </testsuite>
+    <testsuite name="exercise-instrumentation" package="cloverage.sample">
+        <testcase name="test-partially-covered" classname="cloverage.sample.exercise-instrumentation">
+        </testcase>
+        <testcase name="test-fully-covered-cond" classname="cloverage.sample.exercise-instrumentation">
+        </testcase>
+        <testcase name="test-mixed-multi" classname="cloverage.sample.exercise-instrumentation">
+        </testcase>
+        <testcase name="failing-transaction" classname="cloverage.sample.exercise-instrumentation">
+        </testcase>
+        <testcase name="CLJ-1330-workaround" classname="cloverage.sample.exercise-instrumentation">
+        </testcase>
+        <testcase name="test-permutation" classname="cloverage.sample.exercise-instrumentation">
+        </testcase>
+        <testcase name="test-palindrome" classname="cloverage.sample.exercise-instrumentation">
+        </testcase>
+        <testcase name="test-fully-covered-multi" classname="cloverage.sample.exercise-instrumentation">
+        </testcase>
+        <testcase name="test-fully-covered" classname="cloverage.sample.exercise-instrumentation">
+        </testcase>
+    </testsuite>
+    <testsuite name="exercise-instrumentation" package="cloverage.sample">
+        <testcase name="test-partially-covered" classname="cloverage.sample.exercise-instrumentation">
+        </testcase>
+        <testcase name="test-fully-covered-cond" classname="cloverage.sample.exercise-instrumentation">
+        </testcase>
+        <testcase name="test-mixed-multi" classname="cloverage.sample.exercise-instrumentation">
+        </testcase>
+        <testcase name="failing-transaction" classname="cloverage.sample.exercise-instrumentation">
+        </testcase>
+        <testcase name="CLJ-1330-workaround" classname="cloverage.sample.exercise-instrumentation">
+        </testcase>
+        <testcase name="test-permutation" classname="cloverage.sample.exercise-instrumentation">
+        </testcase>
+        <testcase name="test-palindrome" classname="cloverage.sample.exercise-instrumentation">
+        </testcase>
+        <testcase name="test-fully-covered-multi" classname="cloverage.sample.exercise-instrumentation">
+        </testcase>
+        <testcase name="test-fully-covered" classname="cloverage.sample.exercise-instrumentation">
+        </testcase>
+    </testsuite>
+    <testsuite name="cyclic-dependency" package="cloverage.sample">
+    </testsuite>
+    <testsuite name="exercise-instrumentation" package="cloverage.sample">
+        <testcase name="test-partially-covered" classname="cloverage.sample.exercise-instrumentation">
+        </testcase>
+        <testcase name="test-fully-covered-cond" classname="cloverage.sample.exercise-instrumentation">
+        </testcase>
+        <testcase name="test-mixed-multi" classname="cloverage.sample.exercise-instrumentation">
+        </testcase>
+        <testcase name="failing-transaction" classname="cloverage.sample.exercise-instrumentation">
+        </testcase>
+        <testcase name="CLJ-1330-workaround" classname="cloverage.sample.exercise-instrumentation">
+        </testcase>
+        <testcase name="test-permutation" classname="cloverage.sample.exercise-instrumentation">
+        </testcase>
+        <testcase name="test-palindrome" classname="cloverage.sample.exercise-instrumentation">
+        </testcase>
+        <testcase name="test-fully-covered-multi" classname="cloverage.sample.exercise-instrumentation">
+        </testcase>
+        <testcase name="test-fully-covered" classname="cloverage.sample.exercise-instrumentation">
+        </testcase>
+    </testsuite>
+    <testsuite name="cyclic-dependency" package="cloverage.sample">
+    </testsuite>
+    <testsuite name="exercise-instrumentation" package="cloverage.sample">
+        <testcase name="test-partially-covered" classname="cloverage.sample.exercise-instrumentation">
+        </testcase>
+        <testcase name="test-fully-covered-cond" classname="cloverage.sample.exercise-instrumentation">
+        </testcase>
+        <testcase name="test-mixed-multi" classname="cloverage.sample.exercise-instrumentation">
+        </testcase>
+        <testcase name="failing-transaction" classname="cloverage.sample.exercise-instrumentation">
+        </testcase>
+        <testcase name="CLJ-1330-workaround" classname="cloverage.sample.exercise-instrumentation">
+        </testcase>
+        <testcase name="test-permutation" classname="cloverage.sample.exercise-instrumentation">
+        </testcase>
+        <testcase name="test-palindrome" classname="cloverage.sample.exercise-instrumentation">
+        </testcase>
+        <testcase name="test-fully-covered-multi" classname="cloverage.sample.exercise-instrumentation">
+        </testcase>
+        <testcase name="test-fully-covered" classname="cloverage.sample.exercise-instrumentation">
+        </testcase>
+    </testsuite>
+</testsuites>
