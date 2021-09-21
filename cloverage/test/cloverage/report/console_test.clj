@@ -1,6 +1,6 @@
 (ns cloverage.report.console-test
   (:require
-   [clojure.test :refer :all]
+   [clojure.test :refer [deftest is]]
    [cloverage.report.console :refer :all]))
 
 (deftest check-ansi

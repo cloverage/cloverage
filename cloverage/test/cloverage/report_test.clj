@@ -50,7 +50,7 @@
   (is (= [] (sut/gather-stats []))))
 
 (deftest gather-stats-converts-file-forms
-  (with-redefs [sut/postprocess-file (fn [lib file forms] {:lib lib :file file})]
+  (with-redefs [sut/postprocess-file (fn [lib file _forms] {:lib lib :file file})]
     (is (= '([:lib "lib"] [:file "file"]) (sut/gather-stats [{:lib "lib" :file "file" :line 1}])))))
 
 (deftest gather-starts-converts-raw-forms

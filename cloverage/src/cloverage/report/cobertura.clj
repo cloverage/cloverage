@@ -15,15 +15,12 @@
    :line-count     (reduce + (map :instrd-lines stats))
    :cov-line-count (reduce + (map :covered-lines stats))})
 
-(defn- counters->cov [tag name cntrs]
-  [tag {:name name}
-   (cov "class, %" 0 1) (cov "method, %" 0 1)
-   (cov "block, %" (cntrs :cov-form-count) (cntrs :form-count))
-   (cov "line, %"  (cntrs :cov-line-count) (cntrs :line-count))])
-
 (defn report
   "Create '${out-dir}/cobertura.xml' in cobertura format"
   [^String out-dir forms]
+  (def forms forms)
+  (def stats (doall (file-stats forms)))
+  ;; now with the stats above run the whole thing
   (let [output-file (io/file out-dir "cobertura.xml")
         stats       (doall (file-stats forms))
         file-count  (count (distinct (map :file stats)))
