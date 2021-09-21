@@ -243,7 +243,7 @@
   (throw (IllegalArgumentException.
           "Runner not found. Built-in runners are `clojure.test`, `midje` and `eftest`.")))
 
-(defn run-tests [{:keys [runner test-selectors selector junit?], :as opts} test-nses]
+(defn run-tests [{:keys [runner test-selectors selector junit?] :as opts} test-nses]
   ;; load runner multimethod definition from other dependencies
   (when-not (#{:clojure.test :midje :eftest} runner)
     (try (require (symbol (format "%s.cloverage" (name runner))))
