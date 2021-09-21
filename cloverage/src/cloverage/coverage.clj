@@ -11,6 +11,7 @@
             [cloverage.instrument :as inst]
             [cloverage.report :as rep]
             [cloverage.report.codecov :as codecov]
+            [cloverage.report.cobertura :as cobertura]
             [cloverage.report.console :as console]
             [cloverage.report.coveralls :as coveralls]
             [cloverage.report.emma-xml :as emma-xml]
@@ -269,7 +270,7 @@
     (f arg-map)))
 
 (defn report-results
-  [{:keys [text? html? raw? emma-xml? lcov? codecov? coveralls? summary? colorize? low-watermark high-watermark
+  [{:keys [text? html? raw? emma-xml? lcov? codecov? coveralls? cobertura? summary? colorize? low-watermark high-watermark
            custom-report ^String output], :as opts}
    project-opts
    forms]
@@ -281,6 +282,7 @@
     (when lcov? (lcov/report output forms))
     (when raw? (raw/report output forms @*covered*))
     (when codecov? (codecov/report output forms))
+    (when cobertura? (cobertura/report output forms))
     (when coveralls? (coveralls/report output forms))
     (when summary? (console/summary forms low-watermark high-watermark colorize?)))
   (when custom-report (launch-custom-report custom-report {:project project-opts
@@ -297,7 +299,7 @@
       failed?)))
 
 (defn run-main
-  [[{:keys [debug? junit? fail-threshold help? runner test-selectors selector], :as opts} add-nses help] project-opts]
+  [[{:keys [debug? fail-threshold help?], :as opts} add-nses help] project-opts]
   (binding [*ns*          (find-ns 'cloverage.coverage)
             debug/*debug* debug?]
     (if help?

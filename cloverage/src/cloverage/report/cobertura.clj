@@ -22,7 +22,7 @@
    (cov "line, %"  (cntrs :cov-line-count) (cntrs :line-count))])
 
 (defn report
-  "Create '${out-dir}/coverage.xml' in cobertura format"
+  "Create '${out-dir}/cobertura.xml' in cobertura format"
   [^String out-dir forms]
   (let [output-file (io/file out-dir "cobertura.xml")
         stats       (doall (file-stats forms))

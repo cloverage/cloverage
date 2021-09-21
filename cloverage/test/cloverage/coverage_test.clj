@@ -366,7 +366,7 @@
      (slurp (io/file dir-b fname))))
 
 (t/deftest test-all-reporters
-  (let [generated-files ["coverage.txt" "index.html" "coverage.xml" "lcov.info" "coveralls.json"
+  (let [generated-files ["coverage.txt" "index.html" "coverage.xml" "lcov.info" "coveralls.json" "cobertura.xml"
                          #_#_#_"raw-data.clj" "raw-stats.clj" "codecov.json"]]
     (doseq [f generated-files]
       (clojure.java.io/delete-file (io/file "out" f) true))
@@ -374,7 +374,7 @@
     (binding [cov/*exit-after-test* false]
       (cov/-main
        "-o" "out"
-       "--junit" "--text" "--html" "--raw" "--emma-xml" "--coveralls" "--codecov" "--lcov"
+       "--junit" "--text" "--html" "--raw" "--emma-xml" "--coveralls" "--codecov" "--lcov" "--cobertura"
        "-x" "cloverage.sample.exercise-instrumentation"
        "cloverage.sample.exercise-instrumentation")
       (doseq [fname generated-files]

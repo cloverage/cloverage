@@ -25,6 +25,7 @@
    :junit?           boolean?
    :lcov?            boolean?
    :codecov?         boolean?
+   :cobertura?       boolean?
    :coveralls?       boolean?
    :summary?         boolean?
    :colorize?        boolean?
@@ -69,7 +70,7 @@
 (def boolean-flags
   (letfn [(add-? [k]
             [k (keyword (str (name k) \?))])]
-    (->> [:text :html :raw :emma-xml :junit :lcov :codecov :coveralls :summary :colorize :debug :nop :help]
+    (->> [:text :html :raw :emma-xml :junit :lcov :codecov :coveralls :cobertura :summary :colorize :debug :nop :help]
          (map add-?)
          (into {}))))
 
@@ -112,6 +113,8 @@
     "Produce a lcov/gcov report." :default false]
    ["--[no-]codecov"
     "Generate a JSON report for Codecov.io" :default false]
+   ["--[no-]cobertura"
+    "Generate a cobertura report" :default false]
    ["--[no-]coveralls"
     "Send a JSON report to Coveralls if on a CI server" :default false]
    ["--[no-]junit"
