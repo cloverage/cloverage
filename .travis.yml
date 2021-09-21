@@ -21,7 +21,7 @@ before_script:
   - (cd lein-cloverage && lein do cljfmt check, eastwood, kibit)
 
 script:
-  - (cd cloverage && lein test)
+  - (cd cloverage && ./bin/kaocha)
   - (cd lein-cloverage && lein test)
 
 cache:
