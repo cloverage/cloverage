@@ -2,31 +2,49 @@
   (:require
    [clojure.java.io :as io]
    [clojure.data.xml :as xml]
+   [clojure.string :as str]
    [cloverage.report :refer [file-stats]]))
 
-(defn- cov [t left right]
-  (let [percent (if (pos? right) (float (* 100 (/ left right))) 0.0)]
-    [:coverage {:type t :value (format "%.0f%% (%d/%d)" percent left right)}]))
+(defn line-stats [file-s]
+  [:line {:branch "false"
+          :hits 1
+          :number 3}])
 
-(defn- do-counters [stats]
-  {:lib            ((first stats) :lib)
-   :form-count     (reduce + (map :forms stats))
-   :cov-form-count (reduce + (map :covered-forms stats))
-   :line-count     (reduce + (map :instrd-lines stats))
-   :cov-line-count (reduce + (map :covered-lines stats))})
+(defn files [by-file]
+  [:classes
+   [:class {}
+    [:methods]
+    (into [:lines]
+          (map line-stats by-file))]])
+
+(defn packages [by-package]
+  [:packages
+   [:package {:line-rate   0.2
+              :branch-rate 0.3
+              :name        "name"
+              :complexity  0}
+    (into [:classes]
+          (map files by-package))]])
+
+(defn f->pkg [filename]
+  (let [sp (str/split (str/replace filename "/" ".") #"\.")]
+    (->> sp
+         (take-nth (- (count sp) 2))
+         (str/join "."))))
 
 (defn report
   "Create '${out-dir}/cobertura.xml' in cobertura format"
   [^String out-dir forms]
-  (def forms forms)
-  (def stats (doall (file-stats forms)))
   ;; now with the stats above run the whole thing
   (let [output-file (io/file out-dir "cobertura.xml")
         stats       (doall (file-stats forms))
-        file-count  (count (distinct (map :file stats)))
-        lib-count   (count (distinct (map :lib stats)))
-        total       (do-counters stats)
-        by-pkg      (map do-counters (vals (group-by :lib stats)))]
+        with-package (map #(assoc % :package (f->pkg (:file %))) stats)
+
+        ;; file-count  (count (distinct (map :file stats)))
+        ;; lib-count   (count (distinct (map :lib stats)))
+        ;; total       (do-counters stats)
+        ;; by-pkg      (map do-counters (vals (group-by :lib stats)))
+        ]
 
     (println "Writing Cobertura report to:" (.getAbsolutePath output-file))
     (with-open [wr (io/writer output-file)]
@@ -39,11 +57,10 @@
                       :lines-valid      3
                       :timestamp        (System/currentTimeMillis)
                       :version          "2.0.3"}
-           [:sources]
-           [:packages
-            [:package {:line-rate   0.2
-                       :branch-rate 0.3
-                       :name        "name"
-                       :complexity  0}]]]
+           ;; what is this `sources` for???
+           [:sources [:source "."]]
+           (into
+            [:packages]
+            (packages (group-by :package with-package)))]
           xml/sexp-as-element
           (xml/emit wr)))))
