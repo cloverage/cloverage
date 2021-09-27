@@ -1,3 +1,5 @@
+DO NOT MERGE
+
 # Cloverage Changelog
 
 Pull requests are required to update this changelog.  Changelog entries should
