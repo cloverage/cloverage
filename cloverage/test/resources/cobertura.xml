@@ -1,0 +1,96 @@
+<?xml version="1.0" ?>
+<!DOCTYPE coverage SYSTEM 'http://cobertura.sourceforge.net/xml/coverage-04.dtd'>
+<coverage branch-rate="0.0" branches-covered="0" branches-valid="0" complexity="0" line-rate="0.8051948051948052" lines-covered="62" lines-valid="77" timestamp="1632253431" version="2.0.3">
+  <sources>
+    <source>.
+    </source>
+  </sources>
+  <packages>
+    <package line-rate="0.8051948051948052" branch-rate="0.0" name="dev-resources.cloverage.sample" complexity="0">
+      <classes>
+	<class branch-rate="0.0" complexity="0" filename="dev-resources/cloverage/sample/exercise_instrumentation.clj" line-rate="0.8051948051948052" name="dev-resources.cloverage.sample.exercise_instrumentation.clj">
+	  <methods/>
+	  <lines>
+	    <line branch="false" hits="1" number="1"/>
+	    <line branch="false" hits="3" number="8"/>
+	    <line branch="false" hits="3" number="10"/>
+	    <line branch="false" hits="5" number="12"/>
+	    <line branch="false" hits="4" number="14"/>
+	    <line branch="false" hits="3" number="15"/>
+	    <line branch="false" hits="4" number="17"/>
+	    <line branch="false" hits="3" number="18"/>
+	    <line branch="false" hits="3" number="19"/>
+	    <line branch="false" hits="6" number="21"/>
+	    <line branch="false" hits="3" number="22"/>
+	    <line branch="false" hits="1" number="24"/>
+	    <line branch="false" hits="1" number="28"/>
+	    <line branch="false" hits="0" number="31"/>
+	    <line branch="false" hits="0" number="32"/>
+	    <line branch="false" hits="1" number="34"/>
+	    <line branch="false" hits="7" number="36"/>
+	    <line branch="false" hits="2" number="38"/>
+	    <line branch="false" hits="1" number="41"/>
+	    <line branch="false" hits="12" number="42"/>
+	    <line branch="false" hits="2" number="44"/>
+	    <line branch="false" hits="1" number="48"/>
+	    <line branch="false" hits="3" number="50"/>
+	    <line branch="false" hits="4" number="53"/>
+	    <line branch="false" hits="1" number="54"/>
+	    <line branch="false" hits="3" number="56"/>
+	    <line branch="false" hits="4" number="59"/>
+	    <line branch="false" hits="3" number="60"/>
+	    <line branch="false" hits="0" number="61"/>
+	    <line branch="false" hits="3" number="63"/>
+	    <line branch="false" hits="0" number="66"/>
+	    <line branch="false" hits="2" number="68"/>
+	    <line branch="false" hits="1" number="72"/>
+	    <line branch="false" hits="4" number="73"/>
+	    <line branch="false" hits="4" number="74"/>
+	    <line branch="false" hits="2" number="75"/>
+	    <line branch="false" hits="1" number="79"/>
+	    <line branch="false" hits="6" number="83"/>
+	    <line branch="false" hits="5" number="84"/>
+	    <line branch="false" hits="6" number="85"/>
+	    <line branch="false" hits="14" number="87"/>
+	    <line branch="false" hits="8" number="88"/>
+	    <line branch="false" hits="2" number="90"/>
+	    <line branch="false" hits="1" number="96"/>
+	    <line branch="false" hits="7" number="99"/>
+	    <line branch="false" hits="2" number="100"/>
+	    <line branch="false" hits="0" number="101"/>
+	    <line branch="false" hits="0" number="102"/>
+	    <line branch="false" hits="0" number="103"/>
+	    <line branch="false" hits="0" number="104"/>
+	    <line branch="false" hits="2" number="106"/>
+	    <line branch="false" hits="1" number="110"/>
+	    <line branch="false" hits="4" number="112"/>
+	    <line branch="false" hits="2" number="113"/>
+	    <line branch="false" hits="2" number="116"/>
+	    <line branch="false" hits="1" number="120"/>
+	    <line branch="false" hits="2" number="122"/>
+	    <line branch="false" hits="2" number="123"/>
+	    <line branch="false" hits="2" number="124"/>
+	    <line branch="false" hits="3" number="125"/>
+	    <line branch="false" hits="2" number="127"/>
+	    <line branch="false" hits="4" number="130"/>
+	    <line branch="false" hits="0" number="131"/>
+	    <line branch="false" hits="0" number="132"/>
+	    <line branch="false" hits="2" number="133"/>
+	    <line branch="false" hits="1" number="135"/>
+	    <line branch="false" hits="0" number="136"/>
+	    <line branch="false" hits="1" number="138"/>
+	    <line branch="false" hits="0" number="139"/>
+	    <line branch="false" hits="1" number="142"/>
+	    <line branch="false" hits="0" number="143"/>
+	    <line branch="false" hits="1" number="147"/>
+	    <line branch="false" hits="0" number="148"/>
+	    <line branch="false" hits="0" number="149"/>
+	    <line branch="false" hits="1" number="151"/>
+	    <line branch="false" hits="7" number="152"/>
+	    <line branch="false" hits="2" number="154"/>
+	  </lines>
+	</class>
+      </classes>
+    </package>
+  </packages>
+</coverage>

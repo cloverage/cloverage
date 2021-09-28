@@ -1,5 +1,5 @@
 (ns cloverage.args-test
-  (:require [clojure.test :refer :all]
+  (:require [clojure.test :refer [deftest testing is]]
             [cloverage.args :as args]
             [cloverage.coverage]))
 

@@ -11,6 +11,7 @@
   :summary? true,
   :coveralls? false,
   :emma-xml? false,
+  :cobertura? false,
   :html? true,
   :nop? false,
   :codecov? false}}

@@ -60,6 +60,7 @@ Available options and command-line arguments:
  :emma-xml?        --no-emma-xml, --emma-xml    false            Produce an EMMA XML report. [emma.sourceforge.net]
  :lcov?            --no-lcov, --lcov            false            Produce a lcov/gcov report.
  :codecov?         --no-codecov, --codecov      false            Generate a JSON report for Codecov.io
+ :cobertura?       --no-cobertura, --cobertura  false            Generate a cobertura report.
  :coveralls?       --no-coveralls, --coveralls  false            Send a JSON report to Coveralls if on a CI server
  :junit?           --no-junit, --junit          false            Output test results as junit xml file. Supported in :clojure.test runner
  :raw?             --no-raw, --raw              false            Output raw coverage data (for debugging).

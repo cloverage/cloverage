@@ -17,9 +17,6 @@
 (defn- group-by-line [forms]
   (into (sorted-map) (group-by :line forms)))
 
-(defn- group-by-file [forms]
-  (into (sorted-map) (group-by :file forms)))
-
 (defn- postprocess-file [lib file forms]
   (with-open [in (io/reader (resource-reader file))]
     (let [forms-by-line (group-by-line forms)

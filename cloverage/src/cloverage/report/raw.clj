@@ -1,6 +1,7 @@
 (ns cloverage.report.raw
   (:require
    [clojure.java.io :as io]
+   [clojure.pprint :as pprint]
    [cloverage.report :refer [with-out-writer]]))
 
 (defn report [^String out-dir stats covered]
@@ -9,8 +10,8 @@
 
     (println "Writing raw data to:" (.getAbsolutePath raw-data-file))
     (with-out-writer raw-data-file
-      (clojure.pprint/pprint (zipmap (range) covered)))
+      (pprint/pprint (zipmap (range) covered)))
 
     (println "Writing raw stats to:" (.getAbsolutePath raw-stats-file))
     (with-out-writer raw-stats-file
-      (clojure.pprint/pprint stats))))
+      (pprint/pprint stats))))
