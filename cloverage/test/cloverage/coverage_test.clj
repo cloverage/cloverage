@@ -21,7 +21,7 @@
 
 (use-fixtures :each coverage-fixture)
 
-(def output-dir  "out")
+(def output-dir "out")
 
 (defn- expand=* [msg forms]
   (let [expanded (map rw/macroexpand-all forms)
@@ -351,7 +351,7 @@
   (binding [cov/*exit-after-test* false]
     (is (=
          (cov/-main
-          "-o" "out"
+          "-o" output-dir
           "--junit" "--text" "--html" "--raw" "--emma-xml" "--coveralls" "--codecov" "--lcov"
           "-x" "cloverage.sample.exercise-instrumentation"
           "cloverage.sample.exercise-instrumentation")
@@ -365,16 +365,16 @@
   (let [generated-files ["coverage.txt" "index.html" "coverage.xml" "lcov.info" "coveralls.json" "cobertura.xml"
                          #_#_#_"raw-data.clj" "raw-stats.clj" "codecov.json"]]
     (doseq [f generated-files]
-      (clojure.java.io/delete-file (io/file "out" f) true))
+      (clojure.java.io/delete-file (io/file output-dir f) true))
 
     (binding [cov/*exit-after-test* false]
       (cov/-main
-       "-o" "out"
+       "-o" output-dir
        "--junit" "--text" "--html" "--raw" "--emma-xml" "--coveralls" "--codecov" "--lcov" "--cobertura"
        "-x" "cloverage.sample.exercise-instrumentation"
        "cloverage.sample.exercise-instrumentation")
       (doseq [fname generated-files]
-        (is (equal-content? fname "out" "test/resources") (str "Failing for file: " fname))))))
+        (is (equal-content? fname output-dir "test/resources") (str "Failing for file: " fname))))))
 
 (deftest test-cyclic-dependency
   (binding [cov/*exit-after-test* false]
@@ -389,7 +389,7 @@
           clojure.lang.ExceptionInfo
           #"Circular dependency between cloverage\.sample\.cyclic-dependency and cloverage\.sample\.cyclic-dependency"
           (cov/-main
-           "-o" "out"
+           "-o" output-dir
            "--emma-xml"
            "--extra-test-ns" "cloverage.sample.cyclic-dependency"
            "cloverage.sample.cyclic-dependency")))))))
@@ -401,7 +401,7 @@
        (thrown-with-msg?
         RuntimeException #"No namespaces selected for instrumentation.*"
         (cov/-main
-         "-o" "out"
+         "-o" output-dir
          "--emma-xml"
          "--ns-regex" "cloverage.*"
          "--ns-exclude-regex" ".*"))))))
