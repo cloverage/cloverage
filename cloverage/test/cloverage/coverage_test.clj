@@ -378,6 +378,8 @@
        "-x" "cloverage.sample.exercise-instrumentation"
        "cloverage.sample.exercise-instrumentation")
       (doseq [fname generated-files]
+        ;; If this deftest is failing, you can temporarily enable this to update the expectations:
+        #_(spit (str "test/resources/" fname) (slurp (str "out/" fname)))
         (t/is (equal-content? fname "out" "test/resources") (str "Failing for file: " fname))))))
 
 (t/deftest test-cyclic-dependency

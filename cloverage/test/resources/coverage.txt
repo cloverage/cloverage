@@ -1,2 +1,2 @@
 Lines Non-Blank Instrumented Covered Partial
-  156       122           77      47      15 cloverage/sample/exercise_instrumentation.clj
+  156       122           77      49      13 cloverage/sample/exercise_instrumentation.clj
