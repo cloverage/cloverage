@@ -361,9 +361,10 @@
             "cloverage.sample.exercise-instrumentation")
            0))))
 
-(defn- equal-content? [fname dir-a dir-b]
-  (= (slurp (io/file dir-a fname))
-     (slurp (io/file dir-b fname))))
+(defn- assert-equal-content! [fname dir-a dir-b]
+  (t/is (= (slurp (io/file dir-a fname))
+           (slurp (io/file dir-b fname)))
+        (str "Failing for file: " fname)))
 
 (t/deftest test-all-reporters
   (let [generated-files ["coverage.txt" "index.html" "coverage.xml" "lcov.info" "coveralls.json"
@@ -380,7 +381,7 @@
       (doseq [fname generated-files]
         ;; If this deftest is failing, you can temporarily enable this to update the expectations:
         #_(spit (str "test/resources/" fname) (slurp (str "out/" fname)))
-        (t/is (equal-content? fname "out" "test/resources") (str "Failing for file: " fname))))))
+        (assert-equal-content! fname "test/resources" "out")))))
 
 (t/deftest test-cyclic-dependency
   (binding [cov/*exit-after-test* false]
