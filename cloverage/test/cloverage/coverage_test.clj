@@ -1,5 +1,6 @@
 (ns cloverage.coverage-test
   (:require [clojure.data :as data]
+            [clojure.string :as str]
             [clojure.test :as t]
             [cloverage.coverage :as cov]
             [cloverage.instrument :as inst]
@@ -361,9 +362,18 @@
             "cloverage.sample.exercise-instrumentation")
            0))))
 
+(defn remove-dynamic-strings
+  "Removes strings that are dynamic/unpredictable, for a stable comparison"
+  [s]
+  (-> s
+      (str/replace #"\"service_job_id\":\"\d+\""
+                   "\"service_job_id\":null")
+      (str/replace "\"service_name\":\"circleci\""
+                   "\"service_name\":null")))
+
 (defn- assert-equal-content! [fname dir-a dir-b]
-  (t/is (= (slurp (io/file dir-a fname))
-           (slurp (io/file dir-b fname)))
+  (t/is (= (remove-dynamic-strings (slurp (io/file dir-a fname)))
+           (remove-dynamic-strings (slurp (io/file dir-b fname))))
         (str "Failing for file: " fname)))
 
 (t/deftest test-all-reporters
