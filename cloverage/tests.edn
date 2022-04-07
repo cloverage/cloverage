@@ -1,5 +1,6 @@
 #kaocha/v1
-{:cloverage/opts
+{:kaocha.plugin.randomize/randomize? false
+ :cloverage/opts
  {:ns-exclude-regex [],
   :text? false,
   :lcov? false,
