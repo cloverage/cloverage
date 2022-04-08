@@ -1,5 +1,6 @@
 (ns cloverage.coverage-test
   (:require [clojure.data :as data]
+            [clojure.string :as str]
             [clojure.test :as t]
             [cloverage.coverage :as cov]
             [cloverage.instrument :as inst]
@@ -361,9 +362,19 @@
             "cloverage.sample.exercise-instrumentation")
            0))))
 
-(defn- equal-content? [fname dir-a dir-b]
-  (= (slurp (io/file dir-a fname))
-     (slurp (io/file dir-b fname))))
+(defn remove-dynamic-strings
+  "Removes strings that are dynamic/unpredictable, for a stable comparison"
+  [s]
+  (-> s
+      (str/replace #"\"service_job_id\":\"\d+\""
+                   "\"service_job_id\":null")
+      (str/replace "\"service_name\":\"circleci\""
+                   "\"service_name\":null")))
+
+(defn- assert-equal-content! [fname dir-a dir-b]
+  (t/is (= (remove-dynamic-strings (slurp (io/file dir-a fname)))
+           (remove-dynamic-strings (slurp (io/file dir-b fname))))
+        (str "Failing for file: " fname)))
 
 (t/deftest test-all-reporters
   (let [generated-files ["coverage.txt" "index.html" "coverage.xml" "lcov.info" "coveralls.json"
@@ -378,7 +389,9 @@
        "-x" "cloverage.sample.exercise-instrumentation"
        "cloverage.sample.exercise-instrumentation")
       (doseq [fname generated-files]
-        (t/is (equal-content? fname "out" "test/resources") (str "Failing for file: " fname))))))
+        ;; If this deftest is failing, you can temporarily enable this to update the expectations:
+        #_(spit (str "test/resources/" fname) (slurp (str "out/" fname)))
+        (assert-equal-content! fname "test/resources" "out")))))
 
 (t/deftest test-cyclic-dependency
   (binding [cov/*exit-after-test* false]
