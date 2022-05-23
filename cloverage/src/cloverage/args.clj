@@ -116,7 +116,8 @@
                       (update :test-selectors #(into {} %)))]
     [opts add-nses help]))
 
-(def arguments
+;; This is a defn for avoiding state across test runs
+(defn arguments []
   [["-o" "--output" "Output directory." :default "target/coverage"]
    ["--[no-]text"
     "Produce a text report." :default false]
@@ -196,5 +197,5 @@
    ["-h" "--help" "Show help." :default false :flag true]])
 
 (defn parse-args [args project-settings]
-  (fix-opts (apply cli/cli args arguments)
+  (fix-opts (apply cli/cli args (arguments))
             (doto project-settings validate!)))
