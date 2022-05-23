@@ -1,15 +1,20 @@
 # Cloverage Changelog
 
-Pull requests are required to update this changelog.  Changelog entries should
+<!-- Pull requests are required to update this changelog.  Changelog entries should
 mention and link to any issues or tickets involved in the change, and should
 provide a short summary description of the particular changes of the patch.
 
 Include the issue number (#xxx) which will link back to the originating issue
-in github. Commentary on the change should appear as a nested, unordered list.
+in github. Commentary on the change should appear as a nested, unordered list. -->
 
 ## 1.2.4 (WIP)
 
-Nothing yet!
+- Make validation errors in the project settings fail Cloverage runs
+  - Fixes [#331](https://github.com/cloverage/cloverage/issues/331)
+- Upgrade various dependencies
+  - Fixes [218](https://github.com/cloverage/cloverage/issues/218) 
+  - Fixes [319](https://github.com/cloverage/cloverage/issues/319) 
+  - Fixes [334](https://github.com/cloverage/cloverage/issues/334) 
 
 ## 1.2.3
 
