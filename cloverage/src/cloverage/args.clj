@@ -3,7 +3,8 @@
   (:require [clojure.tools.cli :as cli]
             [clojure.set :as set]
             [clojure.string :as str])
-  (:import (java.util.regex Pattern)))
+  (:import (java.util.regex Pattern)
+           (clojure.lang ExceptionInfo)))
 
 (defn- boolean? [x]
   (instance? Boolean x))
@@ -45,11 +46,27 @@
    :test-ns-path     regexes-or-strings?
    :custom-report    symbol?})
 
-(defn valid? [[k v :as pair]]
+(defn- fn-sym [^Object f]
+  (let [[_ f-ns f-n] (re-matches #"(.*)\$(.*?)(__[0-9]+)?" (.. f getClass getName))]
+    ;; check for anonymous function
+    (when (not= "fn" f-n)
+      (symbol (clojure.lang.Compiler/demunge f-ns) (clojure.lang.Compiler/demunge f-n)))))
+
+(defn validate [[k v :as pair]]
   (let [f (get valid k (constantly true))]
     (if (f v)
       pair
-      (println "Invalid value:" k ", " v))))
+      (let [message (str "Invalid value: " k ", " v " (should satisfy: " (fn-sym f) ")")]
+        (println message)
+        (ex-info message {:k k :v v :validation-fn (fn-sym f)})))))
+
+(defn validate! [project-settings]
+  (when-let [validation-errors (->> project-settings
+                                    (mapv validate) ;; mapv for running all validations. Printing multiple results is friendlier than just one
+                                    (filterv (partial instance? ExceptionInfo))
+                                    (not-empty))]
+    (throw (ex-info "Invalid project settings"
+                    {:invalid-pairs (mapv ex-data validation-errors)}))))
 
 (defn- collecting-args-parser []
   (let [col (atom [])]
@@ -76,13 +93,12 @@
 (defn- overwrite
   "For each key-value pair in project settings, overwrite the value in opts"
   [opts project-settings]
-  (->> project-settings
-       (keep valid?)
-       (reduce (fn [o [k v]]
-                 (if (coll? v)
-                   (update o k concat v)
-                   (assoc o k v)))
-               opts)))
+  (reduce (fn [o [k v]]
+            (if (coll? v)
+              (update o k concat v)
+              (assoc o k v)))
+          opts
+          project-settings))
 
 (defn- fix-opts
   "Clean the parsed command-line options.
@@ -100,7 +116,8 @@
                       (update :test-selectors #(into {} %)))]
     [opts add-nses help]))
 
-(def arguments
+;; This is a defn for avoiding state across test runs
+(defn arguments []
   [["-o" "--output" "Output directory." :default "target/coverage"]
    ["--[no-]text"
     "Produce a text report." :default false]
@@ -180,4 +197,5 @@
    ["-h" "--help" "Show help." :default false :flag true]])
 
 (defn parse-args [args project-settings]
-  (fix-opts (apply cli/cli args arguments) project-settings))
+  (fix-opts (apply cli/cli args (arguments))
+            (doto project-settings validate!)))
