@@ -50,6 +50,7 @@ jobs:
       - save_cache:
           paths:
             - ~/.m2
+            - << parameters.working_directory >>/.clj-kondo/cache
           key: v1-dependencies-<< parameters.clojure_version >>-<< parameters.command >>-{{ checksum "<< parameters.working_directory >>/project.clj" }}
       - run:
           working_directory: << parameters.working_directory >>
@@ -93,6 +94,6 @@ workflows:
               clojure_version: ["1.11"]
               jdk_version: [openjdk17]
               working_directory: ["./cloverage",  "./lein-cloverage"]
-              command: ["cljfmt check", "kibit"]
+              command: ["cljfmt check", "kibit", "kondo-ci"]
           filters:
             <<: *filters

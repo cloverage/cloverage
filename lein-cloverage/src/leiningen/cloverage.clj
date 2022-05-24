@@ -24,8 +24,8 @@
   (let [project        (project/merge-profiles project [:leiningen/test :test])
         project        (if (already-has-cloverage? project)
                          project
-                         (update-in project [:dependencies]
-                                    conj ['cloverage (get-lib-version)]))
+                         (update project :dependencies
+                                 conj ['cloverage (get-lib-version)]))
         test-selectors (:test-selectors project)
         opts           (assoc (:cloverage project)
                               :src-ns-path (vec (:source-paths project))

@@ -205,7 +205,7 @@
       {:errors (:failures (apply f nses))})
     (throw (RuntimeException. "Failed to load Midje."))))
 
-(defmethod runner-fn :clojure.test [{:keys [junit? output] :as opts}]
+(defmethod runner-fn :clojure.test [{:keys [junit? output] :as _opts}]
   (fn [nses]
     (let [run-tests (fn []
                       (apply require (map symbol nses))
@@ -297,7 +297,7 @@
       failed?)))
 
 (defn run-main
-  [[{:keys [debug? junit? fail-threshold help? runner test-selectors selector], :as opts} add-nses help] project-opts]
+  [[{:keys [debug? fail-threshold help?], :as opts} add-nses help] project-opts]
   (binding [*ns*          (find-ns 'cloverage.coverage)
             debug/*debug* debug?]
     (if help?

@@ -41,6 +41,7 @@
                         :eastwood {:ignored-faults {:implicit-dependencies {cloverage.report.emma-xml ~(case clojure-profile
                                                                                                          ("1.8" "1.9") [{:line 42}]
                                                                                                          [])}}}}
+             :clj-kondo {:plugins [[com.github.clj-kondo/lein-clj-kondo "0.1.4"]]}
              :humane {:dependencies [[pjstadig/humane-test-output "0.11.0"]]
                       :injections [(require 'pjstadig.humane-test-output)
                                    (pjstadig.humane-test-output/activate!)]}
@@ -55,6 +56,19 @@
              :ci {:pedantic? :abort}}
   :aliases {"all" ["with-profile" "+1.8:+1.9:+1.10:+1.11"]
             "kaocha" ["test-ci"]
+            "kondo-deps" ["with-profile"
+                          "+dev,+test,+ci,+clj-kondo"
+                          "clj-kondo"
+                          "--copy-configs"
+                          "--dependencies"
+                          "--lint"
+                          "$classpath"]
+            "kondo-ci" ["do" ["kondo-deps"]
+                        ["with-profile"
+                         ~(str "+dev,+test,+ci,+clj-kondo,+" clojure-profile)
+                         "clj-kondo"
+                         "--lint"
+                         "src" "test"]]
             "eastwood-ci" ["with-profile"
                            ~(str "-dev,+test,+ci,+eastwood,+" clojure-profile)
                            "eastwood"]

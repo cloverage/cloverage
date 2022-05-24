@@ -26,7 +26,9 @@
   (let [lines (line-stats file-forms)]
     {:name file
      :source_digest (md5 (s/join "\n" (map :text lines)))
-     :coverage (map #(if (:instrumented? %) (:hit %)) lines)}))
+     :coverage (map #(when (:instrumented? %)
+                       (:hit %))
+                    lines)}))
 
 (defn report [^String out-dir forms]
   (let [output-file (io/file out-dir "coveralls.json")
