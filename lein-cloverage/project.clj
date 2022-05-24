@@ -10,10 +10,13 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"
             :distribution :repo
             :comments "same as Clojure"}
+  :dependencies [[org.clojure/clojure "1.11.1" :scope "provided"]]
   :deploy-repositories [["releases" :clojars]
                         ["snapshots" :clojars]]
   :lein-release {:scm :git ; Because we're not in the top-level directory, so it doesn't auto-detect
                  :deploy-via :clojars}
+  :aliases {"test-ci" ["with-profile" "-dev,+test,+ci" "test"]
+            "eastwood-ci" ["with-profile" "-dev,+test,+ci" "eastwood"]}
   :release-tasks [["vcs" "assert-committed"]
                   ["change" "version" "leiningen.release/bump-version" "release"]
                   ["vcs" "commit"]
@@ -30,5 +33,6 @@
   :min-lein-version "2.0.0"
   :profiles {:dev {:plugins [[lein-cljfmt "0.6.4"]
                              [jonase/eastwood "1.2.3"]
-                             [lein-kibit "0.1.7"]]}}
+                             [lein-kibit "0.1.7"]]}
+             :ci {:pedantic? :abort}}
   :eval-in-leiningen true)

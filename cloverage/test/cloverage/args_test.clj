@@ -53,7 +53,7 @@
                              (args/validate! input)
                              (catch ExceptionInfo e
                                (is (= "Invalid project settings"
-                                      (ex-message e)))
+                                      (.getMessage e)))
                                (->> e
                                     ex-data
                                     :invalid-pairs

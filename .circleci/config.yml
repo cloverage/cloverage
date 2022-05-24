@@ -1,67 +1,98 @@
-version: 2.0
-jobs:
-  build:
+version: 2.1
+
+executors:
+  openjdk8:
     docker:
-      - image: clojure:lein-2.9.1
+      - image: circleci/clojure:openjdk-8-lein-2.9.1-node
+    environment:
+      LEIN_ROOT: "true"
+      JVM_OPTS: -Xmx3200m
+
+  openjdk11:
+    docker:
+      - image: circleci/clojure:openjdk-11-lein-2.9.3-buster-node
+    environment:
+      LEIN_ROOT: "true"
+      JVM_OPTS: -Xmx3200m --illegal-access=deny
+
+  openjdk17:
+    docker:
+      - image: circleci/clojure:openjdk-17-lein-2.9.5-buster-node
+    environment:
+      LEIN_ROOT: "true"
+      JVM_OPTS: -Xmx3200m
+
+jobs:
+  run_command:
+    parameters:
+      jdk_version:
+        type: string
+      clojure_version:
+        type: string
+      working_directory:
+        type: string
+      command:
+        type: string
+    executor: << parameters.jdk_version >>
+    environment:
+      CLOJURE_VERSION: << parameters.clojure_version >>
     steps:
       - checkout
-
-      ################################################################################
-      # setup dependencies
-
       - restore_cache:
           keys:
-            - v1-jars-{{ checksum "cloverage/project.clj" }}-{{ checksum "lein-cloverage/project.clj" }}
-            - v1-jars-
+            - v1-dependencies-<< parameters.clojure_version >>-<< parameters.command >>-{{ checksum "<< parameters.working_directory >>/project.clj" }}
+            - v1-dependencies-<< parameters.clojure_version >>-<< parameters.command >>
+            - v1-dependencies-<< parameters.clojure_version >>
+            - v1-dependencies-
       - run:
-          name: (cloverage) install dependencies
-          command: lein deps
-          working_directory: ./cloverage
-      - run:
-          name: (lein-cloverage) install dependencies
-          command: lein deps
-          working_directory: ./lein-cloverage
+          working_directory: << parameters.working_directory >>
+          command: lein with-profile +dev,+test,+eastwood,+<< parameters.clojure_version >> deps
       - save_cache:
-          key: v1-jars-{{ checksum "cloverage/project.clj" }}-{{ checksum "lein-cloverage/project.clj" }}
           paths:
             - ~/.m2
+          key: v1-dependencies-<< parameters.clojure_version >>-<< parameters.command >>-{{ checksum "<< parameters.working_directory >>/project.clj" }}
+      - run:
+          working_directory: << parameters.working_directory >>
+          command: lein << parameters.command >>
 
-      ################################################################################
-      # cloverage tests
+filters: &filters
+  branches:
+    only: /.*/
+  tags:
+    only: /^v\d+\.\d+\.\d+(-alpha\d+)?$/
 
-      - run:
-          name: (cloverage) tests
-          command: lein kaocha
-          working_directory: ./cloverage
-      - run:
-          name: (cloverage) cljfmt
-          command: lein cljfmt check
-          working_directory: ./cloverage
-      - run:
-          name: (cloverage) eastwood
-          command: lein eastwood
-          working_directory: ./cloverage
-      - run:
-          name: (cloverage) kibit
-          command: lein kibit
-          working_directory: ./cloverage
-
-      ################################################################################
-      # lein-cloverage tests
-
-      - run:
-          name: (lein-cloverage) tests
-          command: lein test
-          working_directory: ./lein-cloverage
-      - run:
-          name: (lein-cloverage) cljfmt
-          command: lein cljfmt check
-          working_directory: ./lein-cloverage
-      - run:
-          name: (lein-cloverage) eastwood
-          command: lein eastwood
-          working_directory: ./lein-cloverage
-      - run:
-          name: (lein-cloverage) kibit
-          command: lein kibit
-          working_directory: ./lein-cloverage
+workflows:
+  version: 2.1
+  ci-test-matrix:
+    jobs:
+      - run_command:
+          # Full test matrix for the .cloverage project - it has all logic, so it deserves to be exercised exhaustively.
+          # Eastwood also benefits from being run in different environments.
+          matrix:
+            parameters:
+              clojure_version: ["1.8", "1.9", "1.10", "1.11"]
+              jdk_version: [openjdk8, openjdk11, openjdk17]
+              working_directory: ["./cloverage"]
+              command: ["test-ci", "eastwood-ci"]
+          filters:
+            <<: *filters
+      - run_command:
+         # Limited test matrix for the .lein-cloverage project - it has little logic so exercising extra clojure versions is not necessary.
+          matrix:
+            parameters:
+              clojure_version: ["1.11"]
+              jdk_version: [openjdk8, openjdk11, openjdk17]
+              working_directory: ["./lein-cloverage"]
+              command: ["test-ci", "eastwood-ci"]
+          filters:
+            <<: *filters
+      - run_command:
+          # Very limited matrix for static linters which do not benefit from being run in additional runtimes.
+          matrix:
+            parameters:
+              clojure_version: ["1.11"]
+              jdk_version: [openjdk17]
+              working_directory: ["./cloverage",  "./lein-cloverage"]
+              command: ["cljfmt check", "kibit"]
+          filters:
+            <<: *filters
