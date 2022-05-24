@@ -77,7 +77,8 @@
     (t/testing ns-name
       (with-redefs [source/ns-form (constantly ns-form)]
         (t/is (= expected
-                 (#'cd/dependencies (symbol ns-name))))))))
+                 (#'cd/dependencies (symbol (namespace ns-name)
+                                            (name ns-name)))))))))
 
 (t/deftest test-dependency-sort
   (t/is (= '[clojure.walk
