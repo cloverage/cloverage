@@ -1,7 +1,7 @@
 (ns cloverage.report.console-test
   (:require
-   [clojure.test :refer :all]
-   [cloverage.report.console :refer :all]))
+   [clojure.test :refer [deftest is]]
+   [cloverage.report.console :refer [ansi colorize pad-right print-table printable-count strip-ansi]]))
 
 (deftest check-ansi
   (is (nil? (ansi :green nil)))

@@ -75,7 +75,7 @@
       (if-let [o ((ns-map *ns*) s)]
         (if (class? o)
           (symbol (.getName ^Class o))
-          (if (var? o)
+          (when (var? o)
             (let [^clojure.lang.Var o o]
               (symbol (-> o .ns .name name) (-> o .sym name)))))
         ;; changed to returned unnamespaced symbol if it fails to resolve
@@ -193,7 +193,7 @@
   "Traverse the given form and wrap all its sub-forms in a function that evals
   the form and records that it was called."
   {:arglists '([f line form env])}
-  (fn [f line form env]
+  (fn [_f _line form env]
     (form-type form env)))
 
 (defmacro wrapm
@@ -227,9 +227,9 @@
   e.g. - `a (+ a b)`       (let or loop)"
   [f line-hint [args & body :as form]]
   (d/tprnl "Wrapping overload" args body)
-  (let [line (or (:line (meta form)) line-hint)]
-    (let [wrapped (doall (map (wrapper f line) body))]
-      `(~args ~@wrapped))))
+  (let [line (or (:line (meta form)) line-hint)
+        wrapped (doall (map (wrapper f line) body))]
+    `(~args ~@wrapped)))
 
 (defn wrap-overload
   "Wrap a single function overload.
@@ -271,7 +271,7 @@
                        e)))))))
 
 ;; Don't wrap or descend into unknown forms
-(defmethod do-wrap :unknown [f line form _]
+(defmethod do-wrap :unknown [_f _line form _]
   (log/warn (str "Unknown special form " (seq form)))
   form)
 
@@ -339,7 +339,7 @@
   (d/tprnl "Wrapping fn " form)
   (f line (wrap-fn-body f line form)))
 
-(defmethod do-wrap :let [f line [let-sym bindings & body :as form] _]
+(defmethod do-wrap :let [f line [let-sym bindings & body :as _form] _]
   (f line
      `(~let-sym
        [~@(mapcat (partial wrap-binding f line)
@@ -361,7 +361,7 @@
              bindings)]
          ~@(doall (map (wrapper f line) body))))))
 
-(defmethod do-wrap :def [f line [def-sym name & body :as form] _]
+(defmethod do-wrap :def [f line [def-sym name & body :as _form] _]
   (cond
     (empty? body)      (f line `(~def-sym ~name))
     (= 1 (count body)) (let [init (first body)]
@@ -378,11 +378,11 @@
   (let [[def-sym name fn-expr] (macroexpand-1 form)]
     (f line `(~def-sym ~name ~(wrap-fn-body f line fn-expr)))))
 
-(defmethod do-wrap :new [f line [new-sym class-name & args :as form] _]
+(defmethod do-wrap :new [f line [new-sym class-name & args :as _form] _]
   (f line `(~new-sym ~class-name ~@(doall (map (wrapper f line) args)))))
 
 (defmethod do-wrap :dotjava
-  [f line [_ class-or-instance & more] env]
+  [f line [_ class-or-instance & more] _env]
   ;; form is either of the syntax
   ;;
   ;; (. class-or-instance method & args)

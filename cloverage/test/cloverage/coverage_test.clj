@@ -6,8 +6,7 @@
             [cloverage.instrument :as inst]
             [cloverage.source :as src]
             [riddley.walk :as rw]
-            [clojure.java.io :as io])
-  (:import java.io.File))
+            [clojure.java.io :as io]))
 
 (defn- denamespace
   "Helper function to allow backticking w/o namespace interpolation."
@@ -434,7 +433,7 @@
     (t/testing "check that eftest runner-fn just runs with opts as a seq of vectors, no errors"
       (let [runner-opts {:runner-opts '([:test-warn-time 100]
                                         [:multithread? false])}]
-        (with-redefs [cov/resolve-var (fn [x] (constantly {:error 0 :fail 0}))
+        (with-redefs [cov/resolve-var (fn [_x] (constantly {:error 0 :fail 0}))
                       cov/find-nses (constantly [])
                       cov/require-ns (constantly "test")
                       require (constantly nil)]
@@ -444,7 +443,7 @@
     (t/testing "check that eftest runner-fn just runs with opts as a map and returns errors"
       (let [runner-opts {:runner-opts {:test-warn-time 100
                                        :multithread? false}}]
-        (with-redefs [cov/resolve-var (fn [x] (constantly {:error 1 :fail 2}))
+        (with-redefs [cov/resolve-var (fn [_x] (constantly {:error 1 :fail 2}))
                       cov/find-nses (constantly [])
                       cov/require-ns (constantly "test")
                       require (constantly nil)]

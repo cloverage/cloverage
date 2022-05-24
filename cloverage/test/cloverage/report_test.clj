@@ -1,9 +1,10 @@
 (ns cloverage.report-test
   (:require
-   [clojure.test :refer :all]
-   [cloverage.report :refer :all]
+   [clojure.test :refer [deftest is]]
+   [cloverage.report :refer [gather-stats total-stats]]
+   [cloverage.source]
+   [cloverage.report.lcov]
    [cloverage.report.html :refer [relative-path]]
-   [clojure.tools.reader :as r]
    [clojure.java.io :as io]))
 
 (defn- parse-readable
@@ -46,7 +47,7 @@
   (is (= [] (gather-stats []))))
 
 (deftest gather-stats-converts-file-forms
-  (with-redefs [cloverage.report/postprocess-file (fn [lib file forms] {:lib lib :file file})]
+  (with-redefs [cloverage.report/postprocess-file (fn [lib file _forms] {:lib lib :file file})]
     (is (= '([:lib "lib"] [:file "file"]) (gather-stats [{:lib "lib" :file "file" :line 1}])))))
 
 (deftest gather-starts-converts-raw-forms

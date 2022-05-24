@@ -1,6 +1,7 @@
 (ns cloverage.report.raw
   (:require
    [clojure.java.io :as io]
+   [clojure.pprint]
    [cloverage.report :refer [with-out-writer]]))
 
 (defn report [^String out-dir stats covered]
