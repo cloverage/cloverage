@@ -7,7 +7,11 @@ provide a short summary description of the particular changes of the patch.
 Include the issue number (#xxx) which will link back to the originating issue
 in github. Commentary on the change should appear as a nested, unordered list. -->
 
-## 1.2.4 (WIP)
+## 1.2.5 (WIP)
+
+Nothing yet!
+
+## 1.2.4
 
 - Make validation errors in the project settings fail Cloverage runs
   - Fixes [#331](https://github.com/cloverage/cloverage/issues/331)
@@ -15,6 +19,9 @@ in github. Commentary on the change should appear as a nested, unordered list. -
   - Fixes [218](https://github.com/cloverage/cloverage/issues/218) 
   - Fixes [319](https://github.com/cloverage/cloverage/issues/319) 
   - Fixes [334](https://github.com/cloverage/cloverage/issues/334) 
+
+Also some more development niceties, like improvements to CI (including a
+proper CircleCI test matrix).
 
 ## 1.2.3
 
