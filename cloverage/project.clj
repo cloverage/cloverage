@@ -2,7 +2,7 @@
                        (-> "CLOJURE_VERSION" System/getenv not-empty (doto (assert "CLOJURE_VERSION is unset!")))
                        "1.11"))
 
-(defproject cloverage "1.2.4-SNAPSHOT"
+(defproject cloverage "1.2.4"
   :description "Form-level test coverage for clojure."
   :url "https://www.github.com/cloverage/cloverage"
   :scm {:name "git"
