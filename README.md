@@ -52,35 +52,36 @@ project value is used.
 
 Available options and command-line arguments:
 ```
- Project           Switches                     Default          Desc
- -------           --------                     -------          ----
- :output           -o, --output                 target/coverage  Output directory.
- :text?            --no-text, --text            false            Produce a text report.
- :html?            --no-html, --html            true             Produce an HTML report.
- :emma-xml?        --no-emma-xml, --emma-xml    false            Produce an EMMA XML report. [emma.sourceforge.net]
- :lcov?            --no-lcov, --lcov            false            Produce a lcov/gcov report.
- :codecov?         --no-codecov, --codecov      false            Generate a JSON report for Codecov.io
- :coveralls?       --no-coveralls, --coveralls  false            Send a JSON report to Coveralls if on a CI server
- :junit?           --no-junit, --junit          false            Output test results as junit xml file. Supported in :clojure.test runner
- :raw?             --no-raw, --raw              false            Output raw coverage data (for debugging).
- :summary?         --no-summary, --summary      true             Prints a summary
- :fail-threshold   --fail-threshold             0                Sets the percentage threshold at which cloverage will abort the build. Default: 0%
- :low-watermark    --low-watermark              50               Sets the low watermark percentage (valid values 0..100). Default: 50%
- :high-watermark   --high-watermark             80               Sets the high watermark percentage (valid values 0..100). Default: 80%
- :debug?           -d, --no-debug, --debug      false            Output debugging information to stdout.
- :runner           -r, --runner                 :clojure.test    Specify which test runner to use. Built-in runners are `clojure.test`, `midje` and `eftest`.
- :runner-opts      (not allowed as a cli arg)   {}               Configure specified runner with any options map.
- :nop?             --no-nop, --nop              false            Instrument with noops.
- :ns-regex         -n, --ns-regex               []               Regex for instrumented namespaces (can be repeated).
- :ns-exclude-regex -e, --ns-exclude-regex       []               Regex for namespaces not to be instrumented (can be repeated).
- :exclude-call     --exclude-call               []               Name of fn/macro whose call sites are not to be instrumented (can be repeated).
- :test-ns-regex    -t, --test-ns-regex          []               Regex for test namespaces (can be repeated).
- :src-ns-path      -p, --src-ns-path            []               Path (string) to directory containing source code namespaces (can be repeated).
- :test-ns-path     -s, --test-ns-path           []               Path (string) to directory containing test namespaces (can be repeated).
- :extra-test-ns    -x, --extra-test-ns          []               Additional test namespace (string) to add (can be repeated).
- :custom-report    -c, --custom-report                           Load and run a custom report writer. Should be a namespaced symbol. The function is passed
-    project-options args-map output-directory forms
- :help?            -h, --no-help, --help        false            Show help.
+ Project                Switches                     Default          Desc
+ -------                --------                     -------          ----
+ :output                -o, --output                 target/coverage  Output directory.
+ :text?                 --no-text, --text            false            Produce a text report.
+ :html?                 --no-html, --html            true             Produce an HTML report.
+ :emma-xml?             --no-emma-xml, --emma-xml    false            Produce an EMMA XML report. [emma.sourceforge.net]
+ :lcov?                 --no-lcov, --lcov            false            Produce a lcov/gcov report.
+ :codecov?              --no-codecov, --codecov      false            Generate a JSON report for Codecov.io
+ :coveralls?            --no-coveralls, --coveralls  false            Send a JSON report to Coveralls if on a CI server
+ :junit?                --no-junit, --junit          false            Output test results as junit xml file. Supported in :clojure.test runner
+ :raw?                  --no-raw, --raw              false            Output raw coverage data (for debugging).
+ :summary?              --no-summary, --summary      true             Prints a summary
+ :fail-threshold        --fail-threshold             0                Sets the percentage threshold for both line and form coverage at which cloverage will abort the build. Default: 0%
+ :line-fail-threshold   --line-fail-threshold        0                Sets the percentage threshold for line coverage at which cloverage will abort the build. Ignored if --fail-threshold is non-zero. Default: 0%
+ :form-fail-threshold   --form-fail-threshold        0                Sets the percentage threshold for form coverage at which cloverage will abort the build. Ignored if --fail-threshold is non-zero. Default: 0%
+ :low-watermark         --low-watermark              50               Sets the low watermark percentage (valid values 0..100). Default: 50%
+ :high-watermark        --high-watermark             80               Sets the high watermark percentage (valid values 0..100). Default: 80%
+ :debug?                -d, --no-debug, --debug      false            Output debugging information to stdout.
+ :runner                -r, --runner                 :clojure.test    Specify which test runner to use. Built-in runners are `clojure.test`, `midje` and `eftest`.
+ :runner-opts           (not allowed as a cli arg)   {}               Configure specified runner with any options map.
+ :nop?                  --no-nop, --nop              false            Instrument with noops.
+ :ns-regex              -n, --ns-regex               []               Regex for instrumented namespaces (can be repeated).
+ :ns-exclude-regex      -e, --ns-exclude-regex       []               Regex for namespaces not to be instrumented (can be repeated).
+ :exclude-call          --exclude-call               []               Name of fn/macro whose call sites are not to be instrumented (can be repeated).
+ :test-ns-regex         -t, --test-ns-regex          []               Regex for test namespaces (can be repeated).
+ :src-ns-path           -p, --src-ns-path            []               Path (string) to directory containing source code namespaces (can be repeated).
+ :test-ns-path          -s, --test-ns-path           []               Path (string) to directory containing test namespaces (can be repeated).
+ :extra-test-ns         -x, --extra-test-ns          []               Additional test namespace (string) to add (can be repeated).
+ :custom-report         -c, --custom-report                           Load and run a custom report writer. Should be a namespaced symbol. The function is passed project-options args-map output-directory forms
+ :help?                 -h, --no-help, --help        false            Show help.
 ```
 
 ### mvn

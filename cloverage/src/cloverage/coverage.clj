@@ -288,16 +288,25 @@
                                                            :output  output
                                                            :forms   forms})))
 
-(defn- coverage-under? [forms failure-threshold]
-  (when (pos? failure-threshold)
-    (let [pct-covered (apply min (vals (rep/total-stats forms)))
-          failed?     (< pct-covered failure-threshold)]
-      (when failed?
-        (println "Failing build as coverage is below threshold of" failure-threshold "%"))
-      failed?)))
+(defn- coverage-under? [forms failure-threshold line-failure-threshold form-failure-threshold]
+  (let [{:keys [percent-lines-covered percent-forms-covered]} (rep/total-stats forms)]
+    (if (pos? failure-threshold)
+      (let [pct-covered (min percent-lines-covered percent-forms-covered)
+            failed?     (< pct-covered failure-threshold)]
+        (when failed?
+          (println "Failing build as coverage is below threshold of" failure-threshold "%"))
+        failed?)
+      (when (or (pos? line-failure-threshold) (pos? form-failure-threshold))
+        (let [line-failed? (< percent-lines-covered line-failure-threshold)
+              form-failed? (< percent-forms-covered form-failure-threshold)]
+          (when line-failed?
+            (println "Failing build as line coverage is below threshold of" line-failure-threshold "%"))
+          (when form-failed?
+            (println "Failing build as form coverage is below threshold of" form-failure-threshold "%"))
+          (or line-failed? form-failed?))))))
 
 (defn run-main
-  [[{:keys [debug? fail-threshold help?], :as opts} add-nses help] project-opts]
+  [[{:keys [debug? fail-threshold line-fail-threshold form-fail-threshold help?], :as opts} add-nses help] project-opts]
   (binding [*ns*          (find-ns 'cloverage.coverage)
             debug/*debug* debug?]
     (if help?
@@ -308,7 +317,10 @@
               exit-code                              (cond
                                                        (not test-result)                      -1
                                                        (> num-errors 128)                     -2
-                                                       (coverage-under? forms fail-threshold) -3
+                                                       (coverage-under? forms
+                                                                        fail-threshold
+                                                                        line-fail-threshold
+                                                                        form-fail-threshold)  -3
                                                        :else                                  num-errors)]
           (report-results opts project-opts forms)
           (if *exit-after-test*
