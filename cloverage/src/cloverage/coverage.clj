@@ -289,6 +289,7 @@
                                                            :forms   forms})))
 
 (defn- coverage-under? [forms failure-threshold line-failure-threshold form-failure-threshold]
+  {:pre [failure-threshold line-failure-threshold form-failure-threshold]}
   (let [{:keys [percent-lines-covered percent-forms-covered]} (rep/total-stats forms)]
     (if (pos? failure-threshold)
       (let [pct-covered (min percent-lines-covered percent-forms-covered)
