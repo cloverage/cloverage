@@ -50,6 +50,8 @@ project. Command line arguments can still be used and will be merged
 in. List options are merged by concatenation, for other options the
 project value is used.
 
+Note about the three different threshold flags: sometimes, line coverage is high while form coverage isn't as high, so setting a high line coverage requirement can help maintaining an existing standard.
+
 Available options and command-line arguments:
 ```
  Project                Switches                     Default          Desc
