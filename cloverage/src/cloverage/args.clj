@@ -19,32 +19,34 @@
   (every? symbol? coll))
 
 (def valid
-  {:text?            boolean?
-   :html?            boolean?
-   :raw?             boolean?
-   :emma-xml?        boolean?
-   :junit?           boolean?
-   :lcov?            boolean?
-   :codecov?         boolean?
-   :coveralls?       boolean?
-   :summary?         boolean?
-   :colorize?        boolean?
-   :fail-threshold   integer?
-   :low-watermark    integer?
-   :high-watermark   integer?
-   :debug?           boolean?
-   :nop?             boolean?
-   :extra-test-ns    regexes-or-strings?
-   :help?            boolean?
-   :ns-regex         regexes-or-strings?
-   :test-ns-regex    regexes-or-strings?
-   :ns-exclude-regex regexes-or-strings?
-   :exclude-call     symbols?
-   :src-ns-path      regexes-or-strings?
-   :runner           keyword?
-   :runner-opts      map?
-   :test-ns-path     regexes-or-strings?
-   :custom-report    symbol?})
+  {:text?                 boolean?
+   :html?                 boolean?
+   :raw?                  boolean?
+   :emma-xml?             boolean?
+   :junit?                boolean?
+   :lcov?                 boolean?
+   :codecov?              boolean?
+   :coveralls?            boolean?
+   :summary?              boolean?
+   :colorize?             boolean?
+   :fail-threshold        integer?
+   :line-fail-threshold   integer?
+   :form-fail-threshold   integer?
+   :low-watermark         integer?
+   :high-watermark        integer?
+   :debug?                boolean?
+   :nop?                  boolean?
+   :extra-test-ns         regexes-or-strings?
+   :help?                 boolean?
+   :ns-regex              regexes-or-strings?
+   :test-ns-regex         regexes-or-strings?
+   :ns-exclude-regex      regexes-or-strings?
+   :exclude-call          symbols?
+   :src-ns-path           regexes-or-strings?
+   :runner                keyword?
+   :runner-opts           map?
+   :test-ns-path          regexes-or-strings?
+   :custom-report         symbol?})
 
 (defn- fn-sym [^Object f]
   (let [[_ f-ns f-n] (re-matches #"(.*)\$(.*?)(__[0-9]+)?" (.. f getClass getName))]
@@ -140,7 +142,17 @@
    ["--[no-]colorize"
     "Adds ANSI color to the summary" :default true]
    ["--fail-threshold"
-    "Sets the percentage threshold at which cloverage will abort the build. Default: 0%"
+    "Sets the percentage threshold for both line and form coverage at which cloverage will abort the build. Default: 0%"
+    :default 0
+    :parse-fn #(Integer/parseInt %)]
+   ["--line-fail-threshold"
+    "Sets the percentage threshold for line coverage at which cloverage will abort the build.
+    Ignored if --fail-threshold is non-zero. Default: 0%"
+    :default 0
+    :parse-fn #(Integer/parseInt %)]
+    ["--form-fail-threshold"
+    "Sets the percentage threshold for form coverage at which cloverage will abort the build.
+    Ignored if --fail-threshold is non-zero. Default: 0%"
     :default 0
     :parse-fn #(Integer/parseInt %)]
    ["--low-watermark"
