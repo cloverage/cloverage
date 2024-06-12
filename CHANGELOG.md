@@ -9,7 +9,8 @@ in github. Commentary on the change should appear as a nested, unordered list. -
 
 ## 1.2.5 (WIP)
 
-Nothing yet!
+- Resolve `[:runner-opt :report]` in the eftest runner
+  - Fixes [#328](https://github.com/cloverage/cloverage/issues/328)
 
 ## 1.2.4
 
