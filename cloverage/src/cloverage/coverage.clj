@@ -227,6 +227,9 @@
                                (not (map? runner-opts)))
                         (into {} runner-opts)
                         runner-opts)
+          eftest-opts (cond-> eftest-opts
+                        (contains? eftest-opts :report)
+                        (update :report resolve-var))
           extra-test-ns (or (seq (:extra-test-ns opts)) [])
           test-namespaces (->> (find-nses (:test-ns-path opts) (:test-ns-regex opts))
                                (concat extra-test-ns)
