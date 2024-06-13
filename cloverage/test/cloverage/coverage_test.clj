@@ -448,4 +448,17 @@
                       cov/require-ns (constantly "test")
                       require (constantly nil)]
           (t/is (= {:errors 3}
+                   ((cov/runner-fn (merge opts runner-opts)) []))))))
+    (t/testing "check that eftest runner-fn passes the :report runner-opt as a function"
+      (let [runner-opts {:runner-opts {:test-warn-time 100
+                                       :multithread? false
+                                       :report 'custom/report}}]
+        (with-redefs [cov/resolve-var {'eftest.runner/find-tests (constantly [])
+                                       'eftest.runner/run-tests (fn [_ {:keys [report]}]
+                                                                  (report {:error 0 :fail 1}))
+                                       'custom/report identity}
+                      cov/find-nses (constantly [])
+                      cov/require-ns (constantly "test")
+                      require (constantly nil)]
+          (t/is (= {:errors 1}
                    ((cov/runner-fn (merge opts runner-opts)) []))))))))
