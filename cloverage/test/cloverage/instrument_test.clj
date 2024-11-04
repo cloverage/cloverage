@@ -300,7 +300,7 @@
                                  (do ((do str)
                                       (do "X is")
                                       (do x)))
-                                 (do (. Thread currentThread))))
+                                 (do ((do Thread/currentThread)))))
                        getName))
                (rw/macroexpand-all (inst/instrument-form #'inst/nop nil '(.getName (let [x 1]
                                                                                      (str "X is" x)
@@ -353,3 +353,47 @@
                           clojure.lang.RT
                           (clojure.core/count (do [(do 3) (do 4)]))))))
                (rw/macroexpand-all (inst/instrument-form #'inst/nop nil '(= (count [1 2]) (count [3 4])))))))))
+
+(t/deftest instrument-clj-1-12-features
+  (if (and (>= (compare (clojure-version) "1.12.0") 0))
+    (t/testing "Instrumentation of new Clojure 1.12 features"
+      (t/testing "Qualified methods - Class/method, Class/.method, and Class/new"
+        (t/is (= '(do
+                    (do
+                      (do ((do Long/new) (do 1)))
+                      (do System/out)
+                      (do (let* [f (do Long/.byteValue)]
+                            (do ((do f) (do 1)))))
+                      (do (let* [f (do Long/valueOf)]
+                            (do ((do f) (do 1)))))))
+                 (rw/macroexpand-all (inst/instrument-form #'inst/nop
+                                                           nil
+                                                           '(do
+                                                              (Long/new 1)
+                                                              System/out
+                                                              (let [f Long/.byteValue]
+                                                                (f 1))
+                                                              (let [f Long/valueOf]
+                                                                (f 1))))))))
+      (t/testing "Functional interfaces"
+        (t/is (= '(do
+                    (let* [p (do even?)]
+                      (do (. p test (do 42)))))
+                 (rw/macroexpand-all (inst/instrument-form #'inst/nop
+                                                           nil
+                                                           '(let [^java.util.function.Predicate p even?]
+                                                              (.test p 42)))))))
+      (t/testing "Array class syntax"
+        (t/is (= '(do
+                    (do
+                      (do (new ProcessBuilder (do ((do into-array) (do String) (do [(do "a")])))))
+                      (do ((do java.util.Arrays/binarySearch)
+                           (do (. clojure.lang.Numbers clojure.core/int_array (do [(do 1) (do 2) (do 3)])))
+                           (do (. clojure.lang.RT (intCast (do 2))))))))
+                 (rw/macroexpand-all (inst/instrument-form #'inst/nop
+                                                           nil
+                                                           '(do
+                                                              (ProcessBuilder. ^String/1 (into-array String ["a"]))
+                                                              (java.util.Arrays/binarySearch ^int/1 (int-array [1 2 3])
+                                                                                   (int 2)))))))))
+    (t/is (true? true))))
