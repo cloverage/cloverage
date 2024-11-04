@@ -363,9 +363,9 @@
                       (do ((do Long/new) (do 1)))
                       (do System/out)
                       (do (let* [f (do Long/.byteValue)]
-                            (do ((do f) (do 1)))))
+                                (do ((do f) (do 1)))))
                       (do (let* [f (do Long/valueOf)]
-                            (do ((do f) (do 1)))))))
+                                (do ((do f) (do 1)))))))
                  (rw/macroexpand-all (inst/instrument-form #'inst/nop
                                                            nil
                                                            '(do
@@ -378,7 +378,7 @@
       (t/testing "Functional interfaces"
         (t/is (= '(do
                     (let* [p (do even?)]
-                      (do (. p test (do 42)))))
+                          (do (. p test (do 42)))))
                  (rw/macroexpand-all (inst/instrument-form #'inst/nop
                                                            nil
                                                            '(let [^java.util.function.Predicate p even?]
@@ -395,5 +395,5 @@
                                                            '(do
                                                               (ProcessBuilder. ^String/1 (into-array String ["a"]))
                                                               (java.util.Arrays/binarySearch ^int/1 (int-array [1 2 3])
-                                                                                   (int 2)))))))))
+                                                                                             (int 2)))))))))
     (t/is (true? true))))

@@ -28,8 +28,8 @@
                  [riddley "0.2.0"]
                  [slingshot "0.12.2"]]
   :profiles {:dev {:aot ^:replace []
-                   :plugins [[lein-cljfmt "0.8.0"]
-                             [lein-kibit "0.1.8"]]
+                   :plugins [[dev.weavejester/lein-cljfmt "0.13.0"]
+                             [lein-kibit "0.1.11"]]
                    :global-vars {*warn-on-reflection* true}
                    :resource-paths ["dev-resources"]
                    :source-paths ["repl" "sample"]}
@@ -42,7 +42,7 @@
                         :eastwood {:ignored-faults {:implicit-dependencies {cloverage.report.emma-xml ~(case clojure-profile
                                                                                                          ("1.8" "1.9") [{:line 42}]
                                                                                                          [])}}}}
-             :clj-kondo {:plugins [[com.github.clj-kondo/lein-clj-kondo "0.1.4"]]}
+             :clj-kondo {:plugins [[com.github.clj-kondo/lein-clj-kondo "2024.09.27"]]}
              :humane {:dependencies [[pjstadig/humane-test-output "0.11.0"]]
                       :injections [(require 'pjstadig.humane-test-output)
                                    (pjstadig.humane-test-output/activate!)]}
