@@ -11,6 +11,9 @@ in github. Commentary on the change should appear as a nested, unordered list. -
 
 - Resolve `[:runner-opt :report]` in the eftest runner
   - Fixes [#328](https://github.com/cloverage/cloverage/issues/328)
+- Add support for Clojure 1.12
+  - Fixes [#345](https://github.com/cloverage/cloverage/issues/345)
+  - Fixes [#347](https://github.com/cloverage/cloverage/issues/347)
 
 ## 1.2.4
 

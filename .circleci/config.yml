@@ -71,7 +71,7 @@ workflows:
           # Eastwood also benefits from being run in different environments.
           matrix:
             parameters:
-              clojure_version: ["1.8", "1.9", "1.10", "1.11"]
+              clojure_version: ["1.8", "1.9", "1.10", "1.11", "1.12"]
               jdk_version: [openjdk8, openjdk11, openjdk17]
               working_directory: ["./cloverage"]
               command: ["test-ci", "eastwood-ci"]
@@ -81,7 +81,7 @@ workflows:
          # Limited test matrix for the .lein-cloverage project - it has little logic so exercising extra clojure versions is not necessary.
           matrix:
             parameters:
-              clojure_version: ["1.11"]
+              clojure_version: ["1.12"]
               jdk_version: [openjdk8, openjdk11, openjdk17]
               working_directory: ["./lein-cloverage"]
               command: ["test-ci", "eastwood-ci"]
@@ -91,7 +91,7 @@ workflows:
           # Very limited matrix for static linters which do not benefit from being run in additional runtimes.
           matrix:
             parameters:
-              clojure_version: ["1.11"]
+              clojure_version: ["1.12"]
               jdk_version: [openjdk17]
               working_directory: ["./cloverage",  "./lein-cloverage"]
               command: ["cljfmt check", "kibit", "kondo-ci"]

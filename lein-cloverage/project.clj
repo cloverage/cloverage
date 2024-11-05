@@ -10,7 +10,7 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"
             :distribution :repo
             :comments "same as Clojure"}
-  :dependencies [[org.clojure/clojure "1.11.1" :scope "provided"]]
+  :dependencies [[org.clojure/clojure "1.12.0" :scope "provided"]]
   :deploy-repositories [["releases" :clojars]
                         ["snapshots" :clojars]]
   :lein-release {:scm :git ; Because we're not in the top-level directory, so it doesn't auto-detect

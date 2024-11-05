@@ -23,7 +23,7 @@
            java.io.FileNotFoundException
            java.util.concurrent.atomic.AtomicInteger))
 
-(def ^:dynamic *instrumented-ns*) ;; currently instrumented ns
+(def ^:dynamic *instrumented-ns* nil) ;; currently instrumented ns
 (def ^:dynamic *covered* (atom []))
 (def ^:dynamic *exit-after-test* true)
 
