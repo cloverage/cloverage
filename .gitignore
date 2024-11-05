@@ -16,3 +16,4 @@ pom.xml*
 .idea/
 cloverage.iml
 .eastwood
+.lsp/
