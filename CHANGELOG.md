@@ -7,9 +7,10 @@ provide a short summary description of the particular changes of the patch.
 Include the issue number (#xxx) which will link back to the originating issue
 in github. Commentary on the change should appear as a nested, unordered list. -->
 
-## 1.2.5 (WIP)
+## 1.2.5
 
-- Resolve `[:runner-opt :report]` in the eftest runner
+- Option to set thresholds separately for line and form coverage
+- Fix `[:runner-opt :report]` in the eftest runner
   - Fixes [#328](https://github.com/cloverage/cloverage/issues/328)
 - Add support for Clojure 1.12
   - Fixes [#345](https://github.com/cloverage/cloverage/issues/345)
@@ -20,9 +21,9 @@ in github. Commentary on the change should appear as a nested, unordered list. -
 - Make validation errors in the project settings fail Cloverage runs
   - Fixes [#331](https://github.com/cloverage/cloverage/issues/331)
 - Upgrade various dependencies
-  - Fixes [218](https://github.com/cloverage/cloverage/issues/218) 
-  - Fixes [319](https://github.com/cloverage/cloverage/issues/319) 
-  - Fixes [334](https://github.com/cloverage/cloverage/issues/334) 
+  - Fixes [218](https://github.com/cloverage/cloverage/issues/218)
+  - Fixes [319](https://github.com/cloverage/cloverage/issues/319)
+  - Fixes [334](https://github.com/cloverage/cloverage/issues/334)
 
 Also some more development niceties, like improvements to CI (including a
 proper CircleCI test matrix).

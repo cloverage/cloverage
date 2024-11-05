@@ -50,21 +50,25 @@ project. Command line arguments can still be used and will be merged
 in. List options are merged by concatenation, for other options the
 project value is used.
 
+Note about the three different threshold flags: sometimes, line coverage is high while form coverage isn't as high, so setting a high line coverage requirement can help maintaining an existing standard.
+
 Available options and command-line arguments:
 ```
- Project           Switches                     Default          Desc
- -------           --------                     -------          ----
- :output           -o, --output                 target/coverage  Output directory.
- :text?            --no-text, --text            false            Produce a text report.
- :html?            --no-html, --html            true             Produce an HTML report.
- :emma-xml?        --no-emma-xml, --emma-xml    false            Produce an EMMA XML report. [emma.sourceforge.net]
- :lcov?            --no-lcov, --lcov            false            Produce a lcov/gcov report.
- :codecov?         --no-codecov, --codecov      false            Generate a JSON report for Codecov.io
- :coveralls?       --no-coveralls, --coveralls  false            Send a JSON report to Coveralls if on a CI server
- :junit?           --no-junit, --junit          false            Output test results as junit xml file. Supported in :clojure.test runner
- :raw?             --no-raw, --raw              false            Output raw coverage data (for debugging).
- :summary?         --no-summary, --summary      true             Prints a summary
- :fail-threshold   --fail-threshold             0                Sets the percentage threshold at which cloverage will abort the build. Default: 0%
+ Project                Switches                     Default          Desc
+ -------                --------                     -------          ----
+ :output                -o, --output                 target/coverage  Output directory.
+ :text?                 --no-text, --text            false            Produce a text report.
+ :html?                 --no-html, --html            true             Produce an HTML report.
+ :emma-xml?             --no-emma-xml, --emma-xml    false            Produce an EMMA XML report. [emma.sourceforge.net]
+ :lcov?                 --no-lcov, --lcov            false            Produce a lcov/gcov report.
+ :codecov?              --no-codecov, --codecov      false            Generate a JSON report for Codecov.io
+ :coveralls?            --no-coveralls, --coveralls  false            Send a JSON report to Coveralls if on a CI server
+ :junit?                --no-junit, --junit          false            Output test results as junit xml file. Supported in :clojure.test runner
+ :raw?                  --no-raw, --raw              false            Output raw coverage data (for debugging).
+ :summary?              --no-summary, --summary      true             Prints a summary
+ :fail-threshold        --fail-threshold             0                Sets the percentage threshold for both line and form coverage at which cloverage will abort the build. Default: 0%
+ :line-fail-threshold   --line-fail-threshold        0                Sets the percentage threshold for line coverage at which cloverage will abort the build. Ignored if --fail-threshold is non-zero. Default: 0%
+ :form-fail-threshold   --form-fail-threshold        0                Sets the percentage threshold for form coverage at which cloverage will abort the build. Ignored if --fail-threshold is non-zero. Default: 0%
  :low-watermark    --low-watermark              50               Sets the low watermark percentage (valid values 0..100). Default: 50%
  :high-watermark   --high-watermark             80               Sets the high watermark percentage (valid values 0..100). Default: 80%
  :debug?           -d, --no-debug, --debug      false            Output debugging information to stdout.
