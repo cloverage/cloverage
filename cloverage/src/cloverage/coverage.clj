@@ -23,7 +23,7 @@
            java.io.FileNotFoundException
            java.util.concurrent.atomic.AtomicInteger))
 
-(def ^:dynamic *instrumented-ns*) ;; currently instrumented ns
+(def ^:dynamic *instrumented-ns* nil) ;; currently instrumented ns
 (def ^:dynamic *covered* (atom []))
 (def ^:dynamic *exit-after-test* true)
 
@@ -227,6 +227,9 @@
                                (not (map? runner-opts)))
                         (into {} runner-opts)
                         runner-opts)
+          eftest-opts (cond-> eftest-opts
+                        (contains? eftest-opts :report)
+                        (update :report resolve-var))
           extra-test-ns (or (seq (:extra-test-ns opts)) [])
           test-namespaces (->> (find-nses (:test-ns-path opts) (:test-ns-regex opts))
                                (concat extra-test-ns)

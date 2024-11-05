@@ -209,5 +209,6 @@
    ["-h" "--help" "Show help." :default false :flag true]])
 
 (defn parse-args [args project-settings]
+  #_{:clj-kondo/ignore [:deprecated-var]}
   (fix-opts (apply cli/cli args (arguments))
             (doto project-settings validate!)))
