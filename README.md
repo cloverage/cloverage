@@ -149,6 +149,6 @@ Distributed under the Eclipse Public License, the same as Clojure.
 ### Mentions
 
 Some code was taken from
-* Java IO interop (clojure-contrib/duck-streams) by Stuart Sierra (see cloverage/source.clj)
+* Java IO interop (clojure-contrib/duck-streams) by Alessandra Sierra (see cloverage/source.clj)
 * Topological sort (https://gist.github.com/1263783) by Alan Dipert (see cloverage/kahn.clj)
 * clojure.spec.alpha (for `cloverage.args/fn-sym`)
