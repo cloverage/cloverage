@@ -2,7 +2,8 @@
   (:require
    [clojure.java.io :as io]
    [clojure.data.json :as json]
-   [cloverage.report :refer [line-stats with-out-writer]]))
+   [cloverage.report :refer [line-stats with-out-writer]]
+   [cloverage.source :refer [source-file-path]]))
 
 (defn- file-coverage [[file file-forms]]
   ;; https://codecov.io/api#post-json-report
@@ -11,7 +12,7 @@
   ;; 0: not covered
   ;; null: skipped/ignored/empty
   ;; the first item in the list must be a null
-  (vector file
+  (vector (source-file-path file)
           (cons nil
                 (mapv (fn [line]
                         (cond (:blank?   line) nil
