@@ -25,7 +25,7 @@
                  [org.clojure/java.classpath "1.1.0"]
                  [org.clojure/data.xml "0.2.0-alpha6"]
                  [org.clojure/data.json "2.5.0" :exclusions [org.clojure/clojure]]
-                 [riddley "0.2.0"]
+                 [riddley "0.2.2"]
                  [slingshot "0.12.2"]]
   :profiles {:dev {:aot ^:replace []
                    :plugins [[dev.weavejester/lein-cljfmt "0.13.0"]

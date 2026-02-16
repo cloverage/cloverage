@@ -185,9 +185,7 @@
     res))
 
 (defn- var->sym [^clojure.lang.Var fvar]
-  (let [it (name (.sym fvar))
-        nsn (name (ns-name (.ns fvar)))]
-    (symbol nsn it)))
+  (symbol fvar))
 
 (defmulti do-wrap
   "Traverse the given form and wrap all its sub-forms in a function that evals

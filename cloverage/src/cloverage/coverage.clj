@@ -67,7 +67,7 @@
   ;; there are no reflection warnings and especially beware introducing any
   ;; unnecessary coordination here – it can greatly affect performance when
   ;; instrumenting tests that use multithreading.
-  (.getAndIncrement ^AtomicInteger (get (nth (.deref ^IDeref *covered*) idx) :hits)))
+  (.getAndIncrement ^AtomicInteger (get (nth @*covered* idx) :hits)))
 
 (defmacro capture
   "Eval the given form and record that the given line on the given

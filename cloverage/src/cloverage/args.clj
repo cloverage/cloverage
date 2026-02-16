@@ -70,11 +70,6 @@
     (throw (ex-info "Invalid project settings"
                     {:invalid-pairs (mapv ex-data validation-errors)}))))
 
-(defn- collecting-args-parser []
-  (let [col (atom [])]
-    (fn [val]
-      (swap! col conj val))))
-
 (defn- parse-sym-str [s]
   (->> (str/split s #"/")
        (take 2)
@@ -120,95 +115,104 @@
 
 ;; This is a defn for avoiding state across test runs
 (defn arguments []
-  [["-o" "--output" "Output directory." :default "target/coverage"]
-   ["--[no-]text"
+  [["-o" "--output OUTPUT" "Output directory." :default "target/coverage"]
+   [nil "--[no-]text"
     "Produce a text report." :default false]
-   ["--[no-]html"
+   [nil "--[no-]html"
     "Produce an HTML report." :default true]
-   ["--[no-]emma-xml"
+   [nil "--[no-]emma-xml"
     "Produce an EMMA XML report. [emma.sourceforge.net]" :default false]
-   ["--[no-]lcov"
+   [nil "--[no-]lcov"
     "Produce a lcov/gcov report." :default false]
-   ["--[no-]codecov"
+   [nil "--[no-]codecov"
     "Generate a JSON report for Codecov.io" :default false]
-   ["--[no-]coveralls"
+   [nil "--[no-]coveralls"
     "Send a JSON report to Coveralls if on a CI server" :default false]
-   ["--[no-]junit"
+   [nil "--[no-]junit"
     "Output test results as junit xml file. Supported in :clojure.test runner" :default false]
-   ["--[no-]raw"
+   [nil "--[no-]raw"
     "Output raw coverage data (for debugging)." :default false]
-   ["--[no-]summary"
+   [nil "--[no-]summary"
     "Prints a summary" :default true]
-   ["--[no-]colorize"
+   [nil "--[no-]colorize"
     "Adds ANSI color to the summary" :default true]
-   ["--fail-threshold"
+   [nil "--fail-threshold THRESHOLD"
     "Sets the percentage threshold for both line and form coverage at which cloverage will abort the build. Default: 0%"
     :default 0
     :parse-fn #(Integer/parseInt %)]
-   ["--line-fail-threshold"
+   [nil "--line-fail-threshold THRESHOLD"
     "Sets the percentage threshold for line coverage at which cloverage will abort the build.
     Ignored if --fail-threshold is non-zero. Default: 0%"
     :default 0
     :parse-fn #(Integer/parseInt %)]
-    ["--form-fail-threshold"
+   [nil "--form-fail-threshold THRESHOLD"
     "Sets the percentage threshold for form coverage at which cloverage will abort the build.
     Ignored if --fail-threshold is non-zero. Default: 0%"
     :default 0
     :parse-fn #(Integer/parseInt %)]
-   ["--low-watermark"
+   [nil "--low-watermark PCT"
     "Sets the low watermark percentage (valid values 0..100). Default: 50%"
     :default 50
     :parse-fn #(Integer/parseInt %)]
-   ["--high-watermark"
+   [nil "--high-watermark PCT"
     "Sets the high watermark percentage (valid values 0..100). Default: 80%"
     :default 80
     :parse-fn #(Integer/parseInt %)]
    ["-d" "--[no-]debug"
     "Output debugging information to stdout." :default false]
-   ["-r" "--runner"
+   ["-r" "--runner RUNNER"
     "Specify which test runner to use. Built-in runners are `clojure.test`, `midje` and `eftest`."
     :default :clojure.test
     :parse-fn parse-kw-str]
-   ["--[no-]nop" "Instrument with noops." :default false]
-   ["-n" "--ns-regex"
+   [nil "--[no-]nop" "Instrument with noops." :default false]
+   ["-n" "--ns-regex REGEX"
     "Regex for instrumented namespaces (can be repeated)."
     :default []
-    :parse-fn (collecting-args-parser)]
-   ["-e" "--ns-exclude-regex"
+    :multi true
+    :update-fn conj]
+   ["-e" "--ns-exclude-regex REGEX"
     "Regex for namespaces not to be instrumented (can be repeated)."
     :default []
-    :parse-fn (collecting-args-parser)]
-   ["--exclude-call"
+    :multi true
+    :update-fn conj]
+   [nil "--exclude-call NAME"
     "Name of fn/macro whose call sites are not to be instrumented (can be repeated)."
     :default []
-    :parse-fn (collecting-args-parser)]
-   ["-t" "--test-ns-regex"
+    :multi true
+    :update-fn conj]
+   ["-t" "--test-ns-regex REGEX"
     "Regex for test namespaces (can be repeated)."
     :default []
-    :parse-fn (collecting-args-parser)]
-   ["-p" "--src-ns-path"
+    :multi true
+    :update-fn conj]
+   ["-p" "--src-ns-path PATH"
     "Path (string) to directory containing source code namespaces (can be repeated)."
     :default []
-    :parse-fn (collecting-args-parser)]
-   ["-s" "--test-ns-path"
+    :multi true
+    :update-fn conj]
+   ["-s" "--test-ns-path PATH"
     "Path (string) to directory containing test namespaces (can be repeated)."
     :default []
-    :parse-fn (collecting-args-parser)]
-   ["-x" "--extra-test-ns"
+    :multi true
+    :update-fn conj]
+   ["-x" "--extra-test-ns NS"
     "Additional test namespace (string) to add (can be repeated)."
     :default []
-    :parse-fn (collecting-args-parser)]
-   ["--selector"
+    :multi true
+    :update-fn conj]
+   [nil "--selector SELECTOR"
     "Apply test selector (can be repeated)"
     :default []
-    :parse-fn (comp (collecting-args-parser) parse-kw-str)]
-   ["-c" "--custom-report"
+    :multi true
+    :parse-fn parse-kw-str
+    :update-fn conj]
+   ["-c" "--custom-report SYMBOL"
     "Load and run a custom report writer. Should be a namespaced symbol. The function is passed
     project-options args-map output-directory forms"
     :parse-fn parse-sym-str]
-   ["-h" "--help" "Show help." :default false :flag true]])
+   ["-h" "--help" "Show help."]])
 
 (defn parse-args [args project-settings]
-  #_{:clj-kondo/ignore [:deprecated-var]}
-  (fix-opts (apply cli/cli args (arguments))
-            (doto project-settings validate!)))
+  (let [{:keys [options arguments summary]} (cli/parse-opts args (arguments))]
+    (fix-opts [options arguments summary]
+              (doto project-settings validate!))))
