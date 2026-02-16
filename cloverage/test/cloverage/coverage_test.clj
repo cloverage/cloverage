@@ -9,6 +9,11 @@
             [riddley.walk :as rw]
             [clojure.java.io :as io]))
 
+(def ^:private bb? (System/getProperty "babashka.version"))
+
+(defmacro if-bb [then else]
+  (if bb? then else))
+
 (defn- denamespace
   "Helper function to allow backticking w/o namespace interpolation."
   [tree]
@@ -222,16 +227,21 @@
   (inst/instrument #'cov/track-coverage
                    'cloverage.sample.exercise-instrumentation)
   (let [cov @cov/*covered*]
-    (doseq [[form expanded] '{(+ 40)      (+ 40)
-                              (+ 40 2)    (. clojure.lang.Numbers (add (cloverage.instrument/wrapm
-                                                                        cloverage.coverage/track-coverage 10 40)
-                                                                       (cloverage.instrument/wrapm
-                                                                        cloverage.coverage/track-coverage 10 2)))
-                              (str 1 2 3) (str 1 2 3)
-                              (inc m c 0) (. clojure.lang.Numbers (inc (cloverage.instrument/wrapm
-                                                                        cloverage.coverage/track-coverage
-                                                                        101
-                                                                        (m c 0))))}]
+    (doseq [[form expanded]
+            (merge
+             '{(+ 40)      (+ 40)
+               (str 1 2 3) (str 1 2 3)}
+             ;; Inlined expansions only apply on JVM
+             (if-bb
+               {}
+               '{(+ 40 2)    (. clojure.lang.Numbers (add (cloverage.instrument/wrapm
+                                                            cloverage.coverage/track-coverage 10 40)
+                                                           (cloverage.instrument/wrapm
+                                                            cloverage.coverage/track-coverage 10 2)))
+                 (inc m c 0) (. clojure.lang.Numbers (inc (cloverage.instrument/wrapm
+                                                            cloverage.coverage/track-coverage
+                                                            101
+                                                            (m c 0))))}))]
       (t/testing (format "Form %s (expanded to %s) should get instrumented" (pr-str form) (pr-str expanded))
         (t/is (find-form cov expanded))
         (let [found (find-form cov expanded)]
@@ -378,7 +388,8 @@
 
 (t/deftest test-all-reporters
   (let [generated-files ["coverage.txt" "index.html" "coverage.xml" "lcov.info" "coveralls.json"
-                         #_#_#_"raw-data.clj" "raw-stats.clj" "codecov.json"]]
+                         #_#_#_"raw-data.clj" "raw-stats.clj" "codecov.json"]
+        expected-dir    (if-bb "test/resources/bb" "test/resources")]
     (doseq [f generated-files]
       (clojure.java.io/delete-file (io/file "out" f) true))
 
@@ -390,8 +401,9 @@
        "cloverage.sample.exercise-instrumentation")
       (doseq [fname generated-files]
         ;; If this deftest is failing, you can temporarily enable this to update the expectations:
-        #_(spit (str "test/resources/" fname) (slurp (str "out/" fname)))
-        (assert-equal-content! fname "test/resources" "out")))))
+        ;; JVM: #_(spit (str "test/resources/" fname) (slurp (str "out/" fname)))
+        ;; bb:  #_(spit (str "test/resources/bb/" fname) (slurp (str "out/" fname)))
+        (assert-equal-content! fname expected-dir "out")))))
 
 (t/deftest test-cyclic-dependency
   (binding [cov/*exit-after-test* false]

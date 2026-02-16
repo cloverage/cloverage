@@ -6,6 +6,11 @@
   (:import (java.util.regex Pattern)
            (clojure.lang ExceptionInfo)))
 
+(def ^:private bb? (System/getProperty "babashka.version"))
+
+(defmacro ^:private if-bb [then else]
+  (if bb? then else))
+
 (defn- boolean? [x]
   (instance? Boolean x))
 
@@ -49,9 +54,10 @@
    :custom-report         symbol?})
 
 (defn- fn-sym [^Object f]
-  (let [[_ f-ns f-n] (re-matches #"(.*)\$(.*?)(__[0-9]+)?" (.. f getClass getName))]
-    ;; check for anonymous function
-    (when (not= "fn" f-n)
+  (let [[_ f-ns f-n] (re-matches #"(.*)\$(.*?)(__[0-9]+)?" (.getName (class f)))]
+    ;; check for anonymous function and SCI internal fns
+    (when (and (not= "fn" f-n)
+               (not= "sci.impl.fns$fun" f-ns))
       (symbol (clojure.lang.Compiler/demunge f-ns) (clojure.lang.Compiler/demunge f-n)))))
 
 (defn validate [[k v :as pair]]

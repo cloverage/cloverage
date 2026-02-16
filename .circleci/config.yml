@@ -56,6 +56,27 @@ jobs:
           working_directory: << parameters.working_directory >>
           command: lein << parameters.command >>
 
+  bb_test:
+    executor: openjdk17
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-bb-deps-{{ checksum "cloverage/bb.edn" }}
+            - v1-bb-deps-
+      - run:
+          name: Install babashka (dev build)
+          command: bash <(curl -sL https://raw.githubusercontent.com/babashka/babashka/master/install) --dev-build --dir .
+      - run:
+          name: Run bb tests
+          working_directory: ./cloverage
+          command: ../bb test:bb
+      - save_cache:
+          paths:
+            - ~/.m2
+            - ~/.gitlibs
+          key: v1-bb-deps-{{ checksum "cloverage/bb.edn" }}
+
 filters: &filters
   branches:
     only: /.*/
@@ -95,5 +116,8 @@ workflows:
               jdk_version: [openjdk17]
               working_directory: ["./cloverage",  "./lein-cloverage"]
               command: ["cljfmt check", "kibit", "kondo-ci"]
+          filters:
+            <<: *filters
+      - bb_test:
           filters:
             <<: *filters

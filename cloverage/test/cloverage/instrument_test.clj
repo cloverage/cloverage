@@ -5,6 +5,11 @@
             [cloverage.instrument :as inst]
             [riddley.walk :as rw]))
 
+(def ^:private bb? (System/getProperty "babashka.version"))
+
+(defmacro if-bb [then else]
+  (if bb? then else))
+
 (def simple-forms
   "Simple forms that do not require macroexpansion and have no side effects."
   [1
@@ -33,39 +38,43 @@
 
 (t/deftest test-form-type
   (doseq [[message form->expected]
-          {"Atomic forms"
-           {[1]     :atomic
-            ["foo"] :atomic
-            ['bar]  :atomic}
+          (merge
+           {"Atomic forms"
+            {[1]     :atomic
+             ["foo"] :atomic
+             ['bar]  :atomic}
 
-           "Collections"
-           {[[1 2 3 4]]   :coll
-            [{1 2 3 4}]   :coll
-            [#{1 2 3 4}]  :coll
-            [(Record. 1)] :coll}
+            "Collections"
+            {[[1 2 3 4]]   :coll
+             [{1 2 3 4}]   :coll
+             [#{1 2 3 4}]  :coll
+             [(Record. 1)] :coll}
 
-           "do & loop"
-           {['(do 1 2 3)]               :do
-            ;; fake a local binding
-            '[(loop 1 2 3) {loop hoop}] :list}
+            "do & loop"
+            {['(do 1 2 3)]               :do
+             ;; fake a local binding
+             '[(loop 1 2 3) {loop hoop}] :list}
 
-           "Inlined function calls"
-           {['(int 1)]            :inlined-fn-call
-            [`(int 1)]            :inlined-fn-call
-            [`(int 1) '{int int}] :inlined-fn-call}
+            "Local vars overshadow inlined fn calls; make sure this is detected correctly"
+            {'[(int) {int int}] :list}
 
-           "Local vars overshadow inlined fn calls; make sure this is detected correctly"
-           {'[(int) {int int}] :list}
+            "Lists starting with other lists"
+            {['((or + 1) 1 2)] :list}
 
-           "If some arities are inlined and others are not, only return `:inlined-fn-call` when inlined"
-           {['(+ 1)]   :list
-            ['(+ 1 2)] :inlined-fn-call}
+            "List-like classes e.g. clojure.lang.Cons for which `list?` is false"
+            {[(cons 1 '(2 3))] :list}}
 
-           "Lists starting with other lists"
-           {['((or + 1) 1 2)] :list}
+           ;; SCI doesn't support inlined functions
+           (if-bb
+             {}
+             {"Inlined function calls"
+              {['(int 1)]            :inlined-fn-call
+               [`(int 1)]            :inlined-fn-call
+               [`(int 1) '{int int}] :inlined-fn-call}
 
-           "List-like classes e.g. clojure.lang.Cons for which `list?` is false"
-           {[(cons 1 '(2 3))] :list}}
+              "If some arities are inlined and others are not, only return `:inlined-fn-call` when inlined"
+              {['(+ 1)]   :list
+               ['(+ 1 2)] :inlined-fn-call}}))
 
           [[form env] expected] form->expected]
     (t/testing message
@@ -137,21 +146,24 @@
                (inst/do-wrap #'inst/no-instr 0 form nil))))))
 
 (t/deftest test-wrap-deftype-methods
-  ;; (deftype ...) expands to (let [] (deftype* ...))
-  ;; ignore the let form & binding because we're only interested in how `deftype*` gets instrumented
-  (let [form (nth
-              (macroexpand-1
-               (list 'deftype 'MyType []
-                     'Protocol
-                     (list 'method []
-                           (with-meta '(do-something) {:line 1337}))))
+  ;; On JVM, (deftype ...) expands to (let [] (deftype* ...) ...)
+  ;; On bb, it expands directly to (deftype* ...), so we wrap it in let to normalize
+  (let [expand-deftype (fn [& body]
+                         (let [expanded (macroexpand-1 (apply list 'deftype 'MyType [] body))]
+                           (if bb?
+                             (list 'clojure.core/let [] expanded)
+                             expanded)))
+        form (nth
+              (expand-deftype
+               'Protocol
+               (list 'method []
+                     (with-meta '(do-something) {:line 1337})))
               2)
         wrapped (nth
-                 (macroexpand-1
-                  (list 'deftype 'MyType []
-                        'Protocol
-                        (list 'method []
-                              (inst/wrap #'inst/no-instr 1337 '(do-something)))))
+                 (expand-deftype
+                  'Protocol
+                  (list 'method []
+                        (inst/wrap #'inst/no-instr 1337 '(do-something))))
                  2)]
     (t/is (= (first form) 'deftype*)) ; make sure we're actually looking at the right thing
     (t/is (not= form wrapped))
@@ -286,8 +298,11 @@
           (t/is (= true
                    @evalled-original-form?)))))))
 
+;; Java interop on clojure.lang.RT not available in native bb
 (t/deftest instrument-java-interop-forms-test
-  (t/testing "Java interop forms should get instrumented correctly (#304)"
+  (if-bb
+    nil
+    (t/testing "Java interop forms should get instrumented correctly (#304)"
     ;; these two syntaxes are equivalent
     (t/testing "(. class-or-instance method & args) syntax"
       (t/is (= '(do (. clojure.lang.RT count (do [(do 3) (do 4)])))
@@ -310,10 +325,13 @@
           (t/is (= :a
                    (eval form)))
           (t/is (= (list 'do (list '. clojure.lang.RT 'nth '(do [(do :a) (do :b) (do :c)]) '(do 0) '(do nil)))
-                   (rw/macroexpand-all (inst/instrument-form #'inst/nop nil form)))))))))
+                   (rw/macroexpand-all (inst/instrument-form #'inst/nop nil form))))))))))
 
+;; SCI doesn't support inlined functions
 (t/deftest instrument-inlined-primitives-test
-  (t/testing "Inline primitive cast functions like int() should be instrumented correctly (#277)"
+  (if-bb
+    nil
+    (t/testing "Inline primitive cast functions like int() should be instrumented correctly (#277)"
     (t/is (= '(. clojure.lang.RT (intCast 2))
              (rw/macroexpand-all (inst/instrument-form #'inst/no-instr nil '(int 2)))
              (rw/macroexpand-all (inst/instrument-form #'inst/no-instr nil `(int 2)))))
@@ -352,8 +370,9 @@
                      (do (.
                           clojure.lang.RT
                           (clojure.core/count (do [(do 3) (do 4)]))))))
-               (rw/macroexpand-all (inst/instrument-form #'inst/nop nil '(= (count [1 2]) (count [3 4])))))))))
+               (rw/macroexpand-all (inst/instrument-form #'inst/nop nil '(= (count [1 2]) (count [3 4]))))))))))
 
+;; Clojure 1.12 features not available in bb
 (defmacro clj-version-or-higher
   [target-version & body]
   `(if (and (>= (compare (clojure-version) ~target-version) 0))
@@ -361,45 +380,48 @@
      (t/is (true? true))))
 
 (t/deftest instrument-clj-1-12-features
-  (clj-version-or-higher
-   "1.12.0"
-   (t/testing "Instrumentation of new Clojure 1.12 features"
-     (t/testing "Qualified methods - Class/method, Class/.method, and Class/new"
-       (t/is (= '(do
-                   (do
-                     (do ((do Long/new) (do 1)))
-                     (do System/out)
-                     (do (let* [f (do Long/.byteValue)]
-                           (do ((do f) (do 1)))))
-                     (do (let* [f (do Long/valueOf)]
-                           (do ((do f) (do 1)))))))
-                (rw/macroexpand-all (inst/instrument-form #'inst/nop
-                                                          nil
-                                                          '(do
-                                                             (Long/new 1)
-                                                             System/out
-                                                             (let [f Long/.byteValue]
-                                                               (f 1))
-                                                             (let [f Long/valueOf]
-                                                               (f 1))))))))
-     (t/testing "Functional interfaces"
-       (t/is (= '(do
-                   (let* [p (do even?)]
-                     (do (. p test (do 42)))))
-                (rw/macroexpand-all (inst/instrument-form #'inst/nop
-                                                          nil
-                                                          '(let [^java.util.function.Predicate p even?]
-                                                             (.test p 42)))))))
-     (t/testing "Array class syntax"
-       (t/is (= '(do
-                   (do
-                     (do (new ProcessBuilder (do ((do into-array) (do String) (do [(do "a")])))))
-                     (do ((do java.util.Arrays/binarySearch)
-                          (do (. clojure.lang.Numbers clojure.core/int_array (do [(do 1) (do 2) (do 3)])))
-                          (do (. clojure.lang.RT (intCast (do 2))))))))
-                (rw/macroexpand-all (inst/instrument-form #'inst/nop
-                                                          nil
-                                                          '(do
-                                                             (ProcessBuilder. ^String/1 (into-array String ["a"]))
-                                                             (java.util.Arrays/binarySearch ^int/1 (int-array [1 2 3])
-                                                                                            (int 2)))))))))))
+  (if-bb
+    nil
+    (clj-version-or-higher
+     "1.12.0"
+     (t/testing "Instrumentation of new Clojure 1.12 features"
+       (t/testing "Qualified methods - Class/method, Class/.method, and Class/new"
+         (t/is (= '(do
+                     (do
+                       (do ((do Long/new) (do 1)))
+                       (do System/out)
+                       (do (let* [f (do Long/.byteValue)]
+                             (do ((do f) (do 1)))))
+                       (do (let* [f (do Long/valueOf)]
+                             (do ((do f) (do 1)))))))
+                  (rw/macroexpand-all (inst/instrument-form #'inst/nop
+                                                            nil
+                                                            '(do
+                                                               (Long/new 1)
+                                                               System/out
+                                                               (let [f Long/.byteValue]
+                                                                 (f 1))
+                                                               (let [f Long/valueOf]
+                                                                 (f 1))))))))
+       (t/testing "Functional interfaces"
+         (t/is (= '(do
+                     (let* [p (do even?)]
+                       (do (. p test (do 42)))))
+                  (rw/macroexpand-all (inst/instrument-form #'inst/nop
+                                                            nil
+                                                            '(let [^java.util.function.Predicate p even?]
+                                                               (.test p 42)))))))
+       (t/testing "Array class syntax"
+         (t/is (= '(do
+                     (do
+                       (do (new ProcessBuilder (do ((do into-array) (do String) (do [(do "a")])))))
+                       (do ((do java.util.Arrays/binarySearch)
+                            (do (. clojure.lang.Numbers clojure.core/int_array (do [(do 1) (do 2) (do 3)])))
+                            (do (. clojure.lang.RT (intCast (do 2))))))))
+                  (rw/macroexpand-all (inst/instrument-form #'inst/nop
+                                                            nil
+                                                            '(do
+                                                               (ProcessBuilder. ^String/1 (into-array String ["a"]))
+                                                               (java.util.Arrays/binarySearch ^int/1 (int-array [1 2 3])
+                                                                                              (int 2))))))))))))
+

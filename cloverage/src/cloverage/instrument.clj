@@ -77,7 +77,7 @@
           (symbol (.getName ^Class o))
           (when (var? o)
             (let [^clojure.lang.Var o o]
-              (symbol (-> o .ns .name name) (-> o .sym name)))))
+              (symbol o))))
         ;; changed to returned unnamespaced symbol if it fails to resolve
         s))))
 

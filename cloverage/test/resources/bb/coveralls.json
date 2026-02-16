@@ -1,0 +1,9 @@
+{
+  "service_job_id" : null,
+  "service_name" : null,
+  "source_files" : [ {
+    "name" : "cloverage/sample/exercise_instrumentation.clj",
+    "source_digest" : "bd3313fd0b66e8bc39c56d15c2b8e645",
+    "coverage" : [ 1, null, null, null, null, 1, null, 3, null, 4, null, 5, null, 6, 4, null, 5, 4, 4, null, 4, 4, null, 1, null, 0, null, 1, null, null, 0, 0, null, 1, null, 7, null, 2, null, null, 1, 12, null, 2, null, null, null, 2, null, 5, null, null, 5, null, null, 5, null, null, 5, 4, 0, null, 5, null, null, 0, null, 2, null, null, null, 2, 6, 6, 2, null, null, null, 1, null, null, null, 6, 5, 8, null, 17, 10, null, 2, null, null, null, null, null, 1, null, null, 9, 3, 0, 0, 0, 0, null, 2, null, null, null, 1, null, 4, 3, null, null, 2, null, null, null, 1, null, 3, 2, 3, 3, null, 2, null, null, 30, null, 0, 2, null, 1, 0, null, 1, 0, null, null, 1, 0, null, null, null, 1, 0, 0, null, 1, 8, null, 2, null, null ]
+  } ]
+}
