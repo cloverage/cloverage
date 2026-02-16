@@ -376,9 +376,9 @@
   "Removes strings that are dynamic/unpredictable, for a stable comparison"
   [s]
   (-> s
-      (str/replace #"\"service_job_id\":\"\d+\""
+      (str/replace #"\"service_job_id\"\s*:\s*(\"\d+\"|null)"
                    "\"service_job_id\":null")
-      (str/replace "\"service_name\":\"circleci\""
+      (str/replace #"\"service_name\"\s*:\s*(\"circleci\"|null)"
                    "\"service_name\":null")))
 
 (defn- assert-equal-content! [fname dir-a dir-b]
