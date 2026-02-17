@@ -6,11 +6,6 @@
   (:import (java.util.regex Pattern)
            (clojure.lang ExceptionInfo)))
 
-(def ^:private bb? (System/getProperty "babashka.version"))
-
-(defmacro ^:private if-bb [then else]
-  (if bb? then else))
-
 (defn- boolean? [x]
   (instance? Boolean x))
 

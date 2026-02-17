@@ -19,8 +19,7 @@
             [cloverage.report.raw :as raw]
             [cloverage.report.text :as text]
             [cloverage.source :as src])
-  (:import clojure.lang.IDeref
-           java.io.FileNotFoundException
+  (:import java.io.FileNotFoundException
            java.util.concurrent.atomic.AtomicInteger))
 
 (def ^:dynamic *instrumented-ns* nil) ;; currently instrumented ns
