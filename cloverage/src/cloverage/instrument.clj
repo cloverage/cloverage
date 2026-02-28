@@ -77,7 +77,7 @@
           (symbol (.getName ^Class o))
           (when (var? o)
             (let [^clojure.lang.Var o o]
-              (symbol (-> o .ns .name name) (-> o .sym name)))))
+              (symbol (str (.-ns o)) (str (.-sym o))))))
         ;; changed to returned unnamespaced symbol if it fails to resolve
         s))))
 
@@ -185,9 +185,7 @@
     res))
 
 (defn- var->sym [^clojure.lang.Var fvar]
-  (let [it (name (.sym fvar))
-        nsn (name (ns-name (.ns fvar)))]
-    (symbol nsn it)))
+  (symbol (str (.-ns fvar)) (str (.-sym fvar))))
 
 (defmulti do-wrap
   "Traverse the given form and wrap all its sub-forms in a function that evals

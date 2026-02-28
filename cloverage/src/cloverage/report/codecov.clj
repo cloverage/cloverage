@@ -1,7 +1,7 @@
 (ns cloverage.report.codecov
   (:require
    [clojure.java.io :as io]
-   [clojure.data.json :as json]
+   [cloverage.report.json :as json]
    [cloverage.report :refer [line-stats with-out-writer]]))
 
 (defn- file-coverage [[file file-forms]]

@@ -2,7 +2,7 @@
   (:require
    [clojure.string :as s]
    [clojure.java.io :as io]
-   [clojure.data.json :as json]
+   [cloverage.report.json :as json]
    [cloverage.report :refer [line-stats with-out-writer]])
   (:import
    [java.security MessageDigest]))

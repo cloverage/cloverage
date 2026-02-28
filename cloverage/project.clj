@@ -18,14 +18,14 @@
   :deploy-repositories [["releases" :clojars]
                         ["snapshots" :clojars]]
   :dependencies [[org.clojure/clojure "1.12.0" :scope "provided"]
-                 [org.clojure/tools.reader "1.5.0"]
-                 [org.clojure/tools.cli "1.1.230"]
-                 [org.clojure/tools.logging "1.3.0"]
-                 [org.clojure/tools.namespace "1.5.0"]
-                 [org.clojure/java.classpath "1.1.0"]
+                 [org.clojure/tools.reader "1.5.0" :exclusions [org.clojure/clojure]]
+                 [org.clojure/tools.cli "1.1.230" :exclusions [org.clojure/clojure]]
+                 [org.clojure/tools.logging "1.3.0" :exclusions [org.clojure/clojure]]
+                 [org.clojure/tools.namespace "1.5.0" :exclusions [org.clojure/clojure]]
+                 [org.clojure/java.classpath "1.1.0" :exclusions [org.clojure/clojure]]
                  [org.clojure/data.xml "0.2.0-alpha6"]
                  [org.clojure/data.json "2.5.0" :exclusions [org.clojure/clojure]]
-                 [riddley "0.2.0"]
+                 [riddley "0.2.2"]
                  [slingshot "0.12.2"]]
   :profiles {:dev {:aot ^:replace []
                    :plugins [[dev.weavejester/lein-cljfmt "0.13.0"]
@@ -37,9 +37,11 @@
              :1.9 {:dependencies [[org.clojure/clojure "1.9.0"]]}
              :1.10 {:dependencies [[org.clojure/clojure "1.10.3"]]}
              :1.11 {:dependencies [[org.clojure/clojure "1.11.1"]]}
-             :1.12 {:dependencies [[org.clojure/clojure "1.12.0"]]}
+             :1.12 {:dependencies [[org.clojure/clojure "1.12.0"]]
+                     :test-paths ["test-clj12"]}
              :eastwood {:plugins [[jonase/eastwood "1.2.3"]]
-                        :eastwood {:ignored-faults {:implicit-dependencies {cloverage.report.emma-xml ~(case clojure-profile
+                        :eastwood {:exclude-namespaces [cloverage.instrument-test-clj12]
+                                   :ignored-faults {:implicit-dependencies {cloverage.report.emma-xml ~(case clojure-profile
                                                                                                          ("1.8" "1.9") [{:line 42}]
                                                                                                          [])}}}}
              :clj-kondo {:plugins [[com.github.clj-kondo/lein-clj-kondo "2024.09.27"]]}
