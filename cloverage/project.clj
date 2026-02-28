@@ -40,7 +40,8 @@
              :1.12 {:dependencies [[org.clojure/clojure "1.12.0"]]
                      :test-paths ["test-clj12"]}
              :eastwood {:plugins [[jonase/eastwood "1.2.3"]]
-                        :eastwood {:ignored-faults {:implicit-dependencies {cloverage.report.emma-xml ~(case clojure-profile
+                        :eastwood {:exclude-namespaces [cloverage.instrument-test-clj12]
+                                   :ignored-faults {:implicit-dependencies {cloverage.report.emma-xml ~(case clojure-profile
                                                                                                          ("1.8" "1.9") [{:line 42}]
                                                                                                          [])}}}}
              :clj-kondo {:plugins [[com.github.clj-kondo/lein-clj-kondo "2024.09.27"]]}
