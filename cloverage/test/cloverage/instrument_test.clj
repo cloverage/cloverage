@@ -147,24 +147,22 @@
 
 (t/deftest test-wrap-deftype-methods
   ;; On JVM, (deftype ...) expands to (let [] (deftype* ...) ...)
-  ;; On bb, it expands directly to (deftype* ...), so we wrap it in let to normalize
-  (let [expand-deftype (fn [& body]
-                         (let [expanded (macroexpand-1 (apply list 'deftype 'MyType [] body))]
-                           (if bb?
-                             (list 'clojure.core/let [] expanded)
-                             expanded)))
-        form (nth
-              (expand-deftype
-               'Protocol
-               (list 'method []
-                     (with-meta '(do-something) {:line 1337})))
-              2)
-        wrapped (nth
-                 (expand-deftype
-                  'Protocol
-                  (list 'method []
-                        (inst/wrap #'inst/no-instr 1337 '(do-something))))
-                 2)]
+  ;; On bb, it expands to (do (defn ->MyType ...) (deftype* ...) (import ...))
+  ;; In both cases we extract the deftype* form for testing instrumentation.
+  (let [find-deftype* (fn [expanded]
+                        (if (and (seq? expanded) (#{'do 'clojure.core/let} (first expanded)))
+                          (first (filter #(and (seq? %) (= 'deftype* (first %))) expanded))
+                          expanded))
+        expand-deftype (fn [& body]
+                         (find-deftype* (macroexpand-1 (apply list 'deftype 'MyType [] body))))
+        form (expand-deftype
+              'Protocol
+              (list 'method []
+                    (with-meta '(do-something) {:line 1337})))
+        wrapped (expand-deftype
+                 'Protocol
+                 (list 'method []
+                       (inst/wrap #'inst/no-instr 1337 '(do-something))))]
     (t/is (= (first form) 'deftype*)) ; make sure we're actually looking at the right thing
     (t/is (not= form wrapped))
     (t/is (= wrapped
