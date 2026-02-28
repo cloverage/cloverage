@@ -233,15 +233,15 @@
                (str 1 2 3) (str 1 2 3)}
              ;; Inlined expansions only apply on JVM
              (if-bb
-               {}
-               '{(+ 40 2)    (. clojure.lang.Numbers (add (cloverage.instrument/wrapm
-                                                            cloverage.coverage/track-coverage 10 40)
-                                                           (cloverage.instrument/wrapm
-                                                            cloverage.coverage/track-coverage 10 2)))
-                 (inc m c 0) (. clojure.lang.Numbers (inc (cloverage.instrument/wrapm
-                                                            cloverage.coverage/track-coverage
-                                                            101
-                                                            (m c 0))))}))]
+              {}
+              '{(+ 40 2)    (. clojure.lang.Numbers (add (cloverage.instrument/wrapm
+                                                          cloverage.coverage/track-coverage 10 40)
+                                                         (cloverage.instrument/wrapm
+                                                          cloverage.coverage/track-coverage 10 2)))
+                (inc m c 0) (. clojure.lang.Numbers (inc (cloverage.instrument/wrapm
+                                                          cloverage.coverage/track-coverage
+                                                          101
+                                                          (m c 0))))}))]
       (t/testing (format "Form %s (expanded to %s) should get instrumented" (pr-str form) (pr-str expanded))
         (t/is (find-form cov expanded))
         (let [found (find-form cov expanded)]
@@ -484,17 +484,17 @@
                                                  :percent-forms-covered 75})]
         (t/are [result fail-threshold line-fail-threshold form-fail-threshold]
                (= result (coverage-under? forms fail-threshold line-fail-threshold form-fail-threshold))
-               #_result #_fail-threshold #_line-fail-threshold #_form-fail-threshold
+          #_result #_fail-threshold #_line-fail-threshold #_form-fail-threshold
                ; Non-zero fail-threshold
-               true     100              0                     0                     ; line and form coverage both under fail-threshold
-               true     90               0                     0                     ; line coverage is under fail-threshold, form coverage is above fail-threshold
-               false    70               0                     0                     ; line and form coverage both above fail-threshold
-               false    70               100                   0                     ; line-fail-threshold ignored because fail-threshold is non-zero
-               false    70               0                     100                   ; form-fail-threshold ignored because fail-threshold is non-zero
-               false    70               100                   100                   ; line- and form-fail-threshold ignored because fail-threshold is non-zero
+          true     100              0                     0                     ; line and form coverage both under fail-threshold
+          true     90               0                     0                     ; line coverage is under fail-threshold, form coverage is above fail-threshold
+          false    70               0                     0                     ; line and form coverage both above fail-threshold
+          false    70               100                   0                     ; line-fail-threshold ignored because fail-threshold is non-zero
+          false    70               0                     100                   ; form-fail-threshold ignored because fail-threshold is non-zero
+          false    70               100                   100                   ; line- and form-fail-threshold ignored because fail-threshold is non-zero
                ; fail-threshold is 0
-               nil      0                0                     0
-               false    0                90                    70                    ; line coverage is above line-fail-threshold and form coverage is above form-fail-threshold
-               true     0                100                   70                    ; line coverage is under line-fail-threshold, form coverage is above form-fail-threshold
-               true     0                90                    90                    ; line coverage is above line-fail-threshold, form coverage is under form-fail-threshold
-               true     0                100                   100)))))              ; line coverage is under line-fail-threshold and form coverage is under form-fail-threshold
+          nil      0                0                     0
+          false    0                90                    70                    ; line coverage is above line-fail-threshold and form coverage is above form-fail-threshold
+          true     0                100                   70                    ; line coverage is under line-fail-threshold, form coverage is above form-fail-threshold
+          true     0                90                    90                    ; line coverage is above line-fail-threshold, form coverage is under form-fail-threshold
+          true     0                100                   100)))))              ; line coverage is under line-fail-threshold and form coverage is under form-fail-threshold

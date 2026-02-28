@@ -73,18 +73,18 @@
                                         :k             :ns-exclude-regex}]
     {:custom-report    "not a symbol"
      :ns-exclude-regex "not symbols"} (if-bb
-                                        [{:validation-fn nil,
-                                          :v             "not symbols",
-                                          :k             :ns-exclude-regex}
-                                         {:validation-fn 'clojure.core/symbol?,
-                                          :v             "not a symbol",
-                                          :k             :custom-report}]
-                                        [{:validation-fn 'clojure.core/symbol?,
-                                          :v             "not a symbol",
-                                          :k             :custom-report}
-                                         {:validation-fn 'cloverage.args/regexes-or-strings?,
-                                          :v             "not symbols",
-                                          :k             :ns-exclude-regex}])))
+                                       [{:validation-fn nil,
+                                         :v             "not symbols",
+                                         :k             :ns-exclude-regex}
+                                        {:validation-fn 'clojure.core/symbol?,
+                                         :v             "not a symbol",
+                                         :k             :custom-report}]
+                                       [{:validation-fn 'clojure.core/symbol?,
+                                         :v             "not a symbol",
+                                         :k             :custom-report}
+                                        {:validation-fn 'cloverage.args/regexes-or-strings?,
+                                         :v             "not symbols",
+                                         :k             :ns-exclude-regex}])))
 
 (deftest parse-args
   (testing "Uses validation"

@@ -89,24 +89,24 @@
   (if-bb
     ;; bb built-in nses don't have source files on classpath;
     ;; use with-redefs to test the sorting logic directly
-    (with-redefs [source/ns-form
-                  (fn [ns-sym]
-                    (case ns-sym
-                      ns.a '(ns ns.a)
-                      ns.b '(ns ns.b (:require ns.a))
-                      ns.c '(ns ns.c (:require ns.b))))]
-      (t/is (= '[ns.a ns.b ns.c]
-               (cd/in-dependency-order '[ns.c ns.b ns.a]))))
-    (t/is (= '[clojure.walk
-               clojure.template
-               clojure.string
-               clojure.stacktrace
-               clojure.test]
-             (cd/in-dependency-order '[clojure.stacktrace
-                                       clojure.string
-                                       clojure.template
-                                       clojure.test
-                                       clojure.walk])))))
+   (with-redefs [source/ns-form
+                 (fn [ns-sym]
+                   (case ns-sym
+                     ns.a '(ns ns.a)
+                     ns.b '(ns ns.b (:require ns.a))
+                     ns.c '(ns ns.c (:require ns.b))))]
+     (t/is (= '[ns.a ns.b ns.c]
+              (cd/in-dependency-order '[ns.c ns.b ns.a]))))
+   (t/is (= '[clojure.walk
+              clojure.template
+              clojure.string
+              clojure.stacktrace
+              clojure.test]
+            (cd/in-dependency-order '[clojure.stacktrace
+                                      clojure.string
+                                      clojure.template
+                                      clojure.test
+                                      clojure.walk])))))
 
 (t/deftest cyclic-dependency-test
   (t/testing "Should throw an Exception if cyclic dependencies exist between namespaces"
