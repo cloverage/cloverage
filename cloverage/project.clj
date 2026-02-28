@@ -37,7 +37,8 @@
              :1.9 {:dependencies [[org.clojure/clojure "1.9.0"]]}
              :1.10 {:dependencies [[org.clojure/clojure "1.10.3"]]}
              :1.11 {:dependencies [[org.clojure/clojure "1.11.1"]]}
-             :1.12 {:dependencies [[org.clojure/clojure "1.12.0"]]}
+             :1.12 {:dependencies [[org.clojure/clojure "1.12.0"]]
+                     :test-paths ["test-clj12"]}
              :eastwood {:plugins [[jonase/eastwood "1.2.3"]]
                         :eastwood {:ignored-faults {:implicit-dependencies {cloverage.report.emma-xml ~(case clojure-profile
                                                                                                          ("1.8" "1.9") [{:line 42}]
