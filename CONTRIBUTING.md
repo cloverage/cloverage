@@ -49,7 +49,5 @@ in github. Commentary on the change should appear as a nested, unordered list.
 
 Cloverage is maintained with fairly strict whitespace and style standards.
 
-Travis CI jobs will fail if the [editorconfig rules](.editorconfig) are
-violated, or the source format doesnt match the default cljfmt style
-guidelines. Hence, patches must be formatted and whitespace linted before they
-will be accepted.
+CI jobs will fail if the source format doesn't match the default cljfmt style
+guidelines. Hence, patches must be formatted before they will be accepted.

@@ -4,6 +4,11 @@
             [cloverage.coverage])
   (:import (clojure.lang ExceptionInfo)))
 
+(def ^:private bb? (System/getProperty "babashka.version"))
+
+(defmacro if-bb [then else]
+  (if bb? then else))
+
 (deftest overwriting
   (let [output (#'args/overwrite
                 {:string "string"
@@ -63,16 +68,23 @@
     {:custom-report "not a symbol"}   [{:validation-fn 'clojure.core/symbol?
                                         :v             "not a symbol"
                                         :k             :custom-report}]
-    {:ns-exclude-regex "not symbols"} [{:validation-fn 'cloverage.args/regexes-or-strings?,
+    {:ns-exclude-regex "not symbols"} [{:validation-fn (if-bb nil 'cloverage.args/regexes-or-strings?),
                                         :v             "not symbols",
                                         :k             :ns-exclude-regex}]
     {:custom-report    "not a symbol"
-     :ns-exclude-regex "not symbols"} [{:validation-fn 'clojure.core/symbol?,
-                                        :v             "not a symbol",
-                                        :k             :custom-report}
-                                       {:validation-fn 'cloverage.args/regexes-or-strings?,
-                                        :v             "not symbols",
-                                        :k             :ns-exclude-regex}]))
+     :ns-exclude-regex "not symbols"} (if-bb
+                                       [{:validation-fn nil,
+                                         :v             "not symbols",
+                                         :k             :ns-exclude-regex}
+                                        {:validation-fn 'clojure.core/symbol?,
+                                         :v             "not a symbol",
+                                         :k             :custom-report}]
+                                       [{:validation-fn 'clojure.core/symbol?,
+                                         :v             "not a symbol",
+                                         :k             :custom-report}
+                                        {:validation-fn 'cloverage.args/regexes-or-strings?,
+                                         :v             "not symbols",
+                                         :k             :ns-exclude-regex}])))
 
 (deftest parse-args
   (testing "Uses validation"

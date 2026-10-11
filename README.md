@@ -3,9 +3,7 @@ cloverage
 
 Simple clojure coverage tool.
 
-Travis: [![Build Status](https://travis-ci.org/cloverage/cloverage.svg?branch=master)](https://travis-ci.org/cloverage/cloverage)
-
-CircleCI: [![CircleCI](https://circleci.com/gh/cloverage/cloverage.svg?style=shield)](https://circleci.com/gh/cloverage/cloverage)
+[![CI](https://github.com/cloverage/cloverage/actions/workflows/ci.yml/badge.svg)](https://github.com/cloverage/cloverage/actions/workflows/ci.yml)
 
 [![Clojars Project](http://clojars.org/lein-cloverage/latest-version.svg)](http://clojars.org/lein-cloverage)
 
@@ -149,6 +147,6 @@ Distributed under the Eclipse Public License, the same as Clojure.
 ### Mentions
 
 Some code was taken from
-* Java IO interop (clojure-contrib/duck-streams) by Stuart Sierra (see cloverage/source.clj)
+* Java IO interop (clojure-contrib/duck-streams) by Alessandra Sierra (see cloverage/source.clj)
 * Topological sort (https://gist.github.com/1263783) by Alan Dipert (see cloverage/kahn.clj)
 * clojure.spec.alpha (for `cloverage.args/fn-sym`)

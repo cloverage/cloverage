@@ -1,0 +1,125 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+    tags: ['v*']
+  pull_request:
+
+jobs:
+  test-cloverage:
+    name: "cloverage / Clojure ${{ matrix.clojure }} / JDK ${{ matrix.java }}"
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        clojure: ['1.11', '1.12']
+        java: ['17', '21', '25']
+    env:
+      CLOJURE_VERSION: ${{ matrix.clojure }}
+      CI: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ matrix.java }}
+      - uses: DeLaGuardo/setup-clojure@13.5
+        with:
+          lein: 2.11.2
+      - uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: m2-cloverage-${{ matrix.java }}-${{ matrix.clojure }}-${{ hashFiles('cloverage/project.clj') }}
+          restore-keys: |
+            m2-cloverage-${{ matrix.java }}-${{ matrix.clojure }}-
+            m2-cloverage-${{ matrix.java }}-
+      - name: Run tests
+        working-directory: cloverage
+        run: lein test-ci
+
+  test-lein-cloverage:
+    name: "lein-cloverage / JDK ${{ matrix.java }}"
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        java: ['17', '21', '25']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ matrix.java }}
+      - uses: DeLaGuardo/setup-clojure@13.5
+        with:
+          lein: 2.11.2
+      - uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: m2-lein-cloverage-${{ matrix.java }}-${{ hashFiles('lein-cloverage/project.clj') }}
+          restore-keys: |
+            m2-lein-cloverage-${{ matrix.java }}-
+      - name: Run tests
+        working-directory: lein-cloverage
+        run: lein test-ci
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    env:
+      CLOJURE_VERSION: '1.12'
+      CI: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: DeLaGuardo/setup-clojure@13.5
+        with:
+          lein: 2.11.2
+      - uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: m2-lint-${{ hashFiles('cloverage/project.clj', 'lein-cloverage/project.clj') }}
+          restore-keys: |
+            m2-lint-
+      - name: "cljfmt check (cloverage)"
+        working-directory: cloverage
+        run: lein cljfmt check
+      - name: "cljfmt check (lein-cloverage)"
+        working-directory: lein-cloverage
+        run: lein cljfmt check
+      - name: "eastwood (cloverage)"
+        working-directory: cloverage
+        run: lein eastwood-ci
+      - name: "eastwood (lein-cloverage)"
+        working-directory: lein-cloverage
+        run: lein eastwood-ci
+      - name: "clj-kondo (cloverage)"
+        working-directory: cloverage
+        run: lein kondo-ci
+      - name: "clj-kondo (lein-cloverage)"
+        working-directory: lein-cloverage
+        run: lein kondo-ci
+
+  bb-test:
+    name: Babashka tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeLaGuardo/setup-clojure@13.5
+        with:
+          bb: latest
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.m2/repository
+            ~/.gitlibs
+          key: bb-${{ hashFiles('cloverage/bb.edn') }}
+          restore-keys: |
+            bb-
+      - name: Run bb tests
+        working-directory: cloverage
+        run: bb test:bb

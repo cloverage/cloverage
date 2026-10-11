@@ -16,7 +16,7 @@
   :lein-release {:scm :git ; Because we're not in the top-level directory, so it doesn't auto-detect
                  :deploy-via :clojars}
   :aliases {"test-ci" ["with-profile" "-dev,+test,+ci" "test"]
-            "eastwood-ci" ["with-profile" "-dev,+test,+ci" "eastwood"]
+            "eastwood-ci" ["with-profile" "-dev,+test,+ci,+eastwood" "eastwood"]
             "kondo-deps" ["with-profile"
                           "+dev,+test,+ci,+clj-kondo"
                           "clj-kondo"
@@ -44,9 +44,8 @@
                   ["vcs" "push"]]
 
   :min-lein-version "2.0.0"
-  :profiles {:dev {:plugins [[lein-cljfmt "0.8.0"]
-                             [jonase/eastwood "1.2.3"]
-                             [lein-kibit "0.1.8"]]}
-             :clj-kondo {:plugins [[com.github.clj-kondo/lein-clj-kondo "0.1.4"]]}
+  :profiles {:dev {:plugins [[dev.weavejester/lein-cljfmt "0.13.0"]]}
+             :eastwood {:plugins [[jonase/eastwood "1.2.3"]]}
+             :clj-kondo {:plugins [[com.github.clj-kondo/lein-clj-kondo "2024.09.27"]]}
              :ci {}}
   :eval-in-leiningen true)

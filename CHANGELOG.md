@@ -7,9 +7,16 @@ provide a short summary description of the particular changes of the patch.
 Include the issue number (#xxx) which will link back to the originating issue
 in github. Commentary on the change should appear as a nested, unordered list. -->
 
+## Unreleased
+
+- Add babashka compatibility
+- Migrate tools.cli from deprecated `cli/cli` to `cli/parse-opts`
+- Bump riddley 0.2.0 → 0.2.2
+
 ## 1.2.5
 
 - Option to set thresholds separately for line and form coverage
+  - Fixes [#344](https://github.com/cloverage/cloverage/issues/344)
 - Fix `[:runner-opt :report]` in the eftest runner
   - Fixes [#328](https://github.com/cloverage/cloverage/issues/328)
 - Add support for Clojure 1.12

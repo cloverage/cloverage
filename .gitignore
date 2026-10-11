@@ -16,4 +16,5 @@ pom.xml*
 .idea/
 cloverage.iml
 .eastwood
+.clj-kondo/.cache
 .lsp/
