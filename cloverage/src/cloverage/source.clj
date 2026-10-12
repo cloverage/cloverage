@@ -49,15 +49,13 @@
 
 (defn source-file-path
   "Return a project-relative path for a local source file.
-  Keep the classpath path for JAR resources, missing resources, or files outside the project."
+  Keep the classpath path for JAR resources or missing resources."
   [resource]
   (if-let [url (io/resource resource (get-loader))]
     (if (= "file" (.getProtocol url))
       (let [cwd (-> (io/file "") .toPath .toAbsolutePath .normalize)
             path (-> url .toURI io/file .toPath .toAbsolutePath .normalize)]
-        (if (.startsWith path cwd)
-          (str/replace (str (.relativize cwd path)) "\\" "/")
-          resource))
+        (str/replace (str (.relativize cwd path)) "\\" "/"))
       resource)
     resource))
 
