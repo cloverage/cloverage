@@ -10,6 +10,13 @@
 (defmacro if-bb [then else]
   (if bb? then else))
 
+(defn returns-hinted-types
+  "Used to test propagating return type hints."
+  ([] nil)
+  (^String [x] (str x))
+  (^Long [x y] (+ x y))
+  (^Long [x y & more] (apply + x y more)))
+
 (def simple-forms
   "Simple forms that do not require macroexpansion and have no side effects."
   [1
@@ -225,8 +232,9 @@
       (let [fn-call-form (-> instrumented last last)]
         (t/is (= '(do ((do str) (do "No matching clause")))
                  fn-call-form))
-        (t/is (= java.lang.String
-                 (:tag (meta fn-call-form)))))))
+        (t/is (= 'java.lang.String
+                 (:tag (meta fn-call-form)))
+              "Class tags on vars should be converted to symbols, which is what the compiler reads"))))
 
   (t/testing "Should also work if tag was specified on the entire form"
     (let [form         '(let [my-str (fn [& args]
@@ -242,7 +250,44 @@
         (t/is (= '(do ((do my-str) (do "No matching clause")))
                  fn-call-form))
         (t/is (= 'String
-                 (:tag (meta fn-call-form))))))))
+                 (:tag (meta fn-call-form)))))))
+
+  (t/testing "Return type hints on arglists should be propagated for the matching arity"
+    (let [tag-of (fn [form]
+                   (:tag (meta (macroexpand-1 (inst/wrap #'inst/nop nil form)))))]
+      (t/is (= 'java.lang.String (tag-of `(returns-hinted-types 1))))
+      (t/is (= 'java.lang.Long (tag-of `(returns-hinted-types 1 2))))
+      (t/is (= 'java.lang.Long (tag-of `(returns-hinted-types 1 2 3))))
+      (t/is (nil? (tag-of `(returns-hinted-types)))))))
+
+(defn- reflection-warnings
+  "Instrument and evaluate `form` with reflection warnings on, returning `[result warnings]`."
+  [form]
+  (let [err (java.io.StringWriter.)]
+    (binding [*warn-on-reflection* true
+              *err*                err]
+      [(eval (inst/instrument-form #'inst/nop nil form)) (str err)])))
+
+;; bb has no reflection warnings
+(t/deftest instrumented-forms-should-not-introduce-reflection
+  (if-bb
+   nil
+   (do
+     (t/testing "Class tags of vars (#308)"
+       (t/is (= [1 ""] (reflection-warnings '(let [x 1] (.length (pr-str x)))))))
+     (t/testing "Return type hints on arglists"
+       (t/is (= [1 ""] (reflection-warnings `(.length (returns-hinted-types 1))))))
+     (t/testing "Type hints on Java interop forms"
+       (t/is (= [1 ""] (reflection-warnings '(let [r (java.util.concurrent.atomic.AtomicReference. "x")]
+                                               (.length ^String (.get r))))))))))
+
+(t/deftest instrument-should-not-leak-per-file-bindings
+  (t/testing "set! of *warn-on-reflection* and friends in a namespace should not leak, as with `load`"
+    (binding [*warn-on-reflection* false
+              *unchecked-math*     false]
+      (inst/instrument #'inst/no-instr 'cloverage.sample.warn-on-reflection-sample)
+      (t/is (false? *warn-on-reflection*))
+      (t/is (false? *unchecked-math*)))))
 
 (t/deftest test-coll-preserves-metadata
   (let [form         ^:preserved? [:foo :bar]
@@ -309,19 +354,15 @@
        (t/is (= '(do (. clojure.lang.RT (count (do [(do 3) (do 4)]))))
                 (rw/macroexpand-all (inst/instrument-form #'inst/nop nil '(. clojure.lang.RT (count [3 4])))))))
      (t/testing "class-or-instance part of Java interop form should get instrumented if not a class or symbol (#306)"
-      ;; On Clojure < 1.12, (Thread/currentThread) macroexpands to (. Thread currentThread)
-       (let [expected-inner (if (>= (:minor *clojure-version*) 12)
-                              '(do ((do Thread/currentThread)))
-                              '(do (. Thread currentThread)))]
-         (t/is (= (list 'do (list '. (list 'do (list 'let* ['x '(do 1)]
-                                                     '(do ((do str)
-                                                           (do "X is")
-                                                           (do x)))
-                                                     expected-inner))
-                                  'getName))
-                  (rw/macroexpand-all (inst/instrument-form #'inst/nop nil '(.getName (let [x 1]
-                                                                                        (str "X is" x)
-                                                                                        (Thread/currentThread))))))))
+       (t/is (= (list 'do (list '. (list 'do (list 'let* ['x '(do 1)]
+                                                   '(do ((do str)
+                                                         (do "X is")
+                                                         (do x)))
+                                                   '(do (. Thread currentThread))))
+                                'getName))
+                (rw/macroexpand-all (inst/instrument-form #'inst/nop nil '(.getName (let [x 1]
+                                                                                      (str "X is" x)
+                                                                                      (Thread/currentThread)))))))
        (t/testing "Class should not get instrumented (#309)"
          (let [form (list '. clojure.lang.RT 'nth [:a :b :c] 0 nil)]
            (t/is (= :a

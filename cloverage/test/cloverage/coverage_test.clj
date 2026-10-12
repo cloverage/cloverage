@@ -82,7 +82,7 @@
                       ((do (cov/cover 2) str)
                        (do (cov/cover 3) "No matching clause")))
                  fn-call-form))
-        (t/is (= java.lang.String
+        (t/is (= 'java.lang.String
                  (:tag (meta fn-call-form))))))))
 
 ;; TODO: all test-wrap-X tests should be split in one test that checks
@@ -345,7 +345,8 @@
                          ["cloverage.sample.dummy-sample"
                           "cloverage.sample.exercise-instrumentation"
                           "cloverage.sample.read-eval-sample"
-                          "cloverage.sample.multibyte-sample"])))
+                          "cloverage.sample.multibyte-sample"
+                          "cloverage.sample.warn-on-reflection-sample"])))
   (t/testing "only matching namespaces (from classpath) are returned when only
             regex patterns are provided:"
     (t/testing "single pattern case"

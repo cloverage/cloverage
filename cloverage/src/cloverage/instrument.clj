@@ -1,5 +1,6 @@
 (ns cloverage.instrument
   (:require [clojure.pprint :as pprint]
+            [clojure.string :as str]
             [clojure.tools.logging :as log]
             [cloverage.debug :as d]
             [cloverage.rewrite :refer [unchunk]]
@@ -380,7 +381,7 @@
   (f line `(~new-sym ~class-name ~@(doall (map (wrapper f line) args)))))
 
 (defmethod do-wrap :dotjava
-  [f line [_ class-or-instance & more] _env]
+  [f line [_ class-or-instance & more :as form] _env]
   ;; form is either of the syntax
   ;;
   ;; (. class-or-instance method & args)
@@ -397,13 +398,16 @@
                                     (wrap f line class-or-instance))]
     (f
      line
-     (if (seq? (first more))
-       ;; (. class-or-instance (method & args))
-       (let [[[method & args]] more]
-         (list '. wrapped-class-or-instance (cons method (doall (map (wrapper f line) args)))))
-       ;; (. class-or-instance method & args)
-       (let [[method & args] more]
-         (list* '. wrapped-class-or-instance method (doall (map (wrapper f line) args))))))))
+     ;; keep the original metadata, e.g. type hints and line numbers
+     (with-meta
+       (if (seq? (first more))
+         ;; (. class-or-instance (method & args))
+         (let [[[method & args]] more]
+           (list '. wrapped-class-or-instance (cons method (mapv (wrapper f line) args))))
+         ;; (. class-or-instance method & args)
+         (let [[method & args] more]
+           (list* '. wrapped-class-or-instance method (mapv (wrapper f line) args))))
+       (meta form)))))
 
 (defmethod do-wrap :set [f line [set-symbol target expr] _]
   ;; target cannot be wrapped or evaluated
@@ -456,29 +460,69 @@
 (defmethod do-wrap :for [f line form env]
   (do-wrap f line (unchunk form) env))
 
+(defn- class->symbol
+  "The compiler only honours `:tag`s that are symbols or strings, but vars in `clojure.core` carry `Class`es there."
+  [tag]
+  (if (class? tag)
+    (symbol (.getName ^Class tag))
+    tag))
+
+(defn- arglist-tag
+  "Return type hint on the arglist of the fn var `v` matching a call with `argc` arguments, e.g. `String` for
+  `(defn f ^String [x] ...)`, resolved in the namespace `v` was defined in."
+  [v argc]
+  (let [arglist (some (fn [arglist]
+                        (let [[fixed variadic] (split-with #(not= '& %) arglist)]
+                          (when (if (seq variadic)
+                                  (>= argc (count fixed))
+                                  (= argc (count fixed)))
+                            arglist)))
+                      (:arglists (meta v)))
+        tag     (:tag (meta arglist))]
+    (cond
+      (class? tag)  tag
+      (symbol? tag) (let [c (ns-resolve (:ns (meta v)) tag)]
+                      (when (class? c) c)))))
+
 (defn- propagate-fn-call-tag
   "Propagate type `:tag` metadata from the symbol in function position in the original form to the resulting
   instrumented form e.g.
 
     (propagate-fn-call-tag (str \"Ok\") (do (do str) (do \"Ok\")))
-    ;; -> ^String (do (do str) (do \"Ok\"))
+    ;; -> ^java.lang.String (do (do str) (do \"Ok\"))
 
   This is done so the resulting instrumented form will have the same type tag information as the compiler would have
   inferred from the original non-instrumented version."
   [[head :as original-form] instrumented-form]
-  (let [form-tag (some (comp :tag meta)
-                       [original-form
-                        (when (symbol? head) (resolve head))
-                        head])]
+  (let [head-var (when (symbol? head) (resolve head))
+        form-tag (or (some (comp :tag meta) [original-form head-var head])
+                     (when (var? head-var)
+                       (arglist-tag head-var (dec (count original-form)))))]
     (d/tprf "Propagating tag %s from form %s\n" (pr-str form-tag) (pr-str original-form))
     (cond-> instrumented-form
       form-tag (vary-meta update :tag (fn [existing-tag]
-                                        (or existing-tag form-tag))))))
+                                        (class->symbol (or existing-tag form-tag)))))))
+
+(defn- static-call->dot
+  "Rewrite `(Class/method args)` to `(. Class method args)`, or return nil if `form` isn't a plain static method call.
+
+  Clojure < 1.12 does this in `macroexpand-1`, but since 1.12 the form is left as-is. Instrumenting it as a regular fn
+  call would wrap the head, turning it into a qualified method value, which is reflective."
+  [[head & args]]
+  (when (and (symbol? head)
+             (namespace head)
+             (not (:param-tags (meta head))))
+    (let [method (name head)]
+      (when (and (not (str/starts-with? method "."))
+                 (not= "new" method)
+                 (class? (resolve (symbol (namespace head)))))
+        (list* '. (symbol (namespace head)) (symbol method) args)))))
 
 (defmethod do-wrap :list
   [f line form env]
   (d/tprnl "Wrapping list" (class form) (pr-str form))
-  (let [expanded (macroexpand-1 form)]
+  (let [expanded (or (static-call->dot form)
+                     (macroexpand-1 form))]
     (if (identical? form expanded)
       ;; if this list is *not* a macro form, then recursively wrap each item in the list.
       (let [wrapped (->> (doall (map (wrapper f line) form))
@@ -620,9 +664,13 @@
   [f-var ns-symbol]
   (let [filename (source/resource-path ns-symbol)]
     (try
-      (let [instrumented (instrument-file f-var ns-symbol filename)]
-        (d/dump-instrumented instrumented ns-symbol)
-        instrumented)
+      ;; forms are evaluated one by one rather than through `load`, so mimic the per-file bindings `load` establishes,
+      ;; otherwise e.g. `(set! *warn-on-reflection* true)` leaks into every namespace instrumented afterwards
+      (binding [*warn-on-reflection* *warn-on-reflection*
+                *unchecked-math*     *unchecked-math*]
+        (let [instrumented (instrument-file f-var ns-symbol filename)]
+          (d/dump-instrumented instrumented ns-symbol)
+          instrumented))
       (catch Throwable e
         (throw (ex-info (str "Error instrumenting " ns-symbol)
                         {:namespace ns-symbol
