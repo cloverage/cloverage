@@ -9,6 +9,8 @@ in github. Commentary on the change should appear as a nested, unordered list. -
 
 ## Unreleased
 
+- Use project-relative paths in Codecov reports, preserving classpath paths for JAR resources ([#354](https://github.com/cloverage/cloverage/pull/354)).
+
 - Add babashka compatibility
 - Migrate tools.cli from deprecated `cli/cli` to `cli/parse-opts`
 - Bump riddley 0.2.0 → 0.2.2
