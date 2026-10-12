@@ -374,3 +374,30 @@
                            (clojure.core/count (do [(do 3) (do 4)]))))))
                 (rw/macroexpand-all (inst/instrument-form #'inst/nop nil '(= (count [1 2]) (count [3 4]))))))))))
 
+(defn returns-string-for-shadowing-test ^String [x]
+  (str x))
+
+(t/deftest local-function-does-not-inherit-global-return-hint
+  (binding [*ns* (the-ns 'cloverage.instrument-test)]
+    (let [form '(let [returns-string-for-shadowing-test (fn [_] (StringBuilder. "x"))]
+                  (.length (returns-string-for-shadowing-test 1)))]
+      (t/is (= 1 (eval form)))
+      ;; Evaluate the wrapped form directly: instrument-form's fallback could
+      ;; otherwise hide the error by running the original uninstrumented form.
+      (t/is (= 1 (eval (inst/wrap #'inst/nop nil form)))))))
+
+(t/deftest namespace-alias-with-class-name-is-not-a-static-call
+  (let [ns-name (gensym "cloverage.alias-regression-")
+        test-ns (create-ns ns-name)
+        err (java.io.StringWriter.)]
+    (try
+      (binding [*ns* test-ns
+                *err* err]
+        (refer 'clojure.core)
+        (alias 'String 'clojure.string)
+        (let [form '(String/upper-case "hello")]
+          (t/is (= "HELLO" (eval form)))
+          (t/is (= "" (str err)) "The alias itself should not emit a shadowing warning")
+          (t/is (= "HELLO" (eval (inst/wrap #'inst/nop nil form))))))
+      (finally
+        (remove-ns ns-name)))))
