@@ -73,4 +73,6 @@
                        ~(str "-dev,+test,+ci,+" clojure-profile)
                        "run"
                        "-m"
-                       "kaocha.runner"]})
+                       "kaocha.runner"
+                       "--profile"
+                       ~(if (= clojure-profile "1.12") "clj12" "default")]})

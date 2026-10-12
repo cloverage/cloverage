@@ -57,12 +57,14 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: ~/.m2/repository
-          key: m2-lein-cloverage-${{ matrix.java }}-${{ hashFiles('lein-cloverage/project.clj') }}
+          key: m2-lein-cloverage-${{ matrix.java }}-${{ hashFiles('cloverage/project.clj', 'lein-cloverage/project.clj', 'lein-cloverage/test-resources/integration/project.clj') }}
           restore-keys: |
             m2-lein-cloverage-${{ matrix.java }}-
       - name: Run tests
         working-directory: lein-cloverage
         run: lein test-ci
+      - name: Test plugin with the local library
+        run: bash scripts/test-plugin-integration.sh
 
   lint:
     name: Lint

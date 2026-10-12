@@ -1,5 +1,10 @@
 #kaocha/v1
-{:kaocha.plugin.randomize/randomize? false
+{:tests [{:id :unit}
+         {:id :clj12
+          :test-paths ["test-clj12"]
+          :ns-patterns ["-test-clj12$"]
+          :kaocha.testable/skip #profile {:clj12 false :default true}}]
+ :kaocha.plugin.randomize/randomize? false
  :cloverage/opts
  {:ns-exclude-regex [],
   :text? false,
