@@ -10,7 +10,7 @@
           [["local source" (.toURL (.toURI (io/file "src/foo/core.clj"))) "src/foo/core.clj"]
            ["spaces in local paths" (.toURL (.toURI (io/file "src dir/foo/core.clj"))) "src dir/foo/core.clj"]
            ["JAR source" (.toURL (URI. "jar:file:/tmp/library.jar!/foo/core.clj")) "foo/core.clj"]
-           ["outside the project" (.toURL (.toURI (io/file "../other-project/foo/core.clj"))) "foo/core.clj"]
+           ["outside the project" (.toURL (.toURI (io/file "../other-project/foo/core.clj"))) "../other-project/foo/core.clj"]
            ["missing source" nil "foo/core.clj"]]]
     (testing label
       (with-redefs [io/resource (fn [& _] url)]
