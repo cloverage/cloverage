@@ -9,8 +9,10 @@ repo_root=$(cd "$(dirname "$0")/.." && pwd)
 
 cd "$repo_root/lein-cloverage/test-resources/integration"
 rm -rf target/integration
-lein cloverage --output target/integration/explicit --text --no-html
+lein cloverage --output target/integration/explicit --text --cobertura --no-html
 test -s target/integration/explicit/coverage.txt
+test -s target/integration/explicit/cobertura.xml
+grep -q '<coverage ' target/integration/explicit/cobertura.xml
 
 CLOVERAGE_VERSION=1.3.0-SNAPSHOT lein with-profile +auto-version cloverage \
   --output target/integration/auto --text --no-html
