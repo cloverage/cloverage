@@ -1,7 +1,6 @@
 (ns cloverage.report.cobertura
   (:require [clojure.data.xml :as xml]
             [clojure.java.io :as io]
-            [clojure.string :as str]
             [cloverage.report :refer [line-stats with-out-writer]]
             [cloverage.source :refer [source-file-path]]))
 
@@ -9,10 +8,7 @@
   (if (pos? total) (/ (double covered) total) 0.0))
 
 (defn- file-coverage [[file forms]]
-  (let [lib (str (or (:lib (first forms))
-                     (-> file
-                         (str/replace #"\.clj[cs]?$" "")
-                         (str/replace "/" "."))))
+  (let [lib (str (:lib (first forms)))
         last-dot (.lastIndexOf ^String lib ".")
         lines (vec (filter :instrumented? (line-stats forms)))]
     {:name lib
@@ -41,7 +37,8 @@
    (into [:classes] (map class-element files))])
 
 (defn write-cobertura-report
-  "Write a Cobertura XML report to *out*. Branch and method coverage are not tracked by Cloverage."
+  "Write a Cobertura XML report to *out* from gather-stats records, which include :lib.
+  Branch and method coverage are not tracked by Cloverage."
   [forms]
   (let [files (mapv file-coverage (sort-by first (filter first (group-by :file forms))))
         {:keys [covered valid rate]} (totals files)]
