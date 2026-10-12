@@ -5,7 +5,7 @@
             [clojure.tools.reader :as r]
             [clojure.tools.reader.reader-types :as rt])
   (:import clojure.lang.RT
-           [java.io File InputStreamReader PushbackReader]))
+           [java.io InputStreamReader PushbackReader]))
 
 (defn- get-loader ^ClassLoader []
   (RT/baseLoader))
@@ -48,11 +48,16 @@
                         {:ns ns-symbol})))))
 
 (defn source-file-path
-  "Given a classpath-relative path, return a relative source file path."
+  "Return a project-relative path for a local source file.
+  Keep the classpath path for JAR resources or missing resources."
   [resource]
-  (let [cwd           (-> (File. "") .getAbsolutePath (str "/"))
-        resource-path (-> (.getResource (get-loader) resource) .toURI .getPath)]
-    (str/replace resource-path cwd "")))
+  (if-let [url (io/resource resource (get-loader))]
+    (if (= "file" (.getProtocol url))
+      (let [cwd (-> (io/file "") .toPath .toAbsolutePath .normalize)
+            path (-> url .toURI io/file .toPath .toAbsolutePath .normalize)]
+        (str/replace (str (.relativize cwd path)) "\\" "/"))
+      resource)
+    resource))
 
 (defn resource-reader ^java.io.Closeable [resource]
   (if-let [resource (and resource
