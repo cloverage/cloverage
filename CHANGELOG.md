@@ -9,6 +9,8 @@ in github. Commentary on the change should appear as a nested, unordered list. -
 
 ## Unreleased
 
+- Add Cobertura XML reports with real line hit counts and coverage totals ([#325](https://github.com/cloverage/cloverage/pull/325)).
+
 - Use project-relative paths in Codecov reports, preserving classpath paths for JAR resources ([#354](https://github.com/cloverage/cloverage/pull/354)).
 
 - Add babashka compatibility
