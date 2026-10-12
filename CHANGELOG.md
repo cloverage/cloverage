@@ -21,6 +21,7 @@ in github. Commentary on the change should appear as a nested, unordered list. -
   - Instrument Clojure 1.12 static method calls `(Class/method ...)` as `(. Class method ...)`
   - Keep type hints and line numbers on `.` forms
   - Don't leak `*warn-on-reflection*` and `*unchecked-math*` between instrumented namespaces
+  - Respect local function bindings when propagating return hints, and namespace aliases when identifying static calls
 
 ## 1.2.5
 

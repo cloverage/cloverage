@@ -493,8 +493,10 @@
 
   This is done so the resulting instrumented form will have the same type tag information as the compiler would have
   inferred from the original non-instrumented version."
-  [[head :as original-form] instrumented-form]
-  (let [head-var (when (symbol? head) (resolve head))
+  [[head :as original-form] env instrumented-form]
+  (let [head-var (when (and (symbol? head)
+                            (not (contains? env head)))
+                   (resolve head))
         form-tag (or (some (comp :tag meta) [original-form head-var head])
                      (when (var? head-var)
                        (arglist-tag head-var (dec (count original-form)))))]
@@ -511,6 +513,7 @@
   [[head & args]]
   (when (and (symbol? head)
              (namespace head)
+             (not (resolve-ns (symbol (namespace head))))
              (not (:param-tags (meta head))))
     (let [method (name head)]
       (when (and (not (str/starts-with? method "."))
@@ -527,7 +530,7 @@
       ;; if this list is *not* a macro form, then recursively wrap each item in the list.
       (let [wrapped (->> (doall (map (wrapper f line) form))
                          (add-original form)
-                         (propagate-fn-call-tag form))]
+                         (propagate-fn-call-tag form env))]
         (d/tprf "Wrapped list ^%s %s\n-> ^%s %s\n" (pr-str (meta form)) (pr-str form)
                 (pr-str (meta wrapped)) (pr-str wrapped))
         (f line wrapped))
