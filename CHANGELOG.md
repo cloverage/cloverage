@@ -12,6 +12,9 @@ in github. Commentary on the change should appear as a nested, unordered list. -
 - Add babashka compatibility
 - Migrate tools.cli from deprecated `cli/cli` to `cli/parse-opts`
 - Bump riddley 0.2.0 → 0.2.2
+- Run the Clojure 1.12 feature tests in CI; keep them excluded on Clojure 1.11.
+- Test Leiningen plugin options, dependency selection, and failure propagation;
+  exercise the plugin and library from the checkout together in CI.
 
 ## 1.2.5
 

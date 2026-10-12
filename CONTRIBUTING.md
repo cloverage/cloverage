@@ -11,6 +11,20 @@ This project adheres to the Contributor Covenant [code of
 conduct](CODE_OF_CONDUCT.md).  By participating, you are expected to uphold
 this code. Please report unacceptable behavior to [INSERT_EMAIL_HERE].
 
+## Running tests
+
+The repository contains two Leiningen projects: the coverage library in
+`cloverage/` and the plugin in `lein-cloverage/`. Run `lein test-ci` in each
+directory for their respective test suites. To test the library on Clojure 1.11,
+run `CI=true CLOJURE_VERSION=1.11 lein test-ci` in `cloverage/`; the default
+Clojure 1.12 suite also includes its language feature tests.
+
+From the repository root, run `bash scripts/test-plugin-integration.sh` to
+install both projects into the local Maven repository and run the plugin against
+a small fixture. This checks report generation with an explicit library dependency,
+automatic library selection via `CLOVERAGE_VERSION`, and a failing coverage
+threshold. CI runs this check on every supported JDK.
+
 ## Issues & Pull requests
 
 Issues and Pull requests welcome!
