@@ -15,6 +15,13 @@ in github. Commentary on the change should appear as a nested, unordered list. -
 - Run the Clojure 1.12 feature tests in CI; keep them excluded on Clojure 1.11.
 - Test Leiningen plugin options, dependency selection, and failure propagation;
   exercise the plugin and library from the checkout together in CI.
+- Fix instrumentation causing reflection warnings that uninstrumented code doesn't emit
+  - Convert `Class` tags on vars to symbols, which is what the compiler reads
+  - Propagate return type hints on arglists, e.g. `(defn f ^String [x] ...)`
+  - Instrument Clojure 1.12 static method calls `(Class/method ...)` as `(. Class method ...)`
+  - Keep type hints and line numbers on `.` forms
+  - Don't leak `*warn-on-reflection*` and `*unchecked-math*` between instrumented namespaces
+  - Respect local function bindings when propagating return hints, and namespace aliases when identifying static calls
 
 ## 1.2.5
 

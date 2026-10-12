@@ -28,6 +28,16 @@
                                                               (f 1))
                                                             (let [f Long/valueOf]
                                                               (f 1))))))))
+    (t/testing "Static method calls - Class/method should be instrumented as (. Class method)"
+      (t/is (= '(do
+                  (do
+                    (do (. Long valueOf (do 1)))
+                    (do ((do Long/valueOf) (do 1)))))
+               (rw/macroexpand-all (inst/instrument-form #'inst/nop
+                                                         nil
+                                                         '(do
+                                                            (Long/valueOf 1)
+                                                            (^[long] Long/valueOf 1)))))))
     (t/testing "Functional interfaces"
       (t/is (= '(do
                   (let* [p (do even?)]
@@ -42,9 +52,9 @@
         (t/is (= '(do
                     (do
                       (do (new ProcessBuilder (do ((do into-array) (do String) (do [(do "a")])))))
-                      (do ((do java.util.Arrays/copyOf)
-                           (do ((do int-array) (do [(do 1) (do 2) (do 3)])))
-                           (do 2)))))
+                      (do (. java.util.Arrays copyOf
+                             (do ((do int-array) (do [(do 1) (do 2) (do 3)])))
+                             (do 2)))))
                  (rw/macroexpand-all (inst/instrument-form #'inst/nop
                                                            nil
                                                            '(do
@@ -55,12 +65,23 @@
         (t/is (= '(do
                     (do
                       (do (new ProcessBuilder (do ((do into-array) (do String) (do [(do "a")])))))
-                      (do ((do java.util.Arrays/binarySearch)
-                           (do (. clojure.lang.Numbers clojure.core/int_array (do [(do 1) (do 2) (do 3)])))
-                           (do (. clojure.lang.RT (intCast (do 2))))))))
+                      (do (. java.util.Arrays binarySearch
+                             (do (. clojure.lang.Numbers clojure.core/int_array (do [(do 1) (do 2) (do 3)])))
+                             (do (. clojure.lang.RT (intCast (do 2))))))))
                  (rw/macroexpand-all (inst/instrument-form #'inst/nop
                                                            nil
                                                            '(do
                                                               (ProcessBuilder. ^String/1 (into-array String ["a"]))
                                                               (java.util.Arrays/binarySearch ^int/1 (int-array [1 2 3])
                                                                                              (int 2)))))))))))
+
+;; bb has no reflection warnings
+(t/deftest static-method-calls-should-not-introduce-reflection
+  (if-bb
+    nil
+    (let [err (java.io.StringWriter.)]
+      (binding [*warn-on-reflection* true
+                *err*                err]
+        (t/is (= true
+                 (eval (inst/instrument-form #'inst/nop nil '(let [s "true"] (Boolean/valueOf s)))))))
+      (t/is (= "" (str err))))))
