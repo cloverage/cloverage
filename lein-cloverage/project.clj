@@ -12,7 +12,9 @@
             :comments "same as Clojure"}
   :dependencies [[org.clojure/clojure "1.12.0" :scope "provided"]]
   :deploy-repositories [["releases" :clojars]
-                        ["snapshots" :clojars]]
+                        ["snapshots" {:url "https://repo.clojars.org"
+                                      :username :env/clojars_username
+                                      :password :env/clojars_password}]]
   :lein-release {:scm :git ; Because we're not in the top-level directory, so it doesn't auto-detect
                  :deploy-via :clojars}
   :aliases {"test-ci" ["with-profile" "-dev,+test,+ci" "test"]

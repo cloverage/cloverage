@@ -6,6 +6,9 @@ on:
     tags: ['v*']
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   test-cloverage:
     name: "cloverage / Clojure ${{ matrix.clojure }} / JDK ${{ matrix.java }}"
@@ -125,3 +128,44 @@ jobs:
       - name: Run bb tests
         working-directory: cloverage
         run: bb test:bb
+
+  snapshots:
+    name: Validate and publish snapshots
+    needs: [test-cloverage, test-lein-cloverage, lint, bb-test]
+    if: github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/master')
+    runs-on: ubuntu-latest
+    concurrency:
+      group: snapshots-${{ github.ref }}
+      cancel-in-progress: false
+    env:
+      CLOJURE_VERSION: '1.12'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: DeLaGuardo/setup-clojure@13.5
+        with:
+          lein: 2.11.2
+          bb: latest
+      - uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: m2-snapshots-${{ hashFiles('cloverage/project.clj', 'lein-cloverage/project.clj') }}
+          restore-keys: |
+            m2-snapshots-
+      - name: Validate snapshot packaging and deployment
+        run: bb scripts/publish-snapshots.clj --dry-run
+      - name: Publish snapshots to Clojars
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master' && github.repository == 'cloverage/cloverage'
+        env:
+          CLOJARS_USERNAME: lvh
+          CLOJARS_PASSWORD: ${{ secrets.CLOJARSDEPLOYKEY }}
+        run: |
+          # An older build finishing late must not replace the current snapshot.
+          if [[ "$(git ls-remote origin refs/heads/master | cut -f1)" != "$GITHUB_SHA" ]]; then
+            echo "Skipped publishing superseded commit $GITHUB_SHA." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          bb scripts/publish-snapshots.clj

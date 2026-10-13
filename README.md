@@ -9,6 +9,21 @@ Simple clojure coverage tool.
 
 ## Installation
 
+Snapshots of both `cloverage` and `lein-cloverage` are published to Clojars after
+all CI checks pass on the current `master` commit. Pull requests validate
+packaging and deployment using a temporary local Maven repository; they do not
+publish to Clojars. Production releases are not automated by this workflow.
+
+The publishing job uses the repository secret `CLOJARSDEPLOYKEY` as the deploy
+token for the Clojars account `lvh`. That token must permit deploying both
+artifacts. Snapshot publishing does not require a GPG key.
+
+To validate snapshot packaging locally, run
+`bb scripts/publish-snapshots.clj --dry-run`. To publish manually, set
+`CLOJARS_USERNAME` and `CLOJARS_PASSWORD` (a Clojars deploy token), then run
+`bb scripts/publish-snapshots.clj`. The script checks that both projects have
+the same `-SNAPSHOT` version before deploying the library followed by the plugin.
+
 Cloverage can be included into specific projects as a plugin and also be installed user-wide in your `~/.lein/profiles.clj` file. A user-wide installation will make it available to any projects being managed by Leiningen.
 
 ### Install Cloverage into a specific project
