@@ -1,0 +1,14 @@
+{:tasks
+ {outdated
+  {:doc "Check dependencies across both projects, manifests, and GitHub Actions with antq"
+   :requires ([babashka.process :as process])
+   :task (let [command (into ["clojure" "-Sdeps"
+                              "{:deps {com.github.liquidz/antq {:mvn/version \"2.11.1276\"}}}"
+                              "-M" "-m" "antq.core"
+                              "--directory" "cloverage"
+                              "--directory" "lein-cloverage"
+                              "--directory" "lein-cloverage/test-resources/integration"
+                              "--skip" "pom"
+                              "--exclude" "cloverage/cloverage:lein-cloverage/lein-cloverage"]
+                             *command-line-args*)]
+           (System/exit (:exit (deref (process/process command {:inherit true})))))}}}
