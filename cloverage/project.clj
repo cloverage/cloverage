@@ -16,9 +16,7 @@
             :distribution :repo
             :comments "same as Clojure"}
   :deploy-repositories [["releases" :clojars]
-                        ["snapshots" {:url "https://repo.clojars.org"
-                                      :username :env/clojars_username
-                                      :password :env/clojars_password}]]
+                        ["snapshots" :clojars]]
   :dependencies [[org.clojure/clojure "1.12.0" :scope "provided"]
                  [org.clojure/tools.reader "1.5.2" :exclusions [org.clojure/clojure]]
                  [org.clojure/tools.cli "1.1.230" :exclusions [org.clojure/clojure]]

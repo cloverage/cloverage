@@ -137,20 +137,49 @@ Remove the self-reference and the test coverage report should report correctly a
 
 ## Snapshot publishing
 
-Snapshots of both `cloverage` and `lein-cloverage` are published to Clojars after
-all CI checks pass on the current `master` commit. Pull requests validate
-packaging and deployment using a temporary local Maven repository; they do not
-publish to Clojars. Production releases are not automated by this workflow.
+After all CI checks pass on the current `master` commit, CI prepares matching
+snapshots of the library and plugin in a local Maven repository. A separate
+GitHub-hosted runner validates and uploads those prepared files to Clojars.
+The upload job runs no project build tools, plugins, or cached dependencies.
+Pull requests exercise packaging and uploader tests without publishing.
+Production releases are not automated by this workflow.
 
-The publishing job uses the repository secret `CLOJARSDEPLOYKEY` as the deploy
-token for the Clojars account `lvh`. That token must permit deploying both
-artifacts. Snapshot publishing does not require a GPG key.
+Before merging the publishing workflow, create two Clojars deploy tokens scoped
+respectively to `cloverage/cloverage` and `lein-cloverage/lein-cloverage`, and save
+these repository secrets:
 
-To validate snapshot packaging locally, run
-`bb scripts/publish-snapshots.clj --dry-run`. To publish manually, set
-`CLOJARS_USERNAME` and `CLOJARS_PASSWORD` (a Clojars deploy token), then run
-`bb scripts/publish-snapshots.clj`. The script checks that both projects have
-the same `-SNAPSHOT` version before deploying the library followed by the plugin.
+- `CLOJARS_CLOVERAGE_TOKEN`
+- `CLOJARS_LEIN_CLOVERAGE_TOKEN`
+
+The workflow uses the Clojars account `lvh`. The old `CLOJARSDEPLOYKEY` secret is
+not used. Both new tokens are required before either artifact is uploaded.
+Snapshot publishing does not require a GPG key.
+
+To prepare packages locally, run
+`bb scripts/prepare-snapshots.clj /tmp/cloverage-snapshots` with an empty output
+directory, then `python3 scripts/upload-snapshots.py /tmp/cloverage-snapshots --check`.
+To upload those packages manually, set `CLOJARS_USERNAME` and the two token
+environment variables above, then run the uploader without `--check`.
+
+Action revisions and Babashka/Leiningen versions are pinned. Pinning and an
+isolated upload runner reduce the publishing trust surface; the pinned checkout
+and artifact-download actions and GitHub's hosted runner remain trusted.
+
+## Dependency maintenance
+
+Run `bb outdated` from the repository root to check both Leiningen projects,
+Clojure/Babashka manifests, the integration fixture, and GitHub Actions with
+antq. Extra antq options can be passed through, for example `bb outdated --upgrade`.
+Review upgrades to the Clojure compatibility profiles rather than moving all
+profiles to the newest Clojure version. Own snapshot coordinates and generated
+POM files are excluded from the scan.
+
+`renovate.json` configures reviewed dependency-update PRs for these manifests,
+including action SHA pins and the pinned Babashka/Leiningen tools. Clojure 1.11
+and 1.12 coordinates stay within their respective version lines; own snapshot
+versions are maintained with the project. Automatic merging is disabled.
+The Renovate GitHub App must be enabled for this repository to run these updates;
+configuration alone does not install or authorize the app.
 
 ## License
 
