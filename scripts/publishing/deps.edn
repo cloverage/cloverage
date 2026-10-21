@@ -1,0 +1,4 @@
+{:paths ["."]
+ :deps {org.clojure/clojure {:mvn/version "1.12.4"}
+        slipset/deps-deploy {:mvn/version "0.2.5"}}
+ :aliases {:test {:main-opts ["-m" "publish-test"]}}}

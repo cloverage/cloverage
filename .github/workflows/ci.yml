@@ -148,12 +148,14 @@ jobs:
         with:
           lein: 2.11.2
           bb: 1.13.226
-      - name: Test snapshot upload protocol and validation
-        run: python3 -m unittest discover -s scripts -p 'test_upload_snapshots.py'
+          cli: 1.12.6.1673
+      - name: Test Clojure snapshot publisher
+        working-directory: scripts/publishing
+        run: clojure -M:test
       - name: Package snapshots without publishing credentials
         run: |
           bb scripts/prepare-snapshots.clj target/snapshots
-          python3 scripts/upload-snapshots.py target/snapshots --check
+          (cd scripts/publishing && clojure -M -m publish ../../target/snapshots --check)
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: snapshot-packages
@@ -177,10 +179,20 @@ jobs:
         with:
           name: snapshot-packages
           path: target/snapshots
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: DeLaGuardo/setup-clojure@f556541eb28a9303896cee0679ba9f60b898300f # 13.5
+        with:
+          cli: 1.12.6.1673
+      - name: Resolve publishing dependencies without credentials
+        working-directory: scripts/publishing
+        run: clojure -P
       - name: Check packages and current master commit
         id: current
         run: |
-          python3 scripts/upload-snapshots.py target/snapshots --check
+          (cd scripts/publishing && clojure -M -m publish ../../target/snapshots --check)
           if [[ "$(git ls-remote origin refs/heads/master | cut -f1)" == "$GITHUB_SHA" ]]; then
             echo 'publish=true' >> "$GITHUB_OUTPUT"
           else
@@ -192,4 +204,5 @@ jobs:
           CLOJARS_USERNAME: lvh
           CLOJARS_CLOVERAGE_TOKEN: ${{ secrets.CLOJARS_CLOVERAGE_TOKEN }}
           CLOJARS_LEIN_CLOVERAGE_TOKEN: ${{ secrets.CLOJARS_LEIN_CLOVERAGE_TOKEN }}
-        run: python3 scripts/upload-snapshots.py target/snapshots
+        working-directory: scripts/publishing
+        run: clojure -M -m publish ../../target/snapshots

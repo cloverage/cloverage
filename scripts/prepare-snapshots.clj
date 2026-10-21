@@ -1,7 +1,6 @@
 #!/usr/bin/env bb
 (require '[babashka.fs :as fs]
          '[babashka.process :as process]
-         '[cheshire.core :as json]
          '[clojure.java.io :as io]
          '[clojure.string :as str])
 
@@ -50,13 +49,12 @@
                           (mapv (fn [file]
                                   {:path (str (fs/relativize local-repo file))
                                    :sha256 (sha256 file)})))}))
-    (spit (str (fs/path local-repo "manifest.json"))
-          (json/generate-string {:version (first versions)
-                                 :commit (or (System/getenv "GITHUB_SHA")
-                                             (str/trim (:out (process/shell {:dir (str repo-root) :out :string}
-                                                                            "git" "rev-parse" "HEAD"))))
-                                 :artifacts @artifacts}
-                                {:pretty true}))
+    (spit (str (fs/path local-repo "manifest.edn"))
+          (pr-str {:version (first versions)
+                   :commit (or (System/getenv "GITHUB_SHA")
+                               (str/trim (:out (process/shell {:dir (str repo-root) :out :string}
+                                                              "git" "rev-parse" "HEAD"))))
+                   :artifacts @artifacts}))
     (println "Prepared snapshot repository:" (str local-repo))
     (when-let [summary (System/getenv "GITHUB_STEP_SUMMARY")]
       (spit summary

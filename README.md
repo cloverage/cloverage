@@ -140,7 +140,10 @@ Remove the self-reference and the test coverage report should report correctly a
 After all CI checks pass on the current `master` commit, CI prepares matching
 snapshots of the library and plugin in a local Maven repository. A separate
 GitHub-hosted runner validates and uploads those prepared files to Clojars.
-The upload job runs no project build tools, plugins, or cached dependencies.
+The upload job uses a separate Clojure CLI project with pinned `deps-deploy`
+dependencies. It restores no caches and does not load either module’s build
+configuration or execute the prepared artifacts. Dependencies are resolved
+before publishing credentials are made available.
 Pull requests exercise packaging and uploader tests without publishing.
 Production releases are not automated by this workflow.
 
@@ -157,13 +160,15 @@ Snapshot publishing does not require a GPG key.
 
 To prepare packages locally, run
 `bb scripts/prepare-snapshots.clj /tmp/cloverage-snapshots` with an empty output
-directory, then `python3 scripts/upload-snapshots.py /tmp/cloverage-snapshots --check`.
+directory. From `scripts/publishing`, run
+`clojure -M -m publish /tmp/cloverage-snapshots --check` to validate them, or
+`clojure -M:test` to exercise validation and local Maven deployment.
 To upload those packages manually, set `CLOJARS_USERNAME` and the two token
 environment variables above, then run the uploader without `--check`.
 
 Action revisions and Babashka/Leiningen versions are pinned. Pinning and an
-isolated upload runner reduce the publishing trust surface; the pinned checkout
-and artifact-download actions and GitHub's hosted runner remain trusted.
+isolated upload runner reduce the publishing trust surface; the pinned actions,
+Clojure publishing dependencies, and GitHub’s hosted runner remain trusted. A compromised build can still alter artifact contents.
 
 ## Dependency maintenance
 
@@ -174,12 +179,13 @@ Review upgrades to the Clojure compatibility profiles rather than moving all
 profiles to the newest Clojure version. Own snapshot coordinates and generated
 POM files are excluded from the scan.
 
-`renovate.json` configures reviewed dependency-update PRs for these manifests,
-including action SHA pins and the pinned Babashka/Leiningen tools. Clojure 1.11
-and 1.12 coordinates stay within their respective version lines; own snapshot
-versions are maintained with the project. Automatic merging is disabled.
-The Renovate GitHub App must be enabled for this repository to run these updates;
-configuration alone does not install or authorize the app.
+The root `deps.edn` pins antq itself, so it is included in the scan.
+Antq also scans the standalone `scripts/publishing/deps.edn` dependencies,
+action SHA pins, and Babashka/Leiningen/Clojure CLI versions in the workflow.
+For SHA pins it compares against the upstream default branch HEAD, not a release
+tag. Review the appropriate release and its full commit SHA before updating
+action pins; do not blindly apply those suggestions. Updates are run on demand,
+with no dependency bot or automatic merging.
 
 ## License
 
