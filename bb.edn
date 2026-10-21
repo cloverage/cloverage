@@ -1,0 +1,6 @@
+{:tasks
+ {outdated
+  {:doc "Check dependencies across both projects, manifests, and GitHub Actions with antq"
+   :requires ([babashka.process :as process])
+   :task (let [command (into ["clojure" "-M:outdated"] *command-line-args*)]
+           (System/exit (:exit (deref (process/process command {:inherit true})))))}}}
